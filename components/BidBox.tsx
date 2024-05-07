@@ -8,7 +8,7 @@ import {
 import { Button } from "@mui/base";
 import EURCAbi from "../abi/EURC.json";
 import EnergyBiddingMarketAbi from "../abi/EnergyBiddingMarket.json";
-import { getEURCAddress, getEnergyMarketAddress } from "../constants/config";
+import { energyMarketAddress, EURCAddress } from "../constants/config";
 import { useEffect } from "react";
 import CircularProgress from "@mui/material/CircularProgress";
 import { Image, useToast } from "@chakra-ui/react";
@@ -31,7 +31,7 @@ const EnergyBidItem: React.FC<{
       <div className="flex gap-4 items-center">
         <Image
           src={icon}
-          alt=""
+          alt="Energy"
           className="shrink-0 self-stretch w-6 aspect-square"
         />
         <div className="self-stretch my-auto">{unit}</div>
@@ -57,16 +57,15 @@ const EnergyBidItem: React.FC<{
 const EURCBidItem: React.FC<{
   icon: string;
   unit: string;
-  value?: BigInt;
-  decimals?: BigInt;
+  value?: number;
   setValue: (value: string) => void;
-}> = ({ icon, unit, value, decimals, setValue }) => (
+}> = ({ icon, unit, value, setValue }) => (
   <div className="flex gap-4 uppercase">
     <div className="flex flex-col justify-center px-5 py-2.5 text-sm leading-4 text-center text-gray-900 bg-blue-50 rounded-lg max-md:pr-5">
       <div className="flex gap-4 items-center">
         <Image
           src={icon}
-          alt=""
+          alt="Currency"
           className="shrink-0 self-stretch w-6 aspect-square"
         />
         <div className="self-stretch my-auto">{unit}</div>
@@ -75,7 +74,7 @@ const EURCBidItem: React.FC<{
     </div>
     <NumberInput
       className="my-auto text-lg leading-4 text-gray-500"
-      value={value ? +value.toString() : 0}
+      value={value ? value : 0}
       onChange={(val) => {
         setValue(val);
       }}
@@ -112,9 +111,8 @@ const BidBox: React.FC = () => {
 
   const { data: decimals } = useReadContract({
     abi: EURCAbi.abi,
-    address: getEURCAddress(),
+    address: EURCAddress,
     functionName: "decimals",
-    watch: true,
   });
 
   const {
@@ -124,24 +122,22 @@ const BidBox: React.FC = () => {
     refetch: refetchBalance,
   } = useReadContract({
     abi: EURCAbi.abi,
-    address: getEURCAddress(),
+    address: EURCAddress,
     functionName: "balanceOf",
     args: [address],
-    watch: true,
   });
 
   const { data: allowance, refetch: refetchAllowance } = useReadContract({
     abi: EURCAbi.abi,
-    address: getEURCAddress(),
+    address: EURCAddress,
     functionName: "allowance",
-    args: [address, getEnergyMarketAddress()],
-    watch: true,
+    args: [address, energyMarketAddress],
   });
 
   const handleBid = async (energy: number, amount: BigInt, hour: number) => {
     writeContract({
       abi: EnergyBiddingMarketAbi.abi,
-      address: getEnergyMarketAddress(),
+      address: energyMarketAddress,
       functionName: "placeBid",
       args: [hour, energy, amount],
     });
@@ -150,9 +146,9 @@ const BidBox: React.FC = () => {
   const handleApprove = async (amount: BigInt) => {
     const tx = writeContract({
       abi: EURCAbi.abi,
-      address: getEURCAddress(),
+      address: EURCAddress,
       functionName: "approve",
-      args: [getEnergyMarketAddress(), amount], //BigInt("115792089237316195423570985008687907853269984665640564039457584007913129639935")
+      args: [energyMarketAddress, amount], //BigInt("115792089237316195423570985008687907853269984665640564039457584007913129639935")
     });
   };
 
@@ -261,7 +257,6 @@ const BidBox: React.FC = () => {
             icon={"/eurc.png"}
             unit={currencyName}
             value={getEURCAmount()}
-            decimals={decimals}
             setValue={(val: string) => {
               setEURCAmount(parseFloat(val));
             }}

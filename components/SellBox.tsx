@@ -2,7 +2,7 @@ import * as React from "react";
 import { useAccount, useConnect, useDisconnect, useReadContract, useWaitForTransactionReceipt, useWriteContract } from 'wagmi';
 import { Button } from '@mui/base';
 import EnergyBiddingMarketAbi from "../abi/EnergyBiddingMarket.json"
-import { getEnergyMarketAddress } from "../constants/config";
+import { energyMarketAddress } from "../constants/config";
 import CircularProgress from '@mui/material/CircularProgress';
 import { Image, useToast } from "@chakra-ui/react";
 import {
@@ -20,14 +20,14 @@ const EnergyBidItem: React.FC<{
   icon: string;
   unit: string;
   value?: BigInt;
-  setValue: (value: string) => void;
+  setValue: (value: number) => void;
 }> = ({ icon, unit, value, setValue }) => (
   <div className="flex gap-4 uppercase">
     <div className="flex flex-col justify-center px-5 py-2.5 text-sm leading-4 text-center text-gray-900 bg-blue-50 rounded-lg max-md:pr-5">
       <div className="flex gap-4 items-center">
         <Image
           src={icon}
-          alt=""
+          alt="Energy"
           className="shrink-0 self-stretch w-6 aspect-square"
         />
         <div className="self-stretch my-auto">{unit}</div>
@@ -38,7 +38,7 @@ const EnergyBidItem: React.FC<{
       className="my-auto text-lg leading-4 text-gray-500"
       value={value ? +value.toString() : 0}
       onChange={(val) => {
-        setValue(val);
+        setValue(+val);
       }}
     >
       <NumberInputField />
@@ -52,7 +52,6 @@ const EnergyBidItem: React.FC<{
 
 const BidBox: React.FC = () => {
 
-    const currencyName = "EURC";
     const energyUnit = "kWh";
 
     const { isConnected, address } = useAccount();
@@ -67,7 +66,7 @@ const BidBox: React.FC = () => {
   const handleAsk = async (energy: number, hour: number) => {
     writeContract({
       abi: EnergyBiddingMarketAbi.abi,
-      address: getEnergyMarketAddress(),
+      address: energyMarketAddress,
       functionName: 'placeAsk',
       args: [hour, energy],
     })
