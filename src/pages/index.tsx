@@ -6,7 +6,7 @@ import BidBox from "../../components/BidBox";
 import Link from "next/link";
 import SellBox from "../../components/SellBox";
 import Slider from "../../components/Slider";
-import MyOrdersBox from "../../components/MyOrdersBox";
+import MyBidsBox from "../../components/MyBidsBox";
 
 
 export default function Home() {
@@ -75,7 +75,7 @@ export default function Home() {
 			<Slider selected={selected} setSelected={setSelected}/>
 			{selected == 1 ? <BidBox /> : ""}
 			{selected == 2 ? <SellBox /> : ""}
-			{selected == 3 ? <MyOrdersBox /> : ""}
+			{selected == 3 ? <MyBidsBox /> : ""}
 			</div>
 		</>
 	);

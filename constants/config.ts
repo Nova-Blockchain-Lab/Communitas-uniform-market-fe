@@ -38,4 +38,4 @@ export const energyMarketAddress = contractAddresses[defaultChain.id].energyMark
 
 export const EURCAddress = contractAddresses[defaultChain.id].eurc;
 
-export const DAYS_TO_DISPLAY = 0; // 0 means today, 1 means today and yesterday and tomorrow.
+export const DAYS_TO_DISPLAY = 1; // 0 means today, 1 means today and yesterday and tomorrow.
