@@ -1,10 +1,8 @@
 import * as React from "react";
 import { useAccount, useConnect, useDisconnect, useReadContract, useWaitForTransactionReceipt, useWriteContract } from 'wagmi';
-import { Button } from '@mui/base';
 import EnergyBiddingMarketAbi from "../abi/EnergyBiddingMarket.json"
 import { energyMarketAddress } from "../constants/config";
-import CircularProgress from '@mui/material/CircularProgress';
-import { Image, useToast } from "@chakra-ui/react";
+import { Button, Image, Spinner, useToast } from "@chakra-ui/react";
 import {
   NumberInput,
   NumberInputField,
@@ -130,7 +128,7 @@ const BidBox: React.FC = () => {
 
       { isWritePending || isConfirming  ? 
         <Button disabled={true} className="justify-center items-center px-8 py-4 mt-10 text-base leading-4 text-center text-white bg-blue-600 rounded-lg border border-blue-600 border-solid max-md:px-5 max-md:max-w-full">
-          <CircularProgress color='inherit'/>
+          <Spinner color='inherit'/>
         </Button> : null  
     }
       { isConnected && !isWritePending && !isConfirming ? 

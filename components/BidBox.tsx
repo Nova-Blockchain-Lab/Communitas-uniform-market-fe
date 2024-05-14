@@ -5,13 +5,11 @@ import {
   useWaitForTransactionReceipt,
   useWriteContract,
 } from "wagmi";
-import { Button } from "@mui/base";
 import EURCAbi from "../abi/EURC.json";
 import EnergyBiddingMarketAbi from "../abi/EnergyBiddingMarket.json";
 import { energyMarketAddress, EURCAddress } from "../constants/config";
 import { useEffect } from "react";
-import CircularProgress from "@mui/material/CircularProgress";
-import { Image, useToast } from "@chakra-ui/react";
+import { Button, Image, Spinner, useToast } from "@chakra-ui/react";
 import {
   NumberInput,
   NumberInputField,
@@ -19,6 +17,7 @@ import {
   NumberIncrementStepper,
   NumberDecrementStepper,
 } from "@chakra-ui/react";
+import DateTimePicker from "./DateTimePicker";
 
 const EnergyBidItem: React.FC<{
   icon: string;
@@ -98,6 +97,16 @@ const BidBox: React.FC = () => {
   const [energy, setEnergy] = React.useState<number>(0);
   const [amount, setAmount] = React.useState<BigInt>(BigInt(0));
 
+  const getNextHour = (hourOffset = 0) => {
+    const now = new Date();
+    now.setHours(now.getHours() + hourOffset);
+    now.setMinutes(0, 0, 0);
+    return now;
+  };
+
+  const [startDate, setStartDate] = React.useState(getNextHour(1));
+  const [endDate, setEndDate] = React.useState(getNextHour(1));
+
   const {
     data: hash,
     isPending: isWritePending,
@@ -134,13 +143,22 @@ const BidBox: React.FC = () => {
     args: [address, energyMarketAddress],
   });
 
-  const handleBid = async (energy: number, amount: BigInt, hour: number) => {
+  const handleBid = async (energy: number, amount: BigInt) => {
+    const startTimestamp = startDate.getTime() / 1000;
+    const endTimestamp = endDate.getTime() / 1000;
+    console.log(startTimestamp, endTimestamp, energy, amount)
+    if (startTimestamp == endTimestamp) {
     writeContract({
       abi: EnergyBiddingMarketAbi.abi,
       address: energyMarketAddress,
       functionName: "placeBid",
-      args: [hour, energy, amount],
+      args: [startTimestamp, energy, amount],
     });
+    console.log("bid placed")
+  } else {
+    console.log("else?")
+    // todo place multiple bids
+  }
   };
 
   const handleApprove = async (amount: BigInt) => {
@@ -215,6 +233,7 @@ const BidBox: React.FC = () => {
 
   return (
     <div className="flex justify-center items-center">
+      <DateTimePicker startDate={startDate} setStartDate={setStartDate} endDate={endDate} setEndDate={setEndDate}/>
       <div className="flex flex-col px-7 py-9 font-medium bg-white rounded-xl shadow-lg max-w-[526px] max-md:px-5">
         <div className="flex gap-5 justify-between px-0.5 py-1 text-2xl font-bold leading-6 text-gray-900 whitespace-nowrap max-md:flex-wrap max-md:max-w-full">
           Bid
@@ -282,7 +301,7 @@ const BidBox: React.FC = () => {
             disabled={true}
             className="justify-center items-center px-8 py-4 mt-10 text-base leading-4 text-center text-white bg-blue-600 rounded-lg border border-blue-600 border-solid max-md:px-5 max-md:max-w-full"
           >
-            <CircularProgress color="inherit" />
+            <Spinner />
           </Button>
         ) : null}
         {isConnected &&
@@ -290,7 +309,7 @@ const BidBox: React.FC = () => {
         !isConfirming &&
         allowance >= amount ? (
           <Button
-            onClick={() => handleBid(energy, amount, getNextHourTimestamp())}
+            onClick={() => handleBid(energy, amount)}
             className="justify-center items-center px-8 py-4 mt-10 text-base leading-4 text-center text-white bg-blue-600 rounded-lg border border-blue-600 border-solid max-md:px-5 max-md:max-w-full"
           >
             Submit
