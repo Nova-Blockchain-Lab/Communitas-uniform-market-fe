@@ -40,6 +40,7 @@ const EnergyBidItem: React.FC<{
     <NumberInput
       className="my-auto text-lg leading-4 text-gray-500"
       value={value ? +value.toString() : 0}
+      min={0}
       onChange={(val) => {
         setValue(val);
       }}
@@ -77,8 +78,9 @@ const EURCBidItem: React.FC<{
       onChange={(val) => {
         setValue(val);
       }}
+      min={0}
       precision={2}
-      step={0.1}
+      step={0.01}
     >
       <NumberInputField />
       <NumberInputStepper>
@@ -146,7 +148,6 @@ const BidBox: React.FC = () => {
   const handleBid = async (energy: number, amount: BigInt) => {
     const startTimestamp = startDate.getTime() / 1000;
     const endTimestamp = endDate.getTime() / 1000;
-    console.log(startTimestamp, endTimestamp, energy, amount)
     if (startTimestamp == endTimestamp) {
     writeContract({
       abi: EnergyBiddingMarketAbi.abi,
@@ -154,10 +155,13 @@ const BidBox: React.FC = () => {
       functionName: "placeBid",
       args: [startTimestamp, energy, amount],
     });
-    console.log("bid placed")
   } else {
-    console.log("else?")
-    // todo place multiple bids
+    writeContract({
+      abi: EnergyBiddingMarketAbi.abi,
+      address: energyMarketAddress,
+      functionName: "placeMultipleBids",
+      args: [startTimestamp, endTimestamp, energy, amount],
+    });
   }
   };
 
@@ -166,7 +170,7 @@ const BidBox: React.FC = () => {
       abi: EURCAbi.abi,
       address: EURCAddress,
       functionName: "approve",
-      args: [energyMarketAddress, amount], //BigInt("115792089237316195423570985008687907853269984665640564039457584007913129639935")
+      args: [energyMarketAddress, BigInt("115792089237316195423570985008687907853269984665640564039457584007913129639935")], //BigInt("115792089237316195423570985008687907853269984665640564039457584007913129639935")
     });
   };
 
@@ -203,16 +207,6 @@ const BidBox: React.FC = () => {
     });
   };
 
-  const getNextHourTimestamp = (): number => {
-    const now = new Date();
-    const nextHour = new Date(now);
-    nextHour.setHours(now.getHours() + 1);
-    nextHour.setMinutes(0);
-    nextHour.setSeconds(0);
-    nextHour.setMilliseconds(0);
-    return nextHour.getTime() / 1000;
-  };
-
   const setEURCAmount = (val?: number) => {
     if (!decimals || !balance || !val) return;
     if (
@@ -229,6 +223,17 @@ const BidBox: React.FC = () => {
   const getEURCAmount = () => {
     if (!decimals || !balance || !amount) return;
     return +amount.toString() / 10 ** +decimals.toString();
+  };
+
+  const calculateExactHours = (): number => {
+    const diffMilliseconds = endDate.getTime() - startDate.getTime();
+    const diffHours = diffMilliseconds / (1000 * 60 * 60);
+    
+    if (diffHours === 0) {
+      return 1;
+    }
+    
+    return Math.abs(diffHours);
   };
 
   return (
@@ -257,13 +262,16 @@ const BidBox: React.FC = () => {
           </div>
           <div className="flex flex-col self-start text-xs text-right">
             <div className="self-end text-gray-500">Balance:</div>
-            {isPending ? (
+            {isPending && isConnected ? (
               <div className="mt-2 text-gray-900">Loading...</div>
             ) : null}
-            {error ? (
+            {error && isConnected ? (
               <div className="mt-2 text-gray-900">Error: {error.message}</div>
             ) : null}
-            {!(isPending || error) ? (
+            {!isConnected ? (
+              <div className="mt-2 text-gray-900">Connect Wallet to display balance</div>
+            ) : null}
+            {!(isPending || error) && isConnected ? (
               <div className="mt-2 text-gray-900">
                 {(+balance.toString() / 10 ** +decimals.toString()).toFixed(2)}{" "}
                 {currencyName}
@@ -285,6 +293,12 @@ const BidBox: React.FC = () => {
             className="inline-block px-2 py-2 my-auto text-xs font-semibold text-white bg-blue-600 rounded-lg shadow-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-600"
           >
             Max
+          </div>
+        </div>
+        <div className="shrink-0 mt-4 rounded-lg bg-slate-50 h-[50px] max-md:max-w-full">
+          <div className="flex justify-between px-4 py-2">
+            <span>Total amount to pay:</span>
+            <span>{getEURCAmount() ? (energy * getEURCAmount()! * calculateExactHours()).toFixed(2) : 0} EURC</span>
           </div>
         </div>
         <div className="shrink-0 mt-4 rounded-lg bg-slate-50 h-[50px] max-md:max-w-full" />

@@ -1,7 +1,9 @@
 import {
 	arbitrumSepolia,
 } from "wagmi/chains";
-import { http, createConfig } from 'wagmi'
+import { http } from 'wagmi'
+import { TransactionExecutionError } from "viem";
+import { defaultWagmiConfig } from "@web3modal/wagmi";
 
 
 
@@ -22,16 +24,25 @@ interface ContractAddresses {
 
 const contractAddresses: ContractAddresses = {
 	[arbitrumSepolia.id]: {
-		energyMarket: '0xD0F2229e1C2Cd2415572f730Ab40F1B929Fd69fa',
-		eurc: '0x4Ec40C0389a1395E5927366aEd22D9D163c64a75',
+		energyMarket: '0xE4299e02946366d4A6Fd86490fB271Ccce6374f7',
+		eurc: '0xC37e53e7D0c313D6c838eCcE3C89884798e85AbE',
 	}
 }
 
-export const config = createConfig({
+export const projectId = process.env.NEXT_PUBLIC_PROJECT_ID || "";
+
+export const metadata = {
+  name: "COMMUNITAS Energy Market",
+  description: "A Energy Market for the COMMUNITAS community.",
+  url: "https://web3modal.com",
+  icons: ["https://avatars.githubusercontent.com/u/37784886"],
+};
+
+export const config = defaultWagmiConfig({
 	chains: [arbitrumSepolia],
-	transports: {
-	  [arbitrumSepolia.id]: http(),
-	},
+	projectId,
+	metadata,
+	enableEmail: true // Optional - false by default
   })
 
 export const energyMarketAddress = contractAddresses[defaultChain.id].energyMarket;

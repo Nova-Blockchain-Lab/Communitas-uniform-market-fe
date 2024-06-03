@@ -96,10 +96,10 @@ const BidBox: React.FC = () => {
     });
   };
   
-  const getNextHourTimestamp = (): number => {
+  const getCurrentTimestamp = (): number => {
     const now = new Date();
     const nextHour = new Date(now);
-    nextHour.setHours(now.getHours() + 1);
+    nextHour.setHours(now.getHours());
     nextHour.setMinutes(0);
     nextHour.setSeconds(0);
     nextHour.setMilliseconds(0);
@@ -132,7 +132,7 @@ const BidBox: React.FC = () => {
         </Button> : null  
     }
       { isConnected && !isWritePending && !isConfirming ? 
-        <Button onClick={() => handleAsk(energy, getNextHourTimestamp())} className="justify-center items-center px-8 py-4 mt-10 text-base leading-4 text-center text-white bg-blue-600 rounded-lg border border-blue-600 border-solid max-md:px-5 max-md:max-w-full">
+        <Button onClick={() => handleAsk(energy, getCurrentTimestamp())} className="justify-center items-center px-8 py-4 mt-10 text-base leading-4 text-center text-white bg-blue-600 rounded-lg border border-blue-600 border-solid max-md:px-5 max-md:max-w-full">
             Submit
         </Button>
         : null }
