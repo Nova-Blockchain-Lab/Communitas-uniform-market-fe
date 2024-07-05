@@ -1,13 +1,13 @@
 import * as React from "react";
 import {
   useAccount,
+  useBalance,
   useReadContract,
   useWaitForTransactionReceipt,
   useWriteContract,
 } from "wagmi";
-import EURCAbi from "../abi/EURC.json";
 import EnergyBiddingMarketAbi from "../abi/EnergyBiddingMarket.json";
-import { energyMarketAddress, EURCAddress } from "../constants/config";
+import { energyMarketAddress } from "../constants/config";
 import { useEffect } from "react";
 import { Button, Image, Spinner, useToast } from "@chakra-ui/react";
 import {
@@ -54,7 +54,7 @@ const EnergyBidItem: React.FC<{
   </div>
 );
 
-const EURCBidItem: React.FC<{
+const ETHBidItem: React.FC<{
   icon: string;
   unit: string;
   value?: number;
@@ -80,7 +80,7 @@ const EURCBidItem: React.FC<{
       }}
       min={0}
       precision={2}
-      step={0.01}
+      step={0.000001}
     >
       <NumberInputField />
       <NumberInputStepper>
@@ -92,7 +92,7 @@ const EURCBidItem: React.FC<{
 );
 
 const BidBox: React.FC = () => {
-  const currencyName = "EURC";
+  const currencyName = "ETH";
   const energyUnit = "kWh";
 
   const { isConnected, address } = useAccount();
@@ -107,7 +107,7 @@ const BidBox: React.FC = () => {
   };
 
   const [startDate, setStartDate] = React.useState(getNextHour(1));
-  const [endDate, setEndDate] = React.useState(getNextHour(1));
+  const [endDate, setEndDate] = React.useState(getNextHour(2));
 
   const {
     data: hash,
@@ -120,35 +120,21 @@ const BidBox: React.FC = () => {
 
   const toast = useToast();
 
-  const { data: decimals } = useReadContract({
-    abi: EURCAbi.abi,
-    address: EURCAddress,
-    functionName: "decimals",
-  });
+  const decimals = 18;
 
   const {
     data: balance,
     error,
-    isPending,
+    isLoading: isPending,
     refetch: refetchBalance,
-  } = useReadContract({
-    abi: EURCAbi.abi,
-    address: EURCAddress,
-    functionName: "balanceOf",
-    args: [address],
-  });
-
-  const { data: allowance, refetch: refetchAllowance } = useReadContract({
-    abi: EURCAbi.abi,
-    address: EURCAddress,
-    functionName: "allowance",
-    args: [address, energyMarketAddress],
+  } = useBalance({
+    address: address,
   });
 
   const handleBid = async (energy: number, amount: BigInt) => {
     const startTimestamp = startDate.getTime() / 1000;
     const endTimestamp = endDate.getTime() / 1000;
-    if (startTimestamp == endTimestamp) {
+    if (startTimestamp == endTimestamp - 3600) {
     writeContract({
       abi: EnergyBiddingMarketAbi.abi,
       address: energyMarketAddress,
@@ -165,18 +151,8 @@ const BidBox: React.FC = () => {
   }
   };
 
-  const handleApprove = async (amount: BigInt) => {
-    const tx = writeContract({
-      abi: EURCAbi.abi,
-      address: EURCAddress,
-      functionName: "approve",
-      args: [energyMarketAddress, BigInt("115792089237316195423570985008687907853269984665640564039457584007913129639935")], //BigInt("115792089237316195423570985008687907853269984665640564039457584007913129639935")
-    });
-  };
-
   useEffect(() => {
     if (isConnected && isConfirmed) {
-      refetchAllowance();
       refetchBalance();
     }
   }, [isConfirmed, isConnected]);
@@ -207,22 +183,21 @@ const BidBox: React.FC = () => {
     });
   };
 
-  const setEURCAmount = (val?: number) => {
-    if (!decimals || !balance || !val) return;
+  const setETHAmount = (val?: number) => {
+    if (!balance || !val) return;
     if (
       +val * 10 ** +decimals.toString() >
-      +balance.toString()
+      +balance.value.toString()
     )
       return;
     const newAmount =
       val * 10 ** +decimals.toString();
-    console.log(newAmount);
     setAmount(BigInt(newAmount));
   };
 
-  const getEURCAmount = () => {
-    if (!decimals || !balance || !amount) return;
-    return +amount.toString() / 10 ** +decimals.toString();
+  const getETHAmount = () => {
+    if (!balance || !amount) return;
+    return +amount.toString() / 10 ** decimals;
   };
 
   const calculateExactHours = (): number => {
@@ -258,7 +233,7 @@ const BidBox: React.FC = () => {
         </div>
         <div className="flex gap-5 justify-between px-0.5 py-px mt-8 leading-[100%] max-md:flex-wrap max-md:max-w-full">
           <div className="flex flex-col justify-end text-sm text-gray-500">
-            <span className="text-gray-500">{currencyName}</span>
+            <span className="text-gray-500">Price</span>
           </div>
           <div className="flex flex-col self-start text-xs text-right">
             <div className="self-end text-gray-500">Balance:</div>
@@ -271,34 +246,34 @@ const BidBox: React.FC = () => {
             {!isConnected ? (
               <div className="mt-2 text-gray-900">Connect Wallet to display balance</div>
             ) : null}
-            {!(isPending || error) && isConnected ? (
+            {!(isPending || error) && isConnected && balance ? (
               <div className="mt-2 text-gray-900">
-                {(+balance.toString() / 10 ** +decimals.toString()).toFixed(2)}{" "}
+                {(+balance.value.toString() / 10 ** +decimals.toString()).toFixed(10)}{" "}
                 {currencyName}
               </div>
             ) : null}
           </div>
         </div>
         <div className="flex gap-4 py-1 mt-2 uppercase whitespace-nowrap bg-white rounded-xl border border-indigo-50 border-solid max-md:flex-wrap max-md:max-w-full">
-          <EURCBidItem
-            icon={"/eurc.png"}
+          <ETHBidItem
+            icon={"/eth.png"}
             unit={currencyName}
-            value={getEURCAmount()}
+            value={getETHAmount()}
             setValue={(val: string) => {
-              setEURCAmount(parseFloat(val));
+              setETHAmount(parseFloat(val));
             }}
           />
-          <div
-            onClick={() => setAmount(balance)}
+          { balance ? <div
+            onClick={() => setAmount(balance.value)}
             className="inline-block px-2 py-2 my-auto text-xs font-semibold text-white bg-blue-600 rounded-lg shadow-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-600"
-          >
-            Max
-          </div>
+          >Max
+          </div> : null}
+            
         </div>
         <div className="shrink-0 mt-4 rounded-lg bg-slate-50 h-[50px] max-md:max-w-full">
           <div className="flex justify-between px-4 py-2">
             <span>Total amount to pay:</span>
-            <span>{getEURCAmount() ? (energy * getEURCAmount()! * calculateExactHours()).toFixed(2) : 0} EURC</span>
+            <span>{getETHAmount() ? (energy * getETHAmount()! * calculateExactHours()).toFixed(2) : 0} {currencyName}</span>
           </div>
         </div>
         <div className="shrink-0 mt-4 rounded-lg bg-slate-50 h-[50px] max-md:max-w-full" />
@@ -320,24 +295,12 @@ const BidBox: React.FC = () => {
         ) : null}
         {isConnected &&
         !isWritePending &&
-        !isConfirming &&
-        allowance >= amount ? (
+        !isConfirming ? (
           <Button
             onClick={() => handleBid(energy, amount)}
             className="justify-center items-center px-8 py-4 mt-10 text-base leading-4 text-center text-white bg-blue-600 rounded-lg border border-blue-600 border-solid max-md:px-5 max-md:max-w-full"
           >
             Submit
-          </Button>
-        ) : null}
-        {isConnected &&
-        !isWritePending &&
-        !isConfirming &&
-        allowance < amount ? (
-          <Button
-            onClick={() => handleApprove(amount)}
-            className="justify-center items-center px-8 py-4 mt-10 text-base leading-4 text-center text-white bg-blue-600 rounded-lg border border-blue-600 border-solid max-md:px-5 max-md:max-w-full"
-          >
-            Approve
           </Button>
         ) : null}
       </div>
