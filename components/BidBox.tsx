@@ -79,7 +79,7 @@ const ETHBidItem: React.FC<{
         setValue(val);
       }}
       min={0}
-      precision={2}
+      precision={10}
       step={0.000001}
     >
       <NumberInputField />
@@ -135,18 +135,22 @@ const BidBox: React.FC = () => {
     const startTimestamp = startDate.getTime() / 1000;
     const endTimestamp = endDate.getTime() / 1000;
     if (startTimestamp == endTimestamp - 3600) {
+      console.log("Placing single bid", BigInt(energy) * BigInt(amount.toString()));
     writeContract({
       abi: EnergyBiddingMarketAbi.abi,
       address: energyMarketAddress,
       functionName: "placeBid",
-      args: [startTimestamp, energy, amount],
+      value: BigInt(energy) * BigInt(amount.toString()),
+      args: [startTimestamp, energy],
     });
   } else {
+    console.log("Placing multiple bids", BigInt(energy) * BigInt(amount.toString()) * BigInt(calculateExactHours()));
     writeContract({
       abi: EnergyBiddingMarketAbi.abi,
       address: energyMarketAddress,
       functionName: "placeMultipleBids",
-      args: [startTimestamp, endTimestamp, energy, amount],
+      value: BigInt(energy) * BigInt(amount.toString()) * BigInt(calculateExactHours()),
+      args: [startTimestamp, endTimestamp, energy],
     });
   }
   };
@@ -183,15 +187,20 @@ const BidBox: React.FC = () => {
     });
   };
 
-  const setETHAmount = (val?: number) => {
-    if (!balance || !val) return;
+  const setETHAmount = (val: number) => {
+    console.log(val);
+    if (!balance) return;
     if (
       +val * 10 ** +decimals.toString() >
       +balance.value.toString()
     )
-      return;
+      {
+        console.log(+val * 10 ** +decimals.toString())
+        console.log(+balance.value.toString())
+        return;
+      }
     const newAmount =
-      val * 10 ** +decimals.toString();
+      Math.round(val * 10 ** +decimals.toString());
     setAmount(BigInt(newAmount));
   };
 
@@ -273,7 +282,7 @@ const BidBox: React.FC = () => {
         <div className="shrink-0 mt-4 rounded-lg bg-slate-50 h-[50px] max-md:max-w-full">
           <div className="flex justify-between px-4 py-2">
             <span>Total amount to pay:</span>
-            <span>{getETHAmount() ? (energy * getETHAmount()! * calculateExactHours()).toFixed(2) : 0} {currencyName}</span>
+            <span>{getETHAmount() ? (energy * getETHAmount()! * calculateExactHours()).toFixed(6) : 0} {currencyName}</span>
           </div>
         </div>
         <div className="shrink-0 mt-4 rounded-lg bg-slate-50 h-[50px] max-md:max-w-full" />
