@@ -18,6 +18,7 @@ import {
   NumberDecrementStepper,
 } from "@chakra-ui/react";
 import DateTimePicker from "./DateTimePicker";
+import { fetchEthPrice } from "../src/utils/fetchEthPrice";
 
 const EnergyBidItem: React.FC<{
   icon: string;
@@ -59,7 +60,8 @@ const ETHBidItem: React.FC<{
   unit: string;
   value?: number;
   setValue: (value: string) => void;
-}> = ({ icon, unit, value, setValue }) => (
+  ethPrice?: number;
+}> = ({ icon, unit, value, setValue, ethPrice }) => (
   <div className="flex gap-4 uppercase">
     <div className="flex flex-col justify-center px-5 py-2.5 text-sm leading-4 text-center text-gray-900 bg-blue-50 rounded-lg max-md:pr-5">
       <div className="flex gap-4 items-center">
@@ -83,6 +85,11 @@ const ETHBidItem: React.FC<{
       step={0.000001}
     >
       <NumberInputField />
+      {ethPrice && value ? (
+        <div className="absolute right-12 top-3 text-xs text-gray-500 shadow-sm">
+          ${(value * ethPrice).toFixed(2)}
+        </div>
+      ) : null}
       <NumberInputStepper>
         <NumberIncrementStepper />
         <NumberDecrementStepper />
@@ -98,6 +105,7 @@ const BidBox: React.FC = () => {
   const { isConnected, address } = useAccount();
   const [energy, setEnergy] = React.useState<number>(0);
   const [amount, setAmount] = React.useState<BigInt>(BigInt(1000000000000));
+  const [ethPrice, setEthPrice] = React.useState<number | undefined>(undefined);
 
   const getNextHour = (hourOffset = 0) => {
     const now = new Date();
@@ -136,22 +144,25 @@ const BidBox: React.FC = () => {
     const startTimestamp = startDate.getTime() / 1000;
     const endTimestamp = endDate.getTime() / 1000;
     if (startTimestamp == endTimestamp - 3600) {
-    writeContract({
-      abi: EnergyBiddingMarketAbi.abi,
-      address: energyMarketAddress,
-      functionName: "placeBid",
-      value: BigInt(energy) * BigInt(amount.toString()),
-      args: [startTimestamp, energy],
-    });
-  } else {
-    writeContract({
-      abi: EnergyBiddingMarketAbi.abi,
-      address: energyMarketAddress,
-      functionName: "placeMultipleBids",
-      value: BigInt(energy) * BigInt(amount.toString()) * BigInt(calculateExactHours()),
-      args: [startTimestamp, endTimestamp, energy],
-    });
-  }
+      writeContract({
+        abi: EnergyBiddingMarketAbi.abi,
+        address: energyMarketAddress,
+        functionName: "placeBid",
+        value: BigInt(energy) * BigInt(amount.toString()),
+        args: [startTimestamp, energy],
+      });
+    } else {
+      writeContract({
+        abi: EnergyBiddingMarketAbi.abi,
+        address: energyMarketAddress,
+        functionName: "placeMultipleBids",
+        value:
+          BigInt(energy) *
+          BigInt(amount.toString()) *
+          BigInt(calculateExactHours()),
+        args: [startTimestamp, endTimestamp, energy],
+      });
+    }
   };
 
   useEffect(() => {
@@ -165,6 +176,15 @@ const BidBox: React.FC = () => {
     if (isConfirmed) sendSuccessfulNotification();
     else sendUnsuccessfulNotification();
   }, [isConfirming]);
+
+  useEffect(() => {
+    const fetchPrice = async () => {
+      const price = await fetchEthPrice();
+      setEthPrice(price);
+    };
+
+    fetchPrice();
+  }, []);
 
   const sendSuccessfulNotification = () => {
     toast({
@@ -188,13 +208,8 @@ const BidBox: React.FC = () => {
 
   const setETHAmount = (val: number) => {
     if (!balance) return;
-    if (
-      +val * 10 ** +decimals.toString() >
-      +balance.value.toString()
-    )
-        return;
-    const newAmount =
-      Math.round(val * 10 ** +decimals.toString());
+    if (+val * 10 ** +decimals.toString() > +balance.value.toString()) return;
+    const newAmount = Math.round(val * 10 ** +decimals.toString());
     setAmount(BigInt(newAmount));
   };
 
@@ -206,17 +221,22 @@ const BidBox: React.FC = () => {
   const calculateExactHours = (): number => {
     const diffMilliseconds = endDate.getTime() - startDate.getTime();
     const diffHours = diffMilliseconds / (1000 * 60 * 60);
-    
+
     if (diffHours === 0) {
       return 1;
     }
-    
+
     return Math.abs(diffHours);
   };
 
   return (
     <div className="flex justify-center items-center">
-      <DateTimePicker startDate={startDate} setStartDate={setStartDate} endDate={endDate} setEndDate={setEndDate}/>
+      <DateTimePicker
+        startDate={startDate}
+        setStartDate={setStartDate}
+        endDate={endDate}
+        setEndDate={setEndDate}
+      />
       <div className="flex flex-col px-7 py-9 font-medium bg-white rounded-xl shadow-lg max-w-[526px] max-md:px-5">
         <div className="flex gap-5 justify-between px-0.5 py-1 text-2xl font-bold leading-6 text-gray-900 whitespace-nowrap max-md:flex-wrap max-md:max-w-full">
           Bid
@@ -230,7 +250,9 @@ const BidBox: React.FC = () => {
             unit={energyUnit}
             value={BigInt(energy.toString())}
             setValue={(val: string) => {
-              isNaN(parseFloat(val)) ? setEnergy(0) : setEnergy(parseFloat(val));
+              isNaN(parseFloat(val))
+                ? setEnergy(0)
+                : setEnergy(parseFloat(val));
             }}
           />
         </div>
@@ -247,11 +269,16 @@ const BidBox: React.FC = () => {
               <div className="mt-2 text-gray-900">Error: {error.message}</div>
             ) : null}
             {!isConnected ? (
-              <div className="mt-2 text-gray-900">Connect Wallet to display balance</div>
+              <div className="mt-2 text-gray-900">
+                Connect Wallet to display balance
+              </div>
             ) : null}
             {!(isPending || error) && isConnected && balance ? (
               <div className="mt-2 text-gray-900">
-                {(+balance.value.toString() / 10 ** +decimals.toString()).toFixed(10)}{" "}
+                {(
+                  +balance.value.toString() /
+                  10 ** +decimals.toString()
+                ).toFixed(10)}{" "}
                 {currencyName}
               </div>
             ) : null}
@@ -265,18 +292,44 @@ const BidBox: React.FC = () => {
             setValue={(val: string) => {
               setETHAmount(parseFloat(val));
             }}
+            ethPrice={ethPrice}
           />
-          { balance ? <div
-            onClick={() => setAmount(balance.value)}
-            className="inline-block px-2 py-2 my-auto text-xs font-semibold text-white bg-blue-600 rounded-lg shadow-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-600"
-          >Max
-          </div> : null}
-            
+          {balance ? (
+            <div
+              onClick={() => setAmount(balance.value)}
+              className="inline-block px-2 py-2 my-auto text-xs font-semibold text-white bg-blue-600 rounded-lg shadow-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-600"
+            >
+              Max
+            </div>
+          ) : null}
         </div>
         <div className="shrink-0 mt-4 rounded-lg bg-slate-50 h-[50px] max-md:max-w-full">
           <div className="flex justify-between px-4 py-2">
             <span>Total amount to pay:</span>
-            <span>{getETHAmount() ? (energy * getETHAmount()! * calculateExactHours()).toFixed(6) : 0} {currencyName}</span>
+            <span className="flex items-center">
+              {getETHAmount() ? (
+                <>
+                  {(energy * getETHAmount()! * calculateExactHours()).toFixed(
+                    6
+                  )}{" "}
+                  {currencyName}
+                  {ethPrice && (
+                    <span className="ml-2 text-xs text-gray-500 shadow-sm">
+                      ($
+                      {(
+                        energy *
+                        getETHAmount()! *
+                        calculateExactHours() *
+                        ethPrice
+                      ).toFixed(2)}
+                      )
+                    </span>
+                  )}
+                </>
+              ) : (
+                0
+              )}
+            </span>
           </div>
         </div>
         <div className="shrink-0 mt-4 rounded-lg bg-slate-50 h-[50px] max-md:max-w-full" />
@@ -296,9 +349,7 @@ const BidBox: React.FC = () => {
             <Spinner />
           </Button>
         ) : null}
-        {isConnected &&
-        !isWritePending &&
-        !isConfirming ? (
+        {isConnected && !isWritePending && !isConfirming ? (
           <Button
             onClick={() => handleBid(energy, amount)}
             className="justify-center items-center px-8 py-4 mt-10 text-base leading-4 text-center text-white bg-blue-600 rounded-lg border border-blue-600 border-solid max-md:px-5 max-md:max-w-full"

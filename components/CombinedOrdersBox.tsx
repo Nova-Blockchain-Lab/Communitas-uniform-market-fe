@@ -1,7 +1,9 @@
 import { useAccount, useReadContracts } from "wagmi";
 import { DAYS_TO_DISPLAY, energyMarketAddress } from "../constants/config";
 import EnergyBiddingMarketAbi from "../abi/EnergyBiddingMarket.json";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { fetchEthPrice } from "../src/utils/fetchEthPrice";
+
 
 // Utility function for generating timestamps
 export const getAllHourTimestamps = (days: number): number[] => {
@@ -28,7 +30,19 @@ interface BidItemProps {
   price: BigInt;
 }
 
-const BidItem: React.FC<BidItemProps> = ({ time, settled, amount, price }) => (
+const BidItem: React.FC<BidItemProps> = ({ time, settled, amount, price }) => {
+  const [ethPrice, setEthPrice] = useState<number | undefined>(undefined);
+
+  useEffect(() => {
+    const fetchPrice = async () => {
+      const price = await fetchEthPrice();
+      setEthPrice(price);
+    };
+
+    fetchPrice();
+  }, []);
+
+  return (
   <div className="flex flex-col justify-center p-2.5 w-full bg-white border-b border-gray-100 border-solid">
     <div className="flex gap-2.5 text-neutral-700">
       <div className="flex-1 text-base font-semibold">Bid</div>
@@ -51,12 +65,22 @@ const BidItem: React.FC<BidItemProps> = ({ time, settled, amount, price }) => (
           {"Amount: " + amount.toString()}
         </div>
       )}
-      <div className="text-indigo-600">
-        Price: {(+price.toString() / 10 ** 18).toFixed(6)} ETH
-      </div>
+      <div className="flex items-center">
+          <div className="text-indigo-600">
+            Price: {(+price.toString() / 10 ** 18).toFixed(6)} ETH
+          </div>
+          {ethPrice && (
+            <div className="ml-2 text-xs text-gray-500 shadow-sm">
+              (${((+price.toString() / 10 ** 18) * ethPrice).toFixed(2)})
+            </div>
+          )}
+          <div className="text-indigo-600">
+            &nbsp;per kWh
+          </div>
+        </div>
     </div>
   </div>
-);
+)}
 
 // MyList component for bids
 interface MyListProps {
