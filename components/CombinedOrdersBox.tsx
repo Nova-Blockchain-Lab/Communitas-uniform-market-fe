@@ -52,7 +52,7 @@ const BidItem: React.FC<BidItemProps> = ({ time, settled, amount, price }) => (
         </div>
       )}
       <div className="text-indigo-600">
-        {"Price: " + (+price.toString() / 10 ** 6).toFixed(2)}
+        Price: {(+price.toString() / 10 ** 18).toFixed(6)} ETH
       </div>
     </div>
   </div>

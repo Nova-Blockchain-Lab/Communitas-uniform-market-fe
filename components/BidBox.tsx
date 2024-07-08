@@ -78,7 +78,7 @@ const ETHBidItem: React.FC<{
       onChange={(val) => {
         setValue(val);
       }}
-      min={0}
+      min={0.000001}
       precision={10}
       step={0.000001}
     >
@@ -97,7 +97,7 @@ const BidBox: React.FC = () => {
 
   const { isConnected, address } = useAccount();
   const [energy, setEnergy] = React.useState<number>(0);
-  const [amount, setAmount] = React.useState<BigInt>(BigInt(0));
+  const [amount, setAmount] = React.useState<BigInt>(BigInt(1000000000000));
 
   const getNextHour = (hourOffset = 0) => {
     const now = new Date();
@@ -113,6 +113,7 @@ const BidBox: React.FC = () => {
     data: hash,
     isPending: isWritePending,
     writeContract,
+    //error: writeError,
   } = useWriteContract();
 
   const { isLoading: isConfirming, isSuccess: isConfirmed } =
@@ -135,7 +136,6 @@ const BidBox: React.FC = () => {
     const startTimestamp = startDate.getTime() / 1000;
     const endTimestamp = endDate.getTime() / 1000;
     if (startTimestamp == endTimestamp - 3600) {
-      console.log("Placing single bid", BigInt(energy) * BigInt(amount.toString()));
     writeContract({
       abi: EnergyBiddingMarketAbi.abi,
       address: energyMarketAddress,
@@ -144,7 +144,6 @@ const BidBox: React.FC = () => {
       args: [startTimestamp, energy],
     });
   } else {
-    console.log("Placing multiple bids", BigInt(energy) * BigInt(amount.toString()) * BigInt(calculateExactHours()));
     writeContract({
       abi: EnergyBiddingMarketAbi.abi,
       address: energyMarketAddress,
@@ -188,17 +187,12 @@ const BidBox: React.FC = () => {
   };
 
   const setETHAmount = (val: number) => {
-    console.log(val);
     if (!balance) return;
     if (
       +val * 10 ** +decimals.toString() >
       +balance.value.toString()
     )
-      {
-        console.log(+val * 10 ** +decimals.toString())
-        console.log(+balance.value.toString())
         return;
-      }
     const newAmount =
       Math.round(val * 10 ** +decimals.toString());
     setAmount(BigInt(newAmount));
