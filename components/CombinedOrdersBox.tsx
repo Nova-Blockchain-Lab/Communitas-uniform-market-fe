@@ -4,7 +4,6 @@ import EnergyBiddingMarketAbi from "../abi/EnergyBiddingMarket.json";
 import { useEffect, useState } from "react";
 import { fetchEthPrice } from "../src/utils/fetchEthPrice";
 
-
 // Utility function for generating timestamps
 export const getAllHourTimestamps = (days: number): number[] => {
   const timestamps: number[] = [];
@@ -28,9 +27,18 @@ interface BidItemProps {
   settled: boolean;
   amount: BigInt;
   price: BigInt;
+  marketCleared?: boolean;
+  clearingPrice?: BigInt;
 }
 
-const BidItem: React.FC<BidItemProps> = ({ time, settled, amount, price }) => {
+const BidItem: React.FC<BidItemProps> = ({
+  time,
+  settled,
+  amount,
+  price,
+  marketCleared,
+  clearingPrice,
+}) => {
   const [ethPrice, setEthPrice] = useState<number | undefined>(undefined);
 
   useEffect(() => {
@@ -43,29 +51,33 @@ const BidItem: React.FC<BidItemProps> = ({ time, settled, amount, price }) => {
   }, []);
 
   return (
-  <div className="flex flex-col justify-center p-2.5 w-full bg-white border-b border-gray-100 border-solid">
-    <div className="flex gap-2.5 text-neutral-700">
-      <div className="flex-1 text-base font-semibold">Bid</div>
-      <div className="flex gap-2.5 self-start text-sm text-right">
-        <div>{time}</div>
+    <div className="flex flex-col justify-center p-2.5 w-full bg-white border-b border-gray-100 border-solid">
+      <div className="flex gap-2.5 text-neutral-700">
+        <div className="flex-1 text-base font-semibold">Bid</div>
+        <div className="flex gap-2.5 self-start text-sm text-right">
+          <div>{time}</div>
+        </div>
       </div>
-    </div>
-    <div className="flex gap-2.5 self-start mt-2.5 text-xs text-neutral-400">
-      {settled ? (
-        <div className="justify-center pr-2.5 border-r border-gray-100 border-solid text-green-600">
-          Settled
-        </div>
-      ) : (
-        <div className="justify-center pr-2.5 border-r border-gray-100 border-solid text-red-600">
-          Unsettled
-        </div>
-      )}
-      {amount && (
-        <div className="justify-center pr-2.5 border-r border-gray-100 border-solid text-stone-600">
-          {"Amount: " + amount.toString()}
-        </div>
-      )}
-      <div className="flex items-center">
+      <div className="flex gap-2.5 self-start mt-2.5 text-xs text-neutral-400">
+        {settled ? (
+          <div className="justify-center pr-2.5 border-r border-gray-100 border-solid text-green-600">
+            Settled
+          </div>
+        ) : marketCleared ? (
+          <div className="justify-center pr-2.5 border-r border-gray-100 border-solid text-red-600">
+            Unsettled
+          </div>
+        ) : (
+          <div className="justify-center pr-2.5 border-r border-gray-100 border-solid text-red-600">
+            Not Cleared
+          </div>
+        )}
+        {amount && (
+          <div className="justify-center pr-2.5 border-r border-gray-100 border-solid text-stone-600">
+            {"Amount: " + amount.toString()}
+          </div>
+        )}
+        <div className="flex items-center">
           <div className="text-indigo-600">
             Price: {(+price.toString() / 10 ** 18).toFixed(6)} ETH
           </div>
@@ -74,21 +86,43 @@ const BidItem: React.FC<BidItemProps> = ({ time, settled, amount, price }) => {
               (${((+price.toString() / 10 ** 18) * ethPrice).toFixed(2)})
             </div>
           )}
-          <div className="text-indigo-600">
-            &nbsp;per kWh
-          </div>
+          <div className="text-indigo-600">&nbsp;per kWh</div>
         </div>
+        {marketCleared && clearingPrice && (
+          <div className="flex items-center">
+            <div className="text-indigo-600">
+              Clearing Price:{" "}
+              {(+clearingPrice.toString() / 10 ** 18).toFixed(6)} ETH
+            </div>
+            {ethPrice && (
+              <div className="ml-2 text-xs text-gray-500 shadow-sm">
+                ($
+                {((+clearingPrice.toString() / 10 ** 18) * ethPrice).toFixed(2)}
+                )
+              </div>
+            )}
+            <div className="text-indigo-600">&nbsp;per kWh</div>
+          </div>
+        )}
+      </div>
     </div>
-  </div>
-)}
+  );
+};
 
 // MyList component for bids
 interface MyListProps {
-  bids: BidItemProps[];
+  bids: any;
   timestamps: number[];
+  marketCleared?: boolean[];
+  clearingPrice?: BigInt[];
 }
 
-const MyListBids: React.FC<MyListProps> = ({ bids, timestamps }) => {
+const MyListBids: React.FC<MyListProps> = ({
+  bids,
+  timestamps,
+  marketCleared,
+  clearingPrice,
+}) => {
   const formatDate = (timestamp: number): string => {
     const date = new Date(timestamp * 1000);
     return date.toLocaleString("en-US", {
@@ -114,6 +148,8 @@ const MyListBids: React.FC<MyListProps> = ({ bids, timestamps }) => {
               settled={bid.settled}
               amount={bid.amount}
               price={bid.price}
+              marketCleared={marketCleared?.at(i)}
+              clearingPrice={clearingPrice?.at(i)}
             />
           </div>
         ))
@@ -128,6 +164,8 @@ interface AskItemProps {
   settled: boolean;
   amount: BigInt;
   matchedAmount: BigInt;
+  marketCleared?: boolean;
+  clearingPrice?: BigInt;
 }
 
 const AskItem: React.FC<AskItemProps> = ({
@@ -135,47 +173,85 @@ const AskItem: React.FC<AskItemProps> = ({
   settled,
   amount,
   matchedAmount,
-}) => (
-  <div className="flex flex-col justify-center p-2.5 w-full bg-white border-b border-gray-100 border-solid">
-    <div className="flex gap-2.5 text-neutral-700">
-      <div className="flex-1 text-base font-semibold">Ask</div>
-      <div className="flex gap-2.5 self-start text-sm text-right">
-        <div>{time}</div>
+  marketCleared,
+  clearingPrice,
+}) => {
+  const [ethPrice, setEthPrice] = useState<number | undefined>(undefined);
+
+  useEffect(() => {
+    const fetchPrice = async () => {
+      const price = await fetchEthPrice();
+      setEthPrice(price);
+    };
+
+    if (marketCleared && clearingPrice)
+      fetchPrice();
+  }, []);
+
+  return (
+    <div className="flex flex-col justify-center p-2.5 w-full bg-white border-b border-gray-100 border-solid">
+      <div className="flex gap-2.5 text-neutral-700">
+        <div className="flex-1 text-base font-semibold">Ask</div>
+        <div className="flex gap-2.5 self-start text-sm text-right">
+          <div>{time}</div>
+        </div>
+      </div>
+      <div className="flex gap-2.5 self-start mt-2.5 text-xs text-neutral-400">
+        {!marketCleared ? (
+          <div className="justify-center pr-2.5 border-r border-gray-100 border-solid text-red-600">
+            Not Cleared
+          </div>
+        ) : settled ? (
+          <div className="justify-center pr-2.5 border-r border-gray-100 border-solid text-green-600">
+            Settled
+          </div>
+        ) : matchedAmount == BigInt(0) ? (
+          <div className="justify-center pr-2.5 border-r border-gray-100 border-solid text-red-600">
+            Unsettled
+          </div>
+        ) : (
+          <div className="justify-center pr-2.5 border-r border-gray-100 border-solid text-yellow-600">
+            Half Settled
+          </div>
+        )}
+        {amount && (
+          <div className="justify-center pr-2.5 border-r border-gray-100 border-solid text-stone-600">
+            {"Amount: " + amount.toString()}
+          </div>
+        )}
+        {matchedAmount && (
+          <div className="justify-center pr-2.5 border-r border-gray-100 border-solid text-stone-600">
+            {"Amount Sold: " + matchedAmount.toString()}
+          </div>
+        )}
+        {marketCleared && clearingPrice && (
+          <div className="flex items-center">
+            <div className="text-indigo-600">
+              Clearing Price:{" "}
+              {(+clearingPrice.toString() / 10 ** 18).toFixed(6)} ETH
+            </div>
+            {ethPrice && (
+              <div className="ml-2 text-xs text-gray-500 shadow-sm">
+                ($
+                {((+clearingPrice.toString() / 10 ** 18) * ethPrice).toFixed(2)}
+                )
+              </div>
+            )}
+            <div className="text-indigo-600">&nbsp;per kWh</div>
+          </div>
+        )}
       </div>
     </div>
-    <div className="flex gap-2.5 self-start mt-2.5 text-xs text-neutral-400">
-      {settled ? (
-        <div className="justify-center pr-2.5 border-r border-gray-100 border-solid text-green-600">
-          Settled
-        </div>
-      ) : matchedAmount == BigInt(0) ? (
-        <div className="justify-center pr-2.5 border-r border-gray-100 border-solid text-red-600">
-          Unsettled
-        </div>
-      ) : (
-        <div className="justify-center pr-2.5 border-r border-gray-100 border-solid text-yellow-600">
-          Half Settled
-        </div>
-      )}
-      {amount && (
-        <div className="justify-center pr-2.5 border-r border-gray-100 border-solid text-stone-600">
-          {"Amount: " + amount.toString()}
-        </div>
-      )}
-      {matchedAmount && (
-        <div className="justify-center pr-2.5 border-r border-gray-100 border-solid text-stone-600">
-          {"Amount Sold: " + matchedAmount.toString()}
-        </div>
-      )}
-    </div>
-  </div>
-);
+  );
+};
 
 // MyList component for asks
-const MyListAsks: React.FC<{ asks: AskItemProps[]; timestamps: number[] }> = ({
-  asks,
-  timestamps,
-}) => {
+const MyListAsks: React.FC<{
+  asks: any;
+  timestamps: number[];
+  marketCleared?: boolean[];
+  clearingPrice?: BigInt[];
+}> = ({ asks, timestamps, marketCleared, clearingPrice }) => {
   const formatDate = (timestamp: number): string => {
     const date = new Date(timestamp * 1000);
     return date.toLocaleString("en-US", {
@@ -201,6 +277,8 @@ const MyListAsks: React.FC<{ asks: AskItemProps[]; timestamps: number[] }> = ({
               settled={ask.settled}
               amount={ask.amount}
               matchedAmount={ask.matchedAmount}
+              marketCleared={marketCleared?.at(i)}
+              clearingPrice={clearingPrice?.at(i)}
             />
           </div>
         ))
@@ -241,6 +319,34 @@ const CombinedOrdersBox: React.FC = () => {
     return contracts;
   };
 
+  const getIsMarketClearedConfig = () => {
+    const contracts = [];
+    const timestamps = getAllHourTimestamps(DAYS_TO_DISPLAY);
+    for (const timestamp of timestamps) {
+      contracts.push({
+        abi: EnergyBiddingMarketAbi.abi,
+        address: energyMarketAddress,
+        functionName: "isMarketCleared",
+        args: [timestamp],
+      });
+    }
+    return contracts;
+  };
+
+  const getClearingPriceConfig = () => {
+    const contracts = [];
+    const timestamps = getAllHourTimestamps(DAYS_TO_DISPLAY);
+    for (const timestamp of timestamps) {
+      contracts.push({
+        abi: EnergyBiddingMarketAbi.abi,
+        address: energyMarketAddress,
+        functionName: "getClearingPrice",
+        args: [timestamp],
+      });
+    }
+    return contracts;
+  };
+
   const {
     data: bids,
     isPending: isBidsPending,
@@ -257,12 +363,30 @@ const CombinedOrdersBox: React.FC = () => {
     contracts: getAllAsksConfig(),
   });
 
-  console.log(bids, asks);
+  const {
+    data: marketCleared,
+    isPending: isMarketClearedPending,
+    refetch: refetchMarketCleared,
+  } = useReadContracts({
+    contracts: getIsMarketClearedConfig(),
+  });
+
+  const {
+    data: clearingPrice,
+    isPending: isClearingPricePending,
+    refetch: refetchClearingPrice,
+  } = useReadContracts({
+    contracts: getClearingPriceConfig(),
+  });
+
+  console.log(bids, asks, marketCleared);
 
   useEffect(() => {
     if (isConnected) {
       refetchBids();
       refetchAsks();
+      refetchMarketCleared();
+      refetchClearingPrice();
     }
   }, [isConnected]);
 
@@ -281,6 +405,12 @@ const CombinedOrdersBox: React.FC = () => {
               <MyListBids
                 bids={bids}
                 timestamps={getAllHourTimestamps(DAYS_TO_DISPLAY)}
+                marketCleared={marketCleared?.map(
+                  (cleared: any) => cleared.result.cleared
+                )}
+                clearingPrice={clearingPrice?.map(
+                  (price: any) => price.result.price
+                )}
               />
             )}
             {isAsksPending ? (
@@ -289,6 +419,12 @@ const CombinedOrdersBox: React.FC = () => {
               <MyListAsks
                 asks={asks}
                 timestamps={getAllHourTimestamps(DAYS_TO_DISPLAY)}
+                marketCleared={marketCleared?.map(
+                  (cleared: any) => cleared.result.cleared
+                )}
+                clearingPrice={clearingPrice?.map(
+                  (price: any) => price.result.price
+                )}
               />
             )}
           </div>
