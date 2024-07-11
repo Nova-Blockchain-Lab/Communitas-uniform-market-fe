@@ -383,7 +383,7 @@ const CombinedOrdersBox: React.FC = () => {
         </div>
         {!isConnected && <w3m-connect-button />}
         {isConnected && (
-          <div className="flex justify-center items-center space-x-4">
+          <div className="flex justify-center items-start space-x-4">
             {isBidsPending ? (
               <div>Loading Bids...</div>
             ) : (
