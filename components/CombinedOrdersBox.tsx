@@ -125,8 +125,10 @@ const MyListBids: React.FC<MyListProps> = ({
     });
   };
 
+  console.log(marketCleared, clearingPrice)
+
   return (
-    <div className="flex flex-col whitespace-nowrap border border-gray-100 border-solid max-w-[400px]">
+    <div className="flex flex-col whitespace-nowrap border border-gray-100 border-solid w-auto">
       {bids.map((item, i) =>
         item.result.map((bid: any, j: number) => (
           <div
@@ -244,8 +246,10 @@ const MyListAsks: React.FC<{
     });
   };
 
+  console.log(marketCleared, clearingPrice)
+
   return (
-    <div className="flex flex-col whitespace-nowrap border border-gray-100 border-solid max-w-[400px]">
+    <div className="flex flex-col whitespace-nowrap border border-gray-100 border-solid w-auto">
       {asks.map((item, i) =>
         item.result.map((ask: any, j: number) => (
           <div
@@ -387,10 +391,10 @@ const CombinedOrdersBox: React.FC = () => {
                 bids={bids}
                 timestamps={getAllHourTimestamps(DAYS_TO_DISPLAY)}
                 marketCleared={marketCleared?.map(
-                  (cleared: any) => cleared.result.cleared
+                  (cleared: any) => cleared.result
                 )}
                 clearingPrice={clearingPrice?.map(
-                  (price: any) => price.result.price
+                  (price: any) => price.result
                 )}
               />
             )}
@@ -401,10 +405,10 @@ const CombinedOrdersBox: React.FC = () => {
                 asks={asks}
                 timestamps={getAllHourTimestamps(DAYS_TO_DISPLAY)}
                 marketCleared={marketCleared?.map(
-                  (cleared: any) => cleared.result.cleared
+                  (cleared: any) => cleared.result
                 )}
                 clearingPrice={clearingPrice?.map(
-                  (price: any) => price.result.price
+                  (price: any) => price.result
                 )}
               />
             )}
