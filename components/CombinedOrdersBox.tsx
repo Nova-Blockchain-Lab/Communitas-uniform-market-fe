@@ -2,7 +2,7 @@ import { useAccount, useReadContracts } from "wagmi";
 import { DAYS_TO_DISPLAY, DECIMALS, energyMarketAddress } from "../constants/config";
 import EnergyBiddingMarketAbi from "../abi/EnergyBiddingMarket.json";
 import { useEffect, useState } from "react";
-import { fetchEthPrice } from "../src/utils/fetchEthPrice";
+import { useAppContext } from "./AppContext";
 
 // Utility function for generating timestamps
 export const getAllHourTimestamps = (days: number): number[] => {
@@ -39,16 +39,7 @@ const BidItem: React.FC<BidItemProps> = ({
   marketCleared,
   clearingPrice,
 }) => {
-  const [ethPrice, setEthPrice] = useState<number | undefined>(undefined);
-
-  useEffect(() => {
-    const fetchPrice = async () => {
-      const price = await fetchEthPrice();
-      setEthPrice(price);
-    };
-
-    fetchPrice();
-  }, []);
+  const { ethPrice } = useAppContext();
 
   return (
     <div className="flex flex-col justify-center p-2.5 w-full bg-white border-b border-gray-100 border-solid">
@@ -176,17 +167,7 @@ const AskItem: React.FC<AskItemProps> = ({
   marketCleared,
   clearingPrice,
 }) => {
-  const [ethPrice, setEthPrice] = useState<number | undefined>(undefined);
-
-  useEffect(() => {
-    const fetchPrice = async () => {
-      const price = await fetchEthPrice();
-      setEthPrice(price);
-    };
-
-    if (marketCleared && clearingPrice)
-      fetchPrice();
-  }, []);
+  const { ethPrice } = useAppContext();
 
   return (
     <div className="flex flex-col justify-center p-2.5 w-full bg-white border-b border-gray-100 border-solid">

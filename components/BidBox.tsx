@@ -18,7 +18,7 @@ import {
   NumberDecrementStepper,
 } from "@chakra-ui/react";
 import DateTimePicker from "./DateTimePicker";
-import { fetchEthPrice } from "../src/utils/fetchEthPrice";
+import { useAppContext } from "./AppContext";
 
 const EnergyBidItem: React.FC<{
   icon: string;
@@ -105,7 +105,9 @@ const BidBox: React.FC = () => {
   const { isConnected, address } = useAccount();
   const [energy, setEnergy] = React.useState<number>(0);
   const [amount, setAmount] = React.useState<BigInt>(BigInt(1000000000000));
-  const [ethPrice, setEthPrice] = React.useState<number | undefined>(undefined);
+  
+  
+  const { ethPrice } = useAppContext();
 
   const getNextHour = (hourOffset = 0) => {
     const now = new Date();
@@ -174,15 +176,6 @@ const BidBox: React.FC = () => {
     if (isConfirmed) sendSuccessfulNotification();
     else sendUnsuccessfulNotification();
   }, [isConfirming]);
-
-  useEffect(() => {
-    const fetchPrice = async () => {
-      const price = await fetchEthPrice();
-      setEthPrice(price);
-    };
-
-    fetchPrice();
-  }, []);
 
   const sendSuccessfulNotification = () => {
     toast({
