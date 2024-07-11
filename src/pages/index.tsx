@@ -7,6 +7,7 @@ import Link from "next/link";
 import SellBox from "../../components/SellBox";
 import Slider from "../../components/Slider";
 import CombinedOrdersBox from "../../components/CombinedOrdersBox";
+import ClaimBox from "../../components/ClaimBox";
 
 export default function Home() {
   const [isNetworkSwitchHighlighted, setIsNetworkSwitchHighlighted] =
@@ -68,6 +69,7 @@ export default function Home() {
         {selected == 1 ? <BidBox /> : ""}
         {selected == 2 ? <SellBox /> : ""}
         {selected == 3 ? <CombinedOrdersBox /> : ""}
+        {selected == 4 ? <ClaimBox /> : ""}
       </div>
     </div>
   );

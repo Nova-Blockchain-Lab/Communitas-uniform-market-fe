@@ -7,7 +7,7 @@ import {
   useWriteContract,
 } from "wagmi";
 import EnergyBiddingMarketAbi from "../abi/EnergyBiddingMarket.json";
-import { energyMarketAddress } from "../constants/config";
+import { DECIMALS, energyMarketAddress } from "../constants/config";
 import { useEffect } from "react";
 import { Button, Image, Spinner, useToast } from "@chakra-ui/react";
 import {
@@ -129,8 +129,6 @@ const BidBox: React.FC = () => {
 
   const toast = useToast();
 
-  const decimals = 18;
-
   const {
     data: balance,
     error,
@@ -208,14 +206,14 @@ const BidBox: React.FC = () => {
 
   const setETHAmount = (val: number) => {
     if (!balance) return;
-    if (+val * 10 ** +decimals.toString() > +balance.value.toString()) return;
-    const newAmount = Math.round(val * 10 ** +decimals.toString());
+    if (+val * 10 ** DECIMALS > +balance.value.toString()) return;
+    const newAmount = Math.round(val * 10 ** DECIMALS);
     setAmount(BigInt(newAmount));
   };
 
   const getETHAmount = () => {
     if (!balance || !amount) return;
-    return +amount.toString() / 10 ** decimals;
+    return +amount.toString() / 10 ** DECIMALS;
   };
 
   const calculateExactHours = (): number => {
@@ -277,7 +275,7 @@ const BidBox: React.FC = () => {
               <div className="mt-2 text-gray-900">
                 {(
                   +balance.value.toString() /
-                  10 ** +decimals.toString()
+                  10 ** DECIMALS
                 ).toFixed(10)}{" "}
                 {currencyName}
               </div>

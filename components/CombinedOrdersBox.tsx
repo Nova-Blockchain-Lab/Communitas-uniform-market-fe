@@ -1,5 +1,5 @@
 import { useAccount, useReadContracts } from "wagmi";
-import { DAYS_TO_DISPLAY, energyMarketAddress } from "../constants/config";
+import { DAYS_TO_DISPLAY, DECIMALS, energyMarketAddress } from "../constants/config";
 import EnergyBiddingMarketAbi from "../abi/EnergyBiddingMarket.json";
 import { useEffect, useState } from "react";
 import { fetchEthPrice } from "../src/utils/fetchEthPrice";
@@ -79,11 +79,11 @@ const BidItem: React.FC<BidItemProps> = ({
         )}
         <div className="flex items-center">
           <div className="text-indigo-600">
-            Price: {(+price.toString() / 10 ** 18).toFixed(6)} ETH
+            Price: {(+price.toString() / 10 ** DECIMALS).toFixed(6)} ETH
           </div>
           {ethPrice && (
             <div className="ml-2 text-xs text-gray-500 shadow-sm">
-              (${((+price.toString() / 10 ** 18) * ethPrice).toFixed(2)})
+              (${((+price.toString() / 10 ** DECIMALS) * ethPrice).toFixed(2)})
             </div>
           )}
           <div className="text-indigo-600">&nbsp;per kWh</div>
@@ -92,12 +92,12 @@ const BidItem: React.FC<BidItemProps> = ({
           <div className="flex items-center">
             <div className="text-indigo-600">
               Clearing Price:{" "}
-              {(+clearingPrice.toString() / 10 ** 18).toFixed(6)} ETH
+              {(+clearingPrice.toString() / 10 ** DECIMALS).toFixed(6)} ETH
             </div>
             {ethPrice && (
               <div className="ml-2 text-xs text-gray-500 shadow-sm">
                 ($
-                {((+clearingPrice.toString() / 10 ** 18) * ethPrice).toFixed(2)}
+                {((+clearingPrice.toString() / 10 ** DECIMALS) * ethPrice).toFixed(2)}
                 )
               </div>
             )}
@@ -228,12 +228,12 @@ const AskItem: React.FC<AskItemProps> = ({
           <div className="flex items-center">
             <div className="text-indigo-600">
               Clearing Price:{" "}
-              {(+clearingPrice.toString() / 10 ** 18).toFixed(6)} ETH
+              {(+clearingPrice.toString() / 10 ** DECIMALS).toFixed(6)} ETH
             </div>
             {ethPrice && (
               <div className="ml-2 text-xs text-gray-500 shadow-sm">
                 ($
-                {((+clearingPrice.toString() / 10 ** 18) * ethPrice).toFixed(2)}
+                {((+clearingPrice.toString() / 10 ** DECIMALS) * ethPrice).toFixed(2)}
                 )
               </div>
             )}

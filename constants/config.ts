@@ -4,6 +4,7 @@ import {
 import { defaultWagmiConfig } from "@web3modal/wagmi";
 
 
+export const DECIMALS = 18;
 
 export const defaultChain = arbitrumSepolia;
 
