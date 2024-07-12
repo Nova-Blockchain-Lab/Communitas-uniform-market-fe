@@ -15,7 +15,7 @@ jobs:
 
       - name: Create Dockerfile
         run: |
-          echo 'FROM node:21-alpine' > Dockerfile
+          echo 'FROM node:20-alpine' > Dockerfile
           echo 'WORKDIR /app' >> Dockerfile
           echo 'COPY package*.json ./' >> Dockerfile
           echo 'RUN npm install' >> Dockerfile
