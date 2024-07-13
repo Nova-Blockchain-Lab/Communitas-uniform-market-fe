@@ -9,10 +9,13 @@ import {
 import EnergyBiddingMarketAbi from "../abi/EnergyBiddingMarket.json";
 import { DECIMALS, energyMarketAddress } from "../constants/config";
 import { Button, Spinner, useToast, Box, Text } from "@chakra-ui/react";
+import { useAppContext } from "./AppContext";
 
 const ClaimBox: React.FC = () => {
   const { isConnected, address } = useAccount();
   const toast = useToast();
+
+  const { ethPrice } = useAppContext();
 
   const {
     data: hash,
@@ -68,7 +71,7 @@ const ClaimBox: React.FC = () => {
     else sendUnsuccessfulNotification();
   }, [isConfirming]);
 
-  console.log(balanceData);
+  console.log(((+balanceData.toString() / 10 ** DECIMALS) * ethPrice).toFixed(2));
 
   return (
     <Box className="flex justify-center items-center">
@@ -83,11 +86,14 @@ const ClaimBox: React.FC = () => {
         ) : (
           <Text className="mt-9 text-sm leading-4 text-gray-500 max-md:max-w-full">
             Your Balance:{" "}
-            {(+balanceData.toString() / 10 ** DECIMALS).toFixed(6)} ETH
+            {(+balanceData.toString() / 10 ** DECIMALS).toFixed(6)} ETH{" "}
+            {ethPrice ? (
+              <span className="ml-2 text-xs text-gray-500 shadow-sm">
+                (${((+balanceData.toString() / 10 ** DECIMALS) * ethPrice).toFixed(2)})
+              </span>
+            ) : null}
           </Text>
         )}
-
-        {/*<Box className="shrink-0 mt-4 rounded-lg bg-slate-50 h-[50px] max-md:max-w-full" />*/}
 
         {!isConnected ||
         isBalanceLoading ||
