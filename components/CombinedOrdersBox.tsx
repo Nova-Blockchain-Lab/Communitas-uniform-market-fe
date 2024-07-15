@@ -1,5 +1,9 @@
 import { useAccount, useReadContracts } from "wagmi";
-import { DAYS_TO_DISPLAY, DECIMALS, energyMarketAddress } from "../constants/config";
+import {
+  DAYS_TO_DISPLAY,
+  DECIMALS,
+  energyMarketAddress,
+} from "../constants/config";
 import EnergyBiddingMarketAbi from "../abi/EnergyBiddingMarket.json";
 import { useEffect, useState } from "react";
 import { useAppContext } from "./AppContext";
@@ -74,7 +78,7 @@ const BidItem: React.FC<BidItemProps> = ({
           </div>
           {ethPrice && (
             <div className="ml-2 text-xs text-gray-500 shadow-sm">
-              (${((+price.toString() / 10 ** DECIMALS) * ethPrice).toFixed(2)})
+              ({((+price.toString() / 10 ** DECIMALS) * ethPrice).toFixed(2)}€)
             </div>
           )}
           <div className="text-indigo-600">&nbsp;per kWh</div>
@@ -87,9 +91,12 @@ const BidItem: React.FC<BidItemProps> = ({
             </div>
             {ethPrice && (
               <div className="ml-2 text-xs text-gray-500 shadow-sm">
-                ($
-                {((+clearingPrice.toString() / 10 ** DECIMALS) * ethPrice).toFixed(2)}
-                )
+                (
+                {(
+                  (+clearingPrice.toString() / 10 ** DECIMALS) *
+                  ethPrice
+                ).toFixed(2)}
+                € )
               </div>
             )}
             <div className="text-indigo-600">&nbsp;per kWh</div>
@@ -125,7 +132,7 @@ const MyListBids: React.FC<MyListProps> = ({
     });
   };
 
-  console.log(marketCleared, clearingPrice)
+  console.log(marketCleared, clearingPrice);
 
   return (
     <div className="flex flex-col whitespace-nowrap border border-gray-100 border-solid w-auto">
@@ -215,9 +222,12 @@ const AskItem: React.FC<AskItemProps> = ({
             </div>
             {ethPrice && (
               <div className="ml-2 text-xs text-gray-500 shadow-sm">
-                ($
-                {((+clearingPrice.toString() / 10 ** DECIMALS) * ethPrice).toFixed(2)}
-                )
+                (
+                {(
+                  (+clearingPrice.toString() / 10 ** DECIMALS) *
+                  ethPrice
+                ).toFixed(2)}
+                € )
               </div>
             )}
             <div className="text-indigo-600">&nbsp;per kWh</div>
@@ -246,7 +256,7 @@ const MyListAsks: React.FC<{
     });
   };
 
-  console.log(marketCleared, clearingPrice)
+  console.log(marketCleared, clearingPrice);
 
   return (
     <div className="flex flex-col whitespace-nowrap border border-gray-100 border-solid w-auto">
@@ -393,9 +403,7 @@ const CombinedOrdersBox: React.FC = () => {
                 marketCleared={marketCleared?.map(
                   (cleared: any) => cleared.result
                 )}
-                clearingPrice={clearingPrice?.map(
-                  (price: any) => price.result
-                )}
+                clearingPrice={clearingPrice?.map((price: any) => price.result)}
               />
             )}
             {isAsksPending ? (
@@ -407,9 +415,7 @@ const CombinedOrdersBox: React.FC = () => {
                 marketCleared={marketCleared?.map(
                   (cleared: any) => cleared.result
                 )}
-                clearingPrice={clearingPrice?.map(
-                  (price: any) => price.result
-                )}
+                clearingPrice={clearingPrice?.map((price: any) => price.result)}
               />
             )}
           </div>

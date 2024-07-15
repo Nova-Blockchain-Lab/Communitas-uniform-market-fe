@@ -87,7 +87,7 @@ const ETHBidItem: React.FC<{
       <NumberInputField />
       {ethPrice && value ? (
         <div className="absolute right-12 top-3 text-xs text-gray-500 shadow-sm">
-          ${(value * ethPrice).toFixed(2)}
+          {(value * ethPrice).toFixed(2)}€
         </div>
       ) : null}
       <NumberInputStepper>
@@ -306,13 +306,13 @@ const BidBox: React.FC = () => {
                   {currencyName}
                   {ethPrice && (
                     <span className="ml-2 text-xs text-gray-500 shadow-sm">
-                      ($
+                      (
                       {(
                         energy *
                         getETHAmount()! *
                         calculateExactHours() *
                         ethPrice
-                      ).toFixed(2)}
+                      ).toFixed(2)}€
                       )
                     </span>
                   )}

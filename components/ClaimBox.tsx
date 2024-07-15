@@ -71,8 +71,6 @@ const ClaimBox: React.FC = () => {
     else sendUnsuccessfulNotification();
   }, [isConfirming]);
 
-  console.log(((+balanceData.toString() / 10 ** DECIMALS) * ethPrice).toFixed(2));
-
   return (
     <Box className="flex justify-center items-center">
       <Box className="flex flex-col px-7 py-9 font-medium bg-white rounded-xl shadow-lg max-w-[526px] max-md:px-5">
@@ -89,7 +87,7 @@ const ClaimBox: React.FC = () => {
             {(+balanceData.toString() / 10 ** DECIMALS).toFixed(6)} ETH{" "}
             {ethPrice ? (
               <span className="ml-2 text-xs text-gray-500 shadow-sm">
-                (${((+balanceData.toString() / 10 ** DECIMALS) * ethPrice).toFixed(2)})
+                ({((+balanceData.toString() / 10 ** DECIMALS) * ethPrice).toFixed(2)}€)
               </span>
             ) : null}
           </Text>
