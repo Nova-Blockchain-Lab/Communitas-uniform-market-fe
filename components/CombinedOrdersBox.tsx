@@ -132,8 +132,6 @@ const MyListBids: React.FC<MyListProps> = ({
     });
   };
 
-  console.log(marketCleared, clearingPrice);
-
   return (
     <div className="flex flex-col whitespace-nowrap border border-gray-100 border-solid w-auto">
       {bids.map((item, i) =>
@@ -256,8 +254,6 @@ const MyListAsks: React.FC<{
     });
   };
 
-  console.log(marketCleared, clearingPrice);
-
   return (
     <div className="flex flex-col whitespace-nowrap border border-gray-100 border-solid w-auto">
       {asks.map((item, i) =>
@@ -373,8 +369,6 @@ const CombinedOrdersBox: React.FC = () => {
   } = useReadContracts({
     contracts: getClearingPriceConfig(),
   });
-
-  console.log(bids, asks, marketCleared);
 
   useEffect(() => {
     if (isConnected) {

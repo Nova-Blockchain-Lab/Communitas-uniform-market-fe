@@ -22,7 +22,7 @@ interface ContractAddresses {
 
 const contractAddresses: ContractAddresses = {
 	[arbitrumSepolia.id]: {
-		energyMarket: '0x3CDCE2e7849b44bFED073024fA21421c03714E79',
+		energyMarket: '0x4366F3B76aFf8bAe47009689a7A49130E6fB646A',
 	}
 }
 
