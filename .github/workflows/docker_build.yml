@@ -15,7 +15,7 @@ jobs:
 
       - name: Create Dockerfile
         run: |
-          echo 'FROM node:latest' > Dockerfile
+          echo 'FROM node:lts' > Dockerfile
           echo 'WORKDIR /app' >> Dockerfile
           echo 'COPY package*.json ./' >> Dockerfile
           echo 'RUN yarn install' >> Dockerfile
