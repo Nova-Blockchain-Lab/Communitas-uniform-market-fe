@@ -178,7 +178,7 @@ const BidBox: React.FC = () => {
       if (!startDate || !endDate) {
         toast({
           title: "Error",
-          description: "Please select a start and end date",
+          description: "Please select a valid start and end date",
           status: "error",
           duration: 9000,
           isClosable: true,

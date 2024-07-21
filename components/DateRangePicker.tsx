@@ -4,7 +4,6 @@ import "react-day-picker/dist/style.css";
 
 import "react-time-picker/dist/TimePicker.css";
 import "tailwindcss/tailwind.css";
-import { Alert, AlertIcon } from "@chakra-ui/react";
 import TimePicker from "react-time-picker";
 
 interface DateRangePickerProps {
@@ -28,28 +27,32 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({
   };
 
   const setDateRange = (dateRange?: DateRange) => {
-    if (!dateRange) {
+    if (!dateRange || !dateRange.from) {
       setStartDate(undefined);
       setEndDate(undefined);
       return;
     }
-    if (dateRange.from) {
-      const startHours = startDate ? startDate.getHours() : getNextHour(1).getHours();
-      const newStartDate = new Date(dateRange.from);
-      newStartDate.setHours(startHours);
-      setStartDate(newStartDate);
-    } else {
-      setStartDate(undefined);
-    }
+    if(dateRange.from < new Date())
+      return
+    const startHours = startDate
+      ? startDate.getHours()
+      : getNextHour(1).getHours();
+    const newStartDate = new Date(dateRange.from);
+    newStartDate.setHours(startHours);
+    setStartDate(newStartDate);
     if (dateRange.to) {
-      const endHours = endDate ? endDate.getHours() : getNextHour(2).getHours();
+      const endHours = endDate
+        ? endDate.getHours()
+        : getNextHour(2).getHours();
       const newEndDate = new Date(dateRange.to);
       newEndDate.setHours(endHours);
       setEndDate(newEndDate);
     } else {
-      setEndDate(undefined);
+      setEndDate(new Date(newStartDate.getTime() + 60 * 60 * 1000)); // 1 hour later
+      return;
     }
   };
+
   const handleStartTimeChange = (value: string) => {
     if (!startDate) return;
     const [hours, minutes] = value.split(":").map(Number);
@@ -75,12 +78,12 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({
   return (
     <>
       <div className="flex justify-center mb-2">
-        <DayPicker
-          showOutsideDays
-          mode="range"
-          selected={{ from: startDate, to: endDate } as DateRange}
-          onSelect={setDateRange}
-        />
+      <DayPicker
+      showOutsideDays
+      mode="range"
+      selected={{ from: startDate, to: endDate }}
+      onSelect={setDateRange}
+    />
       </div>
       <div className="flex justify-center mb-2">
         <div className="flex items-center">
@@ -90,7 +93,11 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({
             </label>
             <TimePicker
               onChange={handleStartTimeChange}
-              value={startDate ? startDate.toTimeString().slice(0, 5) : getNextHour(1).toTimeString().slice(0, 5)}
+              value={
+                startDate
+                  ? startDate.toTimeString().slice(0, 5)
+                  : getNextHour(1).toTimeString().slice(0, 5)
+              }
               disableClock
               format="HH:mm"
               hourPlaceholder="hh"
@@ -103,7 +110,11 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({
             <label className="block text-lg font-medium mb-2">End Time: </label>
             <TimePicker
               onChange={handleEndTimeChange}
-              value={endDate ? endDate.toTimeString().slice(0, 5) : getNextHour(2).toTimeString().slice(0, 5)}
+              value={
+                endDate
+                  ? endDate.toTimeString().slice(0, 5)
+                  : getNextHour(2).toTimeString().slice(0, 5)
+              }
               disableClock
               format="HH:mm"
               hourPlaceholder="hh"
