@@ -32,13 +32,13 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({
       setEndDate(undefined);
       return;
     }
-    if(dateRange.from < new Date())
-      return
     const startHours = startDate
       ? startDate.getHours()
       : getNextHour(1).getHours();
     const newStartDate = new Date(dateRange.from);
     newStartDate.setHours(startHours);
+    if (newStartDate < new Date())
+      return;
     setStartDate(newStartDate);
     if (dateRange.to) {
       const endHours = endDate

@@ -20,6 +20,7 @@ import {
 import DateMultiplePicker from "./DateMultiplePicker";
 import { useAppContext } from "./AppContext";
 import DateRangePicker from "./DateRangePicker";
+import { MdOutlineSwapHoriz } from "react-icons/md";
 
 const EnergyBidItem: React.FC<{
   icon: string;
@@ -77,7 +78,7 @@ const ETHBidItem: React.FC<{
     </div>
     <NumberInput
       className="my-auto text-lg leading-4 text-gray-500"
-      value={value ? value : 0}
+      value={value ? value.toFixed(6) : 0}
       onChange={(val) => {
         setValue(val);
       }}
@@ -86,11 +87,54 @@ const ETHBidItem: React.FC<{
       step={0.000001}
     >
       <NumberInputField />
-      {ethPrice && value ? (
+      {ethPrice && value && (
         <div className="absolute right-12 top-3 text-xs text-gray-500 shadow-sm">
           {(value * ethPrice).toFixed(2)}€
         </div>
-      ) : null}
+      )}
+      <NumberInputStepper>
+        <NumberIncrementStepper />
+        <NumberDecrementStepper />
+      </NumberInputStepper>
+    </NumberInput>
+  </div>
+);
+
+const EURBidItem: React.FC<{
+  icon: string;
+  unit: string;
+  value?: number;
+  setValue: (value: number) => void;
+  ethPrice: number;
+}> = ({ icon, unit, value, setValue, ethPrice }) => (
+  <div className="flex gap-4 uppercase">
+    <div className="flex flex-col justify-center px-5 py-2.5 text-sm leading-4 text-center text-gray-900 bg-blue-50 rounded-lg max-md:pr-5">
+      <div className="flex gap-4 items-center">
+        <Image
+          src={icon}
+          alt="Currency"
+          className="shrink-0 self-stretch w-6 aspect-square"
+        />
+        <div className="self-stretch my-auto">{unit}</div>
+        <div className="shrink-0 self-stretch my-auto h-[13px] w-[3px]" />
+      </div>
+    </div>
+    <NumberInput
+      className="my-auto text-lg leading-4 text-gray-500"
+      value={value ? (value * ethPrice).toFixed(2) : 0}
+      onChange={(val) => {
+        setValue(parseFloat(val) / ethPrice);
+      }}
+      min={0.01}
+      precision={2}
+      step={0.01}
+    >
+      <NumberInputField />
+      {ethPrice && value && (
+        <div className="absolute right-12 top-3 text-xs text-gray-500 shadow-sm">
+          {value.toFixed(6)} ETH
+        </div>
+      )}
       <NumberInputStepper>
         <NumberIncrementStepper />
         <NumberDecrementStepper />
@@ -101,6 +145,7 @@ const ETHBidItem: React.FC<{
 
 const BidBox: React.FC = () => {
   const currencyName = "ETH";
+  const currencyValueName = "EUR";
   const energyUnit = "kWh";
 
   const { isConnected, address } = useAccount();
@@ -117,12 +162,18 @@ const BidBox: React.FC = () => {
 
   const [isMultipleDate, setIsMultipleDate] = React.useState<boolean>(false);
 
+  const [isPriceInEUR, setIsPriceInEUR] = React.useState<boolean>(true);
+
   const [selectedDates, setSelectedDates] = React.useState<Date[]>([
     getNextHour(1),
   ]);
 
-  const [startDate, setStartDate] = React.useState<Date | undefined>(getNextHour(1));
-  const [endDate, setEndDate] = React.useState<Date | undefined>(getNextHour(2));
+  const [startDate, setStartDate] = React.useState<Date | undefined>(
+    getNextHour(1)
+  );
+  const [endDate, setEndDate] = React.useState<Date | undefined>(
+    getNextHour(2)
+  );
 
   const {
     data: hash,
@@ -175,16 +226,16 @@ const BidBox: React.FC = () => {
         });
       }
     : async (energy: number, amount: BigInt) => {
-      if (!startDate || !endDate) {
-        toast({
-          title: "Error",
-          description: "Please select a valid start and end date",
-          status: "error",
-          duration: 9000,
-          isClosable: true,
-        });
-        return;
-      }
+        if (!startDate || !endDate) {
+          toast({
+            title: "Error",
+            description: "Please select a valid start and end date",
+            status: "error",
+            duration: 9000,
+            isClosable: true,
+          });
+          return;
+        }
         const startTimestamp = startDate.getTime() / 1000;
         const endTimestamp = endDate.getTime() / 1000;
         if (startTimestamp == endTimestamp - 3600) {
@@ -363,6 +414,23 @@ const BidBox: React.FC = () => {
           <div className="flex flex-col justify-end text-sm text-gray-500">
             <span className="text-gray-500">Price</span>
           </div>
+          <div className="flex flex-col mr-40 justify-end">
+            <div className="flex flex-row items-center">
+              <div
+                className="flex bg-gray-100 px-1 py-1 rounded-lg cursor-pointer hover:bg-gray-200 transition"
+                onClick={() => setIsPriceInEUR(!isPriceInEUR)}
+              >
+                <MdOutlineSwapHoriz className="text-sm" />
+              </div>
+              <div className="flex flex-col justify-center px-2 py-1 text-xs leading-4 text-center text-gray-900 bg-blue-50 rounded-lg ml-2">
+                <div className="flex gap-1 items-center">
+                  <Image src={isPriceInEUR ? "/eth.png" : "/eur.png"} alt="Currency" className="w-3 h-auto" />
+                  <div className="my-auto">{isPriceInEUR ? currencyName : currencyValueName}</div>
+                  <div className="shrink-0 my-auto h-[8px] w-[2px]" />
+                </div>
+              </div>
+            </div>
+          </div>
           <div className="flex flex-col self-start text-xs text-right">
             <div className="self-end text-gray-500">Balance:</div>
             {isPending && isConnected ? (
@@ -384,16 +452,27 @@ const BidBox: React.FC = () => {
             ) : null}
           </div>
         </div>
+
         <div className="flex gap-4 py-1 mt-2 uppercase whitespace-nowrap bg-white rounded-xl border border-indigo-50 border-solid max-md:flex-wrap max-md:max-w-full">
-          <ETHBidItem
-            icon={"/eth.png"}
-            unit={currencyName}
-            value={getETHAmount()}
-            setValue={(val: string) => {
-              setETHAmount(parseFloat(val));
-            }}
-            ethPrice={ethPrice}
-          />
+          {isPriceInEUR && ethPrice ? (
+            <EURBidItem
+              icon={"/eur.png"}
+              unit={currencyValueName}
+              value={getETHAmount()}
+              setValue={setETHAmount}
+              ethPrice={ethPrice}
+            />
+          ) : (
+            <ETHBidItem
+              icon={"/eth.png"}
+              unit={currencyName}
+              value={getETHAmount()}
+              setValue={(val: string) => {
+                setETHAmount(parseFloat(val));
+              }}
+              ethPrice={ethPrice}
+            />
+          )}
           {balance ? (
             <div
               onClick={() => setAmount(balance.value)}
