@@ -77,7 +77,7 @@ const ClaimBox: React.FC = () => {
         <Text className="flex gap-5 justify-between px-0.5 py-1 text-2xl font-bold leading-6 text-gray-900 whitespace-nowrap max-md:flex-wrap max-md:max-w-full">
           Available Balance
         </Text>
-        {isBalanceLoading ? (
+        {isBalanceLoading || !balanceData ? (
           <Box className="flex justify-center items-center py-5">
             <Spinner color="blue.500" />
           </Box>
@@ -87,7 +87,12 @@ const ClaimBox: React.FC = () => {
             {(+balanceData.toString() / 10 ** DECIMALS).toFixed(6)} ETH{" "}
             {ethPrice ? (
               <span className="ml-2 text-xs text-gray-500 shadow-sm">
-                ({((+balanceData.toString() / 10 ** DECIMALS) * ethPrice).toFixed(2)}€)
+                (
+                {(
+                  (+balanceData.toString() / 10 ** DECIMALS) *
+                  ethPrice
+                ).toFixed(2)}
+                €)
               </span>
             ) : null}
           </Text>
@@ -97,6 +102,7 @@ const ClaimBox: React.FC = () => {
         isBalanceLoading ||
         isWritePending ||
         isConfirming ||
+        !balanceData ||
         +balanceData.toString() == 0 ? (
           <Button
             disabled
