@@ -424,8 +424,14 @@ const BidBox: React.FC = () => {
               </div>
               <div className="flex flex-col justify-center px-2 py-1 text-xs leading-4 text-center text-gray-900 bg-blue-50 rounded-lg ml-2">
                 <div className="flex gap-1 items-center">
-                  <Image src={isPriceInEUR ? "/eth.png" : "/eur.png"} alt="Currency" className="w-3 h-auto" />
-                  <div className="my-auto">{isPriceInEUR ? currencyName : currencyValueName}</div>
+                  <Image
+                    src={isPriceInEUR ? "/eth.png" : "/eur.png"}
+                    alt="Currency"
+                    className="w-3 h-auto"
+                  />
+                  <div className="my-auto">
+                    {isPriceInEUR ? currencyName : currencyValueName}
+                  </div>
                   <div className="shrink-0 my-auto h-[8px] w-[2px]" />
                 </div>
               </div>

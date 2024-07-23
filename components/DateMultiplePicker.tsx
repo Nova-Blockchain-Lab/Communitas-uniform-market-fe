@@ -3,9 +3,12 @@ import { DayPicker } from "react-day-picker";
 import "react-day-picker/dist/style.css";
 
 import "react-time-picker/dist/TimePicker.css";
+
+import "react-clock/dist/Clock.css";
 import "tailwindcss/tailwind.css";
 import { Alert, AlertIcon } from "@chakra-ui/react";
 import TimePicker from "react-time-picker";
+import { Value } from "react-time-picker/dist/cjs/shared/types";
 
 interface DateMultiplePickerProps {
   selectedDates: Date[];
@@ -24,7 +27,6 @@ const DateMultiplePicker: React.FC<DateMultiplePickerProps> = ({
   endTime,
   setEndTime,
 }) => {
-
   const getNextHour = (hourOffset = 0) => {
     const now = new Date();
     now.setHours(now.getHours() + hourOffset);
@@ -35,7 +37,9 @@ const DateMultiplePicker: React.FC<DateMultiplePickerProps> = ({
   const handleSelectDates = (dates: Date[]) => {
     const now = new Date();
     for (let i = 0; i < dates.length; i++) {
-      dates[i].setHours(startTime ? startTime.getHours() : getNextHour(1).getHours());
+      dates[i].setHours(
+        startTime ? startTime.getHours() : getNextHour(1).getHours()
+      );
       dates[i].setMinutes(0);
       if (dates[i] < now) {
         dates.splice(i, 1); // delete date if it is in the past
@@ -45,7 +49,8 @@ const DateMultiplePicker: React.FC<DateMultiplePickerProps> = ({
     setSelectedDates(dates);
   };
 
-  const handleStartTimeChange = (value: string) => {
+  const handleStartTimeChange = (value: Value) => {
+    if (!value) return;
     const [hours, minutes] = value.split(":").map(Number);
     const newStartTime = new Date();
     newStartTime.setHours(hours);
@@ -54,7 +59,8 @@ const DateMultiplePicker: React.FC<DateMultiplePickerProps> = ({
     setStartTime(newStartTime);
   };
 
-  const handleEndTimeChange = (value: string) => {
+  const handleEndTimeChange = (value: Value) => {
+    if (!value) return;
     const [hours, minutes] = value.split(":").map(Number);
     const newEndTime = new Date();
     newEndTime.setHours(hours);
@@ -64,10 +70,8 @@ const DateMultiplePicker: React.FC<DateMultiplePickerProps> = ({
   };
 
   useEffect(() => {
-    if (!startTime)
-      setStartTime(getNextHour(1));
-    if (!endTime)
-      setEndTime(getNextHour(2));
+    if (!startTime) setStartTime(getNextHour(1));
+    if (!endTime) setEndTime(getNextHour(2));
   }, []);
 
   return (
@@ -88,7 +92,11 @@ const DateMultiplePicker: React.FC<DateMultiplePickerProps> = ({
             </label>
             <TimePicker
               onChange={handleStartTimeChange}
-              value={startTime ? startTime.toTimeString().slice(0, 5) : getNextHour(1).toTimeString().slice(0, 5)}
+              value={
+                startTime
+                  ? startTime.toTimeString().slice(0, 5)
+                  : getNextHour(1).toTimeString().slice(0, 5)
+              }
               disableClock
               format="HH:mm"
               hourPlaceholder="hh"
@@ -101,7 +109,11 @@ const DateMultiplePicker: React.FC<DateMultiplePickerProps> = ({
             <label className="block text-lg font-medium mb-2">End Time: </label>
             <TimePicker
               onChange={handleEndTimeChange}
-              value={endTime ? endTime.toTimeString().slice(0, 5) : getNextHour(2).toTimeString().slice(0, 5)}
+              value={
+                endTime
+                  ? endTime.toTimeString().slice(0, 5)
+                  : getNextHour(2).toTimeString().slice(0, 5)
+              }
               disableClock
               format="HH:mm"
               hourPlaceholder="hh"
@@ -112,7 +124,7 @@ const DateMultiplePicker: React.FC<DateMultiplePickerProps> = ({
           </div>
         </div>
       </div>
-      { startTime && endTime && endTime.getHours() < startTime.getHours() && (
+      {startTime && endTime && endTime.getHours() < startTime.getHours() && (
         <div className="flex justify-center">
           <Alert status="warning" variant="subtle" className="mt-4" width="50%">
             <AlertIcon />

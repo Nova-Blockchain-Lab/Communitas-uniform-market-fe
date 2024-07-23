@@ -7,6 +7,7 @@ import {
 import EnergyBiddingMarketAbi from "../abi/EnergyBiddingMarket.json";
 import { useEffect, useState } from "react";
 import { useAppContext } from "./AppContext";
+import { AbiFunction } from "viem";
 
 // Utility function for generating timestamps
 export const getAllHourTimestamps = (days: number): number[] => {
@@ -134,7 +135,7 @@ const MyListBids: React.FC<MyListProps> = ({
 
   return (
     <div className="flex flex-col whitespace-nowrap border border-gray-100 border-solid w-auto">
-      {bids.map((item, i) =>
+      {bids.map((item: any, i: any) =>
         item.result.map((bid: any, j: number) => (
           <div
             key={i.toString() + j.toString()}
@@ -256,7 +257,7 @@ const MyListAsks: React.FC<{
 
   return (
     <div className="flex flex-col whitespace-nowrap border border-gray-100 border-solid w-auto">
-      {asks.map((item, i) =>
+      {asks.map((item: any, i: any) =>
         item.result.map((ask: any, j: number) => (
           <div
             key={i.toString() + j.toString()}
@@ -287,7 +288,7 @@ const CombinedOrdersBox: React.FC = () => {
     const timestamps = getAllHourTimestamps(DAYS_TO_DISPLAY);
     for (const timestamp of timestamps) {
       contracts.push({
-        abi: EnergyBiddingMarketAbi.abi,
+        abi: EnergyBiddingMarketAbi.abi as AbiFunction[],
         address: energyMarketAddress,
         functionName: "getBidsByAddress",
         args: [timestamp, address],
@@ -301,7 +302,7 @@ const CombinedOrdersBox: React.FC = () => {
     const timestamps = getAllHourTimestamps(DAYS_TO_DISPLAY);
     for (const timestamp of timestamps) {
       contracts.push({
-        abi: EnergyBiddingMarketAbi.abi,
+        abi: EnergyBiddingMarketAbi.abi as AbiFunction[],
         address: energyMarketAddress,
         functionName: "getAsksByAddress",
         args: [timestamp, address],
@@ -315,7 +316,7 @@ const CombinedOrdersBox: React.FC = () => {
     const timestamps = getAllHourTimestamps(DAYS_TO_DISPLAY);
     for (const timestamp of timestamps) {
       contracts.push({
-        abi: EnergyBiddingMarketAbi.abi,
+        abi: EnergyBiddingMarketAbi.abi as AbiFunction[],
         address: energyMarketAddress,
         functionName: "isMarketCleared",
         args: [timestamp],
@@ -329,7 +330,7 @@ const CombinedOrdersBox: React.FC = () => {
     const timestamps = getAllHourTimestamps(DAYS_TO_DISPLAY);
     for (const timestamp of timestamps) {
       contracts.push({
-        abi: EnergyBiddingMarketAbi.abi,
+        abi: EnergyBiddingMarketAbi.abi as AbiFunction[],
         address: energyMarketAddress,
         functionName: "getClearingPrice",
         args: [timestamp],

@@ -5,6 +5,7 @@ import "react-day-picker/dist/style.css";
 import "react-time-picker/dist/TimePicker.css";
 import "tailwindcss/tailwind.css";
 import TimePicker from "react-time-picker";
+import { Value } from "react-time-picker/dist/cjs/shared/types";
 
 interface DateRangePickerProps {
   startDate?: Date;
@@ -37,13 +38,10 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({
       : getNextHour(1).getHours();
     const newStartDate = new Date(dateRange.from);
     newStartDate.setHours(startHours);
-    if (newStartDate < new Date())
-      return;
+    if (newStartDate < new Date()) return;
     setStartDate(newStartDate);
     if (dateRange.to) {
-      const endHours = endDate
-        ? endDate.getHours()
-        : getNextHour(2).getHours();
+      const endHours = endDate ? endDate.getHours() : getNextHour(2).getHours();
       const newEndDate = new Date(dateRange.to);
       newEndDate.setHours(endHours);
       setEndDate(newEndDate);
@@ -53,8 +51,8 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({
     }
   };
 
-  const handleStartTimeChange = (value: string) => {
-    if (!startDate) return;
+  const handleStartTimeChange = (value: Value) => {
+    if (!startDate || !value) return;
     const [hours, minutes] = value.split(":").map(Number);
     const newStartDate = new Date(startDate);
     newStartDate.setHours(hours);
@@ -63,8 +61,8 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({
     setStartDate(newStartDate);
   };
 
-  const handleEndTimeChange = (value: string) => {
-    if (!endDate) return;
+  const handleEndTimeChange = (value: Value) => {
+    if (!endDate || !value) return;
     const [hours, minutes] = value.split(":").map(Number);
     const newEndDate = new Date(endDate);
     newEndDate.setHours(hours);
@@ -78,12 +76,12 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({
   return (
     <>
       <div className="flex justify-center mb-2">
-      <DayPicker
-      showOutsideDays
-      mode="range"
-      selected={{ from: startDate, to: endDate }}
-      onSelect={setDateRange}
-    />
+        <DayPicker
+          showOutsideDays
+          mode="range"
+          selected={{ from: startDate, to: endDate }}
+          onSelect={setDateRange}
+        />
       </div>
       <div className="flex justify-center mb-2">
         <div className="flex items-center">
