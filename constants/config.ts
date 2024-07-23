@@ -20,9 +20,15 @@ interface ContractAddresses {
 export const contractAddresses: ContractAddresses = {
   [arbitrumSepolia.id]: {
     energyMarket: {
-		"Portugal": "0x4366F3B76aFf8bAe47009689a7A49130E6fB646A",
 		"Spain": "0x36cf1ab4568ef261b12967a4959CA82eDD0B88f1",
+    "Portugal": "0x4366F3B76aFf8bAe47009689a7A49130E6fB646A",
 		"Germany": "0x400806DBCc53355FCd284b2c0e10FD3578f1c2ae",
+    "Greece": "0x4cFeFDE508Bc2FC80D33fD607cb33cDf9638C5A5",
+    "Italy": "0x2Ca5A390a8eBe0591F02fB36960f79A23b60A2Bd",
+    "Netherlands": "0xe1D7f763808c0cD58461c85eaD2Dd484f3abea83",
+    //"Poland": "",
+    //"Croatia": "",
+    "Denmark": "0xB177e1A14aF7B0E5991eBccdc11F91801A1DDae8",
 	},
   },
 };

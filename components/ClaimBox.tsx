@@ -71,14 +71,13 @@ const ClaimBox: React.FC = () => {
     if (isConfirmed) sendSuccessfulNotification();
     else sendUnsuccessfulNotification();
   }, [isConfirming]);
-
   return (
     <Box className="flex justify-center items-center">
       <Box className="flex flex-col px-7 py-9 font-medium bg-white rounded-xl shadow-lg max-w-[526px] max-md:px-5">
         <Text className="flex gap-5 justify-between px-0.5 py-1 text-2xl font-bold leading-6 text-gray-900 whitespace-nowrap max-md:flex-wrap max-md:max-w-full">
           Available Balance
         </Text>
-        {isBalanceLoading || !balanceData ? (
+        {isBalanceLoading || balanceData == undefined ? (
           <Box className="flex justify-center items-center py-5">
             <Spinner color="blue.500" />
           </Box>
@@ -109,7 +108,7 @@ const ClaimBox: React.FC = () => {
             disabled
             className="justify-center items-center px-8 py-4 mt-10 text-base leading-4 text-center text-white bg-blue-600 rounded-lg border border-blue-600 border-solid max-md:px-5 max-md:max-w-full"
           >
-            <Spinner />
+            { balanceData as string != "0" ? <Spinner /> : "Claim" }
           </Button>
         ) : (
           <Button
