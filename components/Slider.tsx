@@ -19,6 +19,7 @@ const buttons = [
   { id: 1, label: "Buy Energy"  },
   { id: 2, label: "Sell Energy" },
   { id: 3, label: "View Orders" },
+  { id: 4, label: "Claim Eth" }
 ];
 
 interface SliderProps {

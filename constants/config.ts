@@ -1,11 +1,10 @@
 import {
 	arbitrumSepolia,
 } from "wagmi/chains";
-import { http } from 'wagmi'
-import { TransactionExecutionError } from "viem";
 import { defaultWagmiConfig } from "@web3modal/wagmi";
 
 
+export const DECIMALS = 18;
 
 export const defaultChain = arbitrumSepolia;
 
@@ -18,14 +17,12 @@ type EthereumAddress = `0x${string}`;
 interface ContractAddresses {
     [key: number]: {
         energyMarket: EthereumAddress;
-        eurc: EthereumAddress;
     };
 }
 
 const contractAddresses: ContractAddresses = {
 	[arbitrumSepolia.id]: {
-		energyMarket: '0xE4299e02946366d4A6Fd86490fB271Ccce6374f7',
-		eurc: '0xC37e53e7D0c313D6c838eCcE3C89884798e85AbE',
+		energyMarket: '0x4366F3B76aFf8bAe47009689a7A49130E6fB646A',
 	}
 }
 
@@ -46,7 +43,5 @@ export const config = defaultWagmiConfig({
   })
 
 export const energyMarketAddress = contractAddresses[defaultChain.id].energyMarket;
-
-export const EURCAddress = contractAddresses[defaultChain.id].eurc;
 
 export const DAYS_TO_DISPLAY = 1; // 0 means today, 1 means today and yesterday and tomorrow.

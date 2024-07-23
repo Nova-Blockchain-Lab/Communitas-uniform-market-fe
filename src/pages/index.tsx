@@ -7,6 +7,8 @@ import Link from "next/link";
 import SellBox from "../../components/SellBox";
 import Slider from "../../components/Slider";
 import CombinedOrdersBox from "../../components/CombinedOrdersBox";
+import ClaimBox from "../../components/ClaimBox";
+import { AppProvider } from "../../components/AppContext";
 
 export default function Home() {
   const [isNetworkSwitchHighlighted, setIsNetworkSwitchHighlighted] =
@@ -64,10 +66,13 @@ export default function Home() {
         </div>
       </header>
       <div className="flex flex-col items-center justify-center min-h-screen space-y-4">
+      <AppProvider>
         <Slider selected={selected} setSelected={setSelected} />
         {selected == 1 ? <BidBox /> : ""}
         {selected == 2 ? <SellBox /> : ""}
         {selected == 3 ? <CombinedOrdersBox /> : ""}
+        {selected == 4 ? <ClaimBox /> : ""}
+      </AppProvider>
       </div>
     </div>
   );
