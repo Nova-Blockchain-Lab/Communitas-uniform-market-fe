@@ -3,12 +3,16 @@ import React, { createContext, useState, useContext, ReactNode, useEffect } from
 
 type AppContextType = {
     ethPrice?: number;
+    energyMarketAddress?: `0x${string}`;
+    setEnergyMarketAddress: (address: `0x${string}`) => void;
 };
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
     const [ethPrice, setEthPrice] = useState<number | undefined>(undefined);
+
+    const [energyMarketAddress, setEnergyMarketAddress] = useState<`0x${string}` | undefined>(undefined);
 
     useEffect(() => {
         const fetchPrice = async () => {
@@ -23,6 +27,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       <AppContext.Provider
         value={{
             ethPrice,
+            energyMarketAddress,
+            setEnergyMarketAddress
         }}
       >
         {children}

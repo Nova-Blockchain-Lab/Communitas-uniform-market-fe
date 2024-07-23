@@ -6,7 +6,7 @@ import {
   useWriteContract,
 } from "wagmi";
 import EnergyBiddingMarketAbi from "../abi/EnergyBiddingMarket.json";
-import { DECIMALS, energyMarketAddress } from "../constants/config";
+import { DECIMALS } from "../constants/config";
 import { useEffect } from "react";
 import { Button, Image, Spinner, useToast } from "@chakra-ui/react";
 import { Switch, FormLabel } from "@chakra-ui/react";
@@ -151,7 +151,7 @@ const BidBox: React.FC = () => {
   const { isConnected, address } = useAccount();
   const [energy, setEnergy] = React.useState<number>(0);
   const [amount, setAmount] = React.useState<BigInt>(BigInt(1000000000000));
-  const { ethPrice } = useAppContext();
+  const { ethPrice, energyMarketAddress } = useAppContext();
 
   const getNextHour = (hourOffset = 0) => {
     const now = new Date();
@@ -207,6 +207,16 @@ const BidBox: React.FC = () => {
           });
           return;
         }
+        if (!energyMarketAddress){
+          toast({
+            title: "Error",
+            description: "Region not defined",
+            status: "error",
+            duration: 9000,
+            isClosable: true,
+          });
+          return;
+        }
 
         const timestamps = calculateDifferentHours(
           selectedDates,
@@ -230,6 +240,16 @@ const BidBox: React.FC = () => {
           toast({
             title: "Error",
             description: "Please select a valid start and end date",
+            status: "error",
+            duration: 9000,
+            isClosable: true,
+          });
+          return;
+        }
+        if (!energyMarketAddress){
+          toast({
+            title: "Error",
+            description: "Region not defined",
             status: "error",
             duration: 9000,
             isClosable: true,

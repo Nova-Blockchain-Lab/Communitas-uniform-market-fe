@@ -7,7 +7,7 @@ import {
   useWriteContract,
 } from "wagmi";
 import EnergyBiddingMarketAbi from "../abi/EnergyBiddingMarket.json";
-import { DECIMALS, energyMarketAddress } from "../constants/config";
+import { DECIMALS } from "../constants/config";
 import { Button, Spinner, useToast, Box, Text } from "@chakra-ui/react";
 import { useAppContext } from "./AppContext";
 
@@ -15,7 +15,7 @@ const ClaimBox: React.FC = () => {
   const { isConnected, address } = useAccount();
   const toast = useToast();
 
-  const { ethPrice } = useAppContext();
+  const { ethPrice, energyMarketAddress } = useAppContext();
 
   const {
     data: hash,
@@ -38,6 +38,7 @@ const ClaimBox: React.FC = () => {
   });
 
   const handleClaim = async () => {
+    if (!energyMarketAddress) return
     writeContract({
       abi: EnergyBiddingMarketAbi.abi,
       address: energyMarketAddress,

@@ -10,14 +10,20 @@ export const chains = [defaultChain];
 type EthereumAddress = `0x${string}`;
 
 interface ContractAddresses {
-  [key: number]: {
-    energyMarket: EthereumAddress;
+  [networkId: number]: {
+    energyMarket: {
+		[country: string]: EthereumAddress;
+	}
   };
 }
 
-const contractAddresses: ContractAddresses = {
+export const contractAddresses: ContractAddresses = {
   [arbitrumSepolia.id]: {
-    energyMarket: "0x4366F3B76aFf8bAe47009689a7A49130E6fB646A",
+    energyMarket: {
+		"Portugal": "0x4366F3B76aFf8bAe47009689a7A49130E6fB646A",
+		"Spain": "0x36cf1ab4568ef261b12967a4959CA82eDD0B88f1",
+		"Germany": "0x400806DBCc53355FCd284b2c0e10FD3578f1c2ae",
+	},
   },
 };
 
@@ -45,8 +51,5 @@ export const config = defaultWagmiConfig({
   enableEIP6963: true,
   coinbasePreference: "all",
 });
-
-export const energyMarketAddress =
-  contractAddresses[defaultChain.id].energyMarket;
 
 export const DAYS_TO_DISPLAY = 1; // 0 means today, 1 means today and yesterday and tomorrow.
