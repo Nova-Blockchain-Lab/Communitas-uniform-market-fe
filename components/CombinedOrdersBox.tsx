@@ -2,7 +2,6 @@ import { useAccount, useReadContracts } from "wagmi";
 import {
   DAYS_TO_DISPLAY,
   DECIMALS,
-  energyMarketAddress,
 } from "../constants/config";
 import EnergyBiddingMarketAbi from "../abi/EnergyBiddingMarket.json";
 import { useEffect, useState } from "react";
@@ -283,6 +282,8 @@ const MyListAsks: React.FC<{
 const CombinedOrdersBox: React.FC = () => {
   const { isConnected, address } = useAccount();
 
+  const { energyMarketAddress } = useAppContext();
+
   const getAllBidsConfig = () => {
     const contracts = [];
     const timestamps = getAllHourTimestamps(DAYS_TO_DISPLAY);
@@ -387,7 +388,7 @@ const CombinedOrdersBox: React.FC = () => {
           My Orders
         </div>
         {!isConnected && <w3m-connect-button />}
-        {isConnected && (
+        {isConnected && energyMarketAddress && (
           <div className="flex justify-center items-start space-x-4">
             {isBidsPending ? (
               <div>Loading Bids...</div>

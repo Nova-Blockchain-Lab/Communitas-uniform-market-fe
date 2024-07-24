@@ -1,7 +1,6 @@
 import * as React from "react";
 import { useAccount, useConnect, useDisconnect, useReadContract, useWaitForTransactionReceipt, useWriteContract } from 'wagmi';
 import EnergyBiddingMarketAbi from "../abi/EnergyBiddingMarket.json"
-import { energyMarketAddress } from "../constants/config";
 import { Button, Image, Spinner, useToast } from "@chakra-ui/react";
 import {
   NumberInput,
@@ -11,6 +10,7 @@ import {
   NumberDecrementStepper,
 } from "@chakra-ui/react";
 import { useEffect } from "react";
+import { useAppContext } from "./AppContext";
 
 
 
@@ -55,6 +55,8 @@ const BidBox: React.FC = () => {
     const { isConnected, address } = useAccount();
     const [ energy, setEnergy ] = React.useState<number>(0);
 
+    const { energyMarketAddress } = useAppContext();
+
     const { data: hash, isPending: isWritePending, writeContract } = useWriteContract()
 
     const { isLoading: isConfirming, isSuccess: isConfirmed } = useWaitForTransactionReceipt({ hash })
@@ -62,6 +64,7 @@ const BidBox: React.FC = () => {
     const toast = useToast();
 
   const handleAsk = async (energy: number, hour: number) => {
+    if (!energyMarketAddress) return;
     writeContract({
       abi: EnergyBiddingMarketAbi.abi,
       address: energyMarketAddress,
