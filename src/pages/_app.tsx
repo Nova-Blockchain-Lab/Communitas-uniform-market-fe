@@ -6,6 +6,7 @@ import { config, projectId } from "../../constants/config";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { createWeb3Modal } from "@web3modal/wagmi/react";
 import { ChakraProvider, extendTheme } from "@chakra-ui/react";
+import { Analytics } from "@vercel/analytics/react"
 
 createWeb3Modal({
   wagmiConfig: config,
@@ -41,6 +42,7 @@ export default function App({ Component, pageProps }: AppProps) {
         <ChakraProvider theme={theme}>
           <WagmiProvider config={config}>
             <QueryClientProvider client={queryClient}>
+              <Analytics/>
               <Component {...pageProps} />
             </QueryClientProvider>
           </WagmiProvider>
