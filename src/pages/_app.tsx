@@ -7,13 +7,15 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { createWeb3Modal } from "@web3modal/wagmi/react";
 import { ChakraProvider, extendTheme } from "@chakra-ui/react";
 
-
 createWeb3Modal({
   wagmiConfig: config,
+  defaultChain: config.chains[0],
   projectId,
   enableAnalytics: true, // Optional - defaults to your Cloud configuration
   enableOnramp: true, // Optional - false as default
 });
+
+
 
 const queryClient = new QueryClient();
 
