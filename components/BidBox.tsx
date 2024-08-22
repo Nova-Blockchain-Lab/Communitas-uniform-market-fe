@@ -6,7 +6,7 @@ import {
   useWriteContract,
 } from "wagmi";
 import EnergyBiddingMarketAbi from "../abi/EnergyBiddingMarket.json";
-import { DECIMALS } from "../constants/config";
+import { DECIMALS, defaultChain } from "../constants/config";
 import { useEffect } from "react";
 import { Button, Image, Spinner, useToast } from "@chakra-ui/react";
 import { Switch, FormLabel } from "@chakra-ui/react";
@@ -148,7 +148,8 @@ const BidBox: React.FC = () => {
   const currencyValueName = "EUR";
   const energyUnit = "kWh";
 
-  const { isConnected, address } = useAccount();
+  const { isConnected, address, chainId } = useAccount();
+
   const [energy, setEnergy] = React.useState<number>(0);
   const [amount, setAmount] = React.useState<BigInt>(BigInt(1000000000000));
   const { ethPrice, energyMarketAddress } = useAppContext();
@@ -207,7 +208,7 @@ const BidBox: React.FC = () => {
           });
           return;
         }
-        if (!energyMarketAddress){
+        if (!energyMarketAddress) {
           toast({
             title: "Error",
             description: "Region not defined",
@@ -246,7 +247,7 @@ const BidBox: React.FC = () => {
           });
           return;
         }
-        if (!energyMarketAddress){
+        if (!energyMarketAddress) {
           toast({
             title: "Error",
             description: "Region not defined",
@@ -543,30 +544,43 @@ const BidBox: React.FC = () => {
             {calculateExactHours() == 1 ? "hour" : "hours"}
           </div>
         </div>
-        {!isConnected ? (
-          <div className="justify-center items-center px-8 py-4 mt-10 text-base leading-4 text-center text-white bg-blue-600 rounded-lg border border-blue-600 border-solid max-md:px-5 max-md:max-w-full">
+        {!isConnected && (
+          <div className="py-2 mt-10 text-base text-center text-white bg-blue-600 rounded-lg border border-blue-600 border-solid max-md:px-5 max-md:max-w-full">
             <div className="flex justify-center">
               <w3m-connect-button />
             </div>
           </div>
-        ) : null}
+        )}
 
-        {isWritePending || isConfirming ? (
-          <Button
-            disabled={true}
-            className="justify-center items-center px-8 py-4 mt-10 text-base leading-4 text-center text-white bg-blue-600 rounded-lg border border-blue-600 border-solid max-md:px-5 max-md:max-w-full"
-          >
-            <Spinner />
-          </Button>
-        ) : null}
-        {isConnected && !isWritePending && !isConfirming ? (
-          <Button
-            onClick={() => handleBid(energy, amount)}
-            className="justify-center items-center px-8 py-4 mt-10 text-base leading-4 text-center text-white bg-blue-600 rounded-lg border border-blue-600 border-solid max-md:px-5 max-md:max-w-full"
-          >
-            Submit
-          </Button>
-        ) : null}
+        {isConnected && chainId && defaultChain.id !== chainId && (
+          <div className="py-2 mt-10 bg-blue-600 rounded-lg border border-blue-600 border-solid">
+            <div className="flex justify-center flex-col items-center">
+              <p className="text-white mb-2">Please change network</p>
+              <w3m-network-button />
+            </div>
+          </div>
+        )}
+
+        {isWritePending ||
+          (isConfirming && (
+            <Button
+              disabled={true}
+              className="py-2 mt-10 text-base text-center text-white bg-blue-600 rounded-lg border border-blue-600 border-solid max-md:px-5 max-md:max-w-full"
+            >
+              <Spinner />
+            </Button>
+          ))}
+        {isConnected &&
+          !isWritePending &&
+          !isConfirming &&
+          defaultChain.id == chainId && (
+            <Button
+              onClick={() => handleBid(energy, amount)}
+              className="py-2 mt-10 text-base text-center text-white bg-blue-600 rounded-lg border border-blue-600 border-solid max-md:px-5 max-md:max-w-full"
+            >
+              Submit
+            </Button>
+          )}
       </div>
     </div>
   );

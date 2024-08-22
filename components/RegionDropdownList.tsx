@@ -1,10 +1,9 @@
 import React, { useEffect } from "react";
-import { Box, Select } from "@chakra-ui/react";
-import { contractAddresses } from "../constants/config";
+import { Box, Select, Text } from "@chakra-ui/react"; // Added Text import
+import { contractAddresses, EthereumAddress } from "../constants/config";
 import { useAccount } from "wagmi";
 import { useAppContext } from "./AppContext";
 import { fetchUserCountry } from "@/utils/fetchUserCountry";
-import { set } from "date-fns";
 
 const RegionDropdownList: React.FC = () => {
   const { isConnected, chainId } = useAccount();
@@ -18,12 +17,10 @@ const RegionDropdownList: React.FC = () => {
     if (!chainId || !isConnected) return;
     const country = await fetchUserCountry();
     if (!country) {
-      setEnergyMarketAddress(
-        Object.values(contractAddresses[chainId].energyMarket)[0]
-      );
+      setEnergyMarketAddress(Object.values(contractAddresses[chainId])[0]);
       return;
     }
-    setEnergyMarketAddress(contractAddresses[chainId].energyMarket[country]);
+    setEnergyMarketAddress(contractAddresses[chainId][country]);
   };
 
   useEffect(() => {
@@ -31,12 +28,17 @@ const RegionDropdownList: React.FC = () => {
       setEnergyMarketAddresses(undefined);
       return;
     }
-    setEnergyMarketAddresses(contractAddresses[chainId].energyMarket);
+    setEnergyMarketAddresses(contractAddresses[chainId]);
     fetchCountryAndSetEnergyMarketAddress();
   }, [isConnected, chainId]);
 
+  console.log(energyMarketAddress);
+
   return (
-    <Box width="200px" marginRight="16px">
+    <Box width="250px" marginRight="16px" display="flex" alignItems="center">
+      <Text color="white" marginRight="8px" width="200px">
+        Select Region:
+      </Text>
       <Select
         value={energyMarketAddress}
         variant="outline"
