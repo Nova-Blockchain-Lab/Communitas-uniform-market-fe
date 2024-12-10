@@ -3,7 +3,7 @@ import {
   useAccount,
   useBalance,
   useWaitForTransactionReceipt,
-  useWriteContract,
+  useWriteContract
 } from "wagmi";
 import EnergyBiddingMarketAbi from "../abi/EnergyBiddingMarket.json";
 import { DECIMALS, defaultChain } from "../constants/config";
@@ -21,6 +21,7 @@ import DateMultiplePicker from "./DateMultiplePicker";
 import { useAppContext } from "./AppContext";
 import DateRangePicker from "./DateRangePicker";
 import { MdOutlineSwapHoriz } from "react-icons/md";
+import ConnectAndSwitchNetworkButton from "./ConnectAndSwitchNetworkButton";
 
 const EnergyBidItem: React.FC<{
   icon: string;
@@ -544,32 +545,23 @@ const BidBox: React.FC = () => {
             {calculateExactHours() == 1 ? "hour" : "hours"}
           </div>
         </div>
-        {!isConnected && (
-          <div className="py-2 mt-10 text-base text-center text-white bg-blue-600 rounded-lg border border-blue-600 border-solid max-md:px-5 max-md:max-w-full">
-            <div className="flex justify-center">
-              <w3m-connect-button />
+        {(!isConnected || (chainId && defaultChain.id !== chainId)) && (
+            <div className="py-2 mt-10 bg-blue-600 rounded-lg border border-blue-600 border-solid">
+              <div className="flex justify-center flex-col items-center">
+                <ConnectAndSwitchNetworkButton />
+              </div>
             </div>
-          </div>
         )}
 
-        {isConnected && chainId && defaultChain.id !== chainId && (
-          <div className="py-2 mt-10 bg-blue-600 rounded-lg border border-blue-600 border-solid">
-            <div className="flex justify-center flex-col items-center">
-              <p className="text-white mb-2">Please change network</p>
-              <w3m-network-button />
-            </div>
-          </div>
-        )}
-
-        {isWritePending ||
-          (isConfirming && (
+        {(isWritePending ||
+          isConfirming) && (
             <Button
               disabled={true}
               className="py-2 mt-10 text-base text-center text-white bg-blue-600 rounded-lg border border-blue-600 border-solid max-md:px-5 max-md:max-w-full"
             >
               <Spinner />
             </Button>
-          ))}
+          )}
         {isConnected &&
           !isWritePending &&
           !isConfirming &&
