@@ -8,6 +8,7 @@
 		"lint": "next lint"
 	},
 	"dependencies": {
+		"@arbitrum/sdk": "^4.0.2",
 		"@chakra-ui/react": "^2.8.2",
 		"@emotion/react": "^11.13.0",
 		"@emotion/styled": "^11.13.0",

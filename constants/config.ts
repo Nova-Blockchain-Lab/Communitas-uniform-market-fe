@@ -13,7 +13,7 @@ export const communitasMainnet = defineChain({
     default: { http: ['http://localhost:8449'] },
   },
   blockExplorers: {
-    default: { name: 'Etherscan', url: 'http://localhost' },
+    default: { name: 'Blockscout', url: 'http://localhost' },
   }
 })
 

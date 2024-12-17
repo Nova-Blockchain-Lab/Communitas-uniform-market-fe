@@ -1,10 +1,8 @@
 import React, {useEffect, useState} from "react";
 import {useAccount, useConfig, useReadContract, useReadContracts, useSwitchChain} from "wagmi";
-import {Spinner, Grid, Box, Image, Text, useToast, FormControl, FormLabel, Switch, Flex} from "@chakra-ui/react";
+import {Spinner, Grid, Box, Text, useToast, FormControl, FormLabel, Switch, Flex} from "@chakra-ui/react";
 import {contractAddresses, defaultChain} from "../constants/config";
 import CommunitasNFTAbi from "../abi/CommunitasNFT.json";
-import CommunitasNFTL1Abi from "../abi/CommunitasNFTL1.json";
-import CommunitasNFTL2Abi from "../abi/CommunitasNFTL2.json";
 import {AbiFunction} from "viem";
 import ConnectAndSwitchNetworkButton from "./ConnectAndSwitchNetworkButton";
 import NFTCard from "./NFTCard";
@@ -112,6 +110,12 @@ const NFTBox: React.FC = () => {
             setIsLoading(false);
         }
     };
+
+    const refetchNFTs = async () => {
+        await refetchBalance()
+        await refetchTokenIds()
+        await refetchTokenUris()
+    }
 
     useEffect(() => {
         if (isConnected && chainId && chains.map((chain) => chain.id).includes(chainId))
@@ -242,7 +246,7 @@ const NFTBox: React.FC = () => {
                 </Flex>
                 <Grid templateColumns="repeat(auto-fill, minmax(200px, 1fr))" gap={6}>
                     {nfts.map((nft) => (
-                        <NFTCard key={nft.tokenId} isL3={chainId === defaultChain.id} nft={nft} />
+                        <NFTCard key={nft.tokenId} isL3={chainId === defaultChain.id} nft={nft} refetchNFTs={refetchNFTs} />
                     ))}
                 </Grid>
             </Box>

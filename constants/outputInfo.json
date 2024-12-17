@@ -1,0 +1,46 @@
+{
+  "chainInfo": {
+    "minL2BaseFee": 100000000,
+    "networkFeeReceiver": "0xC8271089690f4335fc6F1B538f79e43C4C23A7C0",
+    "infrastructureFeeCollector": "0xC8271089690f4335fc6F1B538f79e43C4C23A7C0",
+    "batchPoster": "0x7502e2fcD1416648e4F2392B8F274C7f1e5b1081",
+    "staker": "0x4C5Ad2B353a1077aE7476bd132edb3C664180c1A",
+    "chainOwner": "0xC8271089690f4335fc6F1B538f79e43C4C23A7C0",
+    "chainName": "Communitas",
+    "chainId": 99436914197,
+    "parentChainId": 421614,
+    "rpcUrl": "http://localhost:8449",
+    "explorerUrl": "http://localhost",
+    "nativeToken": "0x0000000000000000000000000000000000000000"
+  },
+  "coreContracts": {
+    "rollup": "0x46a28348D56d4Ff3ea222a17326C46B71569FC38",
+    "inbox": "0xC56941067ef1081691832Dfa47a1b89Df4bEDa44",
+    "outbox": "0x38379Da3AcCb8D93f25bf0BEA28A1F27526c53d2",
+    "adminProxy": "0x4ED886E63e8df6655192AC9D76B6083Bd7A52c88",
+    "sequencerInbox": "0xE5C953EC6a2b70350d8547D19c6bDa69436925B6",
+    "bridge": "0xDdD3d071b914Fe14AB3145e1462e87E116e14972",
+    "utils": "0x7C100c97a54e2D309a194752Df2f66922A802be3",
+    "validatorWalletCreator": "0xFAd2C6Cb969Ab7B18d78BD63e512b650bb70B570"
+  },
+  "tokenBridgeContracts": {
+    "l2Contracts": {
+      "customGateway": "0x36C9fd2b66100A4811766D962D20Ed84Fb12A84A",
+      "multicall": "0xce1CAd780c529e66e3aa6D952a1ED9A6447791c1",
+      "proxyAdmin": "0x0000000000000000000000000000000000000000",
+      "router": "0x44fE14676774893FCE98cE62E724dCb1e318bEdB",
+      "standardGateway": "0xdF34712d1B467a7e8Bf38A0F05BE818f6CA78419",
+      "weth": "0x980B62Da83eFf3D4576C647993b0c1D7faf17c73",
+      "wethGateway": "0x3d1DB973c72f419df8d8Ad7d324092641E0fEdc5"
+    },
+    "l3Contracts": {
+      "customGateway": "0x8423307eDfd0F6F539EdEB2ea7da7D717dA92a91",
+      "multicall": "0x8406Cc2C3F5eAE5FeF6d944f04C8f44f9B2b03c2",
+      "proxyAdmin": "0x880504320c51D6A7f4f6A329687320681F599F96",
+      "router": "0x798F367203ffb7F1c23AF4E090577399AB4302Da",
+      "standardGateway": "0x4d45122A5596f1cF87054C78FcF1e032cd8bD03d",
+      "weth": "0x55cb2e2b87a5570134958B106F239Ea7Ff0D4359",
+      "wethGateway": "0x4fE57987B5D070900aeb9250371B5c2CDE180149"
+    }
+  }
+}
