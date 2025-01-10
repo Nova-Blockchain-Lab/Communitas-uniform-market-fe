@@ -1,11 +1,12 @@
 import React, {useEffect, useState} from "react";
 import {useAccount, useConfig, useReadContract, useReadContracts, useSwitchChain} from "wagmi";
-import {Spinner, Grid, Box, Text, useToast, FormControl, FormLabel, Switch, Flex} from "@chakra-ui/react";
+import {Box, Flex, FormControl, FormLabel, Grid, Spinner, Switch, Text, useToast} from "@chakra-ui/react";
 import {contractAddresses, defaultChain} from "../constants/config";
 import CommunitasNFTAbi from "../abi/CommunitasNFT.json";
 import {AbiFunction} from "viem";
 import ConnectAndSwitchNetworkButton from "./ConnectAndSwitchNetworkButton";
 import NFTCard from "./NFTCard";
+import PendingNFTs from "./PendingNFTBox";
 
 const NFTBox: React.FC = () => {
     const {address, isConnected, chainId, chain} = useAccount();
@@ -87,11 +88,10 @@ const NFTBox: React.FC = () => {
                     `Different length between tokenIds ${tokenIdsOwned?.length} and tokenUris ${tokenUris?.length}`
                 );
 
-            let i = 0;
             const tokenData = await Promise.all(
-                tokenUris.map(async (tokenUri) => {
+                tokenUris.map(async (tokenUri, i) => {
                     const tokenUriResponse = await fetch(tokenUri.result!.toString());
-                    const tokenId = tokenIdsOwned[i++].result;
+                    const tokenId = tokenIdsOwned[i].result;
                     return {tokenId, ...(await tokenUriResponse.json())};
                 })
             );
@@ -113,8 +113,6 @@ const NFTBox: React.FC = () => {
 
     const refetchNFTs = async () => {
         await refetchBalance()
-        await refetchTokenIds()
-        await refetchTokenUris()
     }
 
     useEffect(() => {
@@ -161,63 +159,8 @@ const NFTBox: React.FC = () => {
             </Box>
         )
 
-    if (nftsBalance !== undefined && nftsBalance !== null && +nftsBalance.toString() === 0) {
-        return (
-            <Box display="flex" justifyContent="center" alignItems="center" p={4}>
-                <Box
-                    w="full"
-                    maxW="1200px"
-                    bg="white"
-                    borderRadius="xl"
-                    boxShadow="lg"
-                    p={6}
-                >
-                    <Flex justifyContent="space-between" alignItems="center" mb={6}>
-                        <Text fontSize="2xl" fontWeight="bold" mb={6}>
-                            Your NFTs
-                        </Text>
-                        <FormControl display="flex" alignItems="center">
-                            <FormLabel margin={2} fontSize="sm" fontWeight="bold">
-                                L1
-                            </FormLabel>
-                            <Switch
-                                colorScheme="blue"
-                                isChecked={chainId === defaultChain.id}
-                                onChange={handleChangeChain}
-                            />
-                            <FormLabel margin={2} fontSize="sm" fontWeight="bold">
-                                L2
-                            </FormLabel>
-                        </FormControl>
-                    </Flex>
-                    <Text margin={2}>No NFTs found in your wallet in the {chain?.name} chain</Text>
-                </Box>
-            </Box>
-        )
-    }
-
-    if (isLoading) {
-        return (
-            <Box display="flex" justifyContent="center" alignItems="center" p={4}>
-                <Box
-                    w="full"
-                    maxW="1200px"
-                    bg="white"
-                    borderRadius="xl"
-                    boxShadow="lg"
-                    p={6}
-                >
-                    <Text fontSize="2xl" fontWeight="bold" mb={6}>
-                        Your NFTs
-                    </Text>
-                    <Spinner size="lg"/>
-                </Box>
-            </Box>
-        );
-    }
-
     return (
-        <Box display="flex" justifyContent="center" alignItems="center" p={4}>
+        <Flex direction="column" alignItems="center" justifyContent="center" p={4}>
             <Box
                 w="full"
                 maxW="1200px"
@@ -226,10 +169,12 @@ const NFTBox: React.FC = () => {
                 boxShadow="lg"
                 p={6}
             >
-                <Flex justifyContent="space-between" alignItems="center" mb={4}>
-                    <Text fontSize="2xl" fontWeight="bold" mb={6}>
+                <Flex direction="column" alignItems="center" mb={4}>
+
+                    <Text fontSize="3xl" fontWeight="bold" textAlign="center" mb={2}>
                         Your NFTs
                     </Text>
+                    <Box w="full" h="1px" bg="gray.300"/>
                     <FormControl display="flex" alignItems="center">
                         <FormLabel margin={2} fontSize="sm" fontWeight="bold">
                             L1
@@ -244,13 +189,29 @@ const NFTBox: React.FC = () => {
                         </FormLabel>
                     </FormControl>
                 </Flex>
-                <Grid templateColumns="repeat(auto-fill, minmax(200px, 1fr))" gap={6}>
-                    {nfts.map((nft) => (
-                        <NFTCard key={nft.tokenId} isL3={chainId === defaultChain.id} nft={nft} refetchNFTs={refetchNFTs} />
-                    ))}
-                </Grid>
+                {nftsBalance !== undefined && nftsBalance !== null && +nftsBalance.toString() === 0 ? (
+                    <Text margin={2}>No NFTs found in your wallet in the {chain?.name} chain</Text>
+                ) : (
+                    <>
+                        {isLoading ? (
+                            <Flex justifyContent="center" alignItems="center" height="200px">
+                                <Spinner size="lg"/>
+                                <Text fontSize="lg" mt={4} ml={4}>Loading NFTs...</Text>
+                            </Flex>
+                        ) : (
+                            <Grid templateColumns="repeat(auto-fill, minmax(200px, 1fr))" gap={6}>
+                                {nfts.map((nft) => (
+                                    <NFTCard key={nft.tokenId} isL3={chainId === defaultChain.id} nft={nft}
+                                             refetchNFTs={refetchNFTs}/>
+                                ))}
+                            </Grid>
+                        )
+                        }
+                    </>
+                )}
             </Box>
-        </Box>
+            <PendingNFTs refetchNFTs={refetchNFTs}/>
+        </Flex>
     );
 };
 

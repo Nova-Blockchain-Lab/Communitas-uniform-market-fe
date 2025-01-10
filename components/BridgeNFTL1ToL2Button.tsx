@@ -3,33 +3,24 @@ import {Button, Spinner, ToastId, useToast} from "@chakra-ui/react";
 import {useAccount, useWaitForTransactionReceipt, useWriteContract} from "wagmi";
 import CommunitasNFTL1Abi from "../abi/CommunitasNFTL1.json";
 import {contractAddresses, defaultChain} from "../constants/config";
-import {
-    ParentTransactionReceipt,
-    ParentToChildMessageStatus, ParentToChildMessageGasEstimator, registerCustomArbitrumNetwork,
-} from "@arbitrum/sdk";
-import {ethers, providers} from "ethers";
+import {ParentToChildMessageGasEstimator, ParentToChildMessageStatus, ParentTransactionReceipt,} from "@arbitrum/sdk";
+import {ethers} from "ethers";
 import {getBaseFee} from "@arbitrum/sdk/dist/lib/utils/lib";
-import outputInfo from "../constants/outputInfo.json"
-import {mapOrbitConfigToOrbitChain} from "@/utils/mapOrbitConfigToOrbitChain";
+import {useAppContext} from "./AppContext";
 
-interface BridgeNFTButtonProps {
+export interface BridgeNFTL1ToL2ButtonProps {
     tokenId: string;
     refetchNFTs: () => {};
 }
 
-const BridgeNFTButton: React.FC<BridgeNFTButtonProps> = ({tokenId, refetchNFTs}) => {
+const BridgeNFTL1ToL2Button: React.FC<BridgeNFTL1ToL2ButtonProps> = ({tokenId, refetchNFTs}) => {
     const {isConnected, address, chain} = useAccount();
+    const {l1Provider, l2Provider} = useAppContext()
 
     const [isLoading, setIsLoading] = useState<boolean>(false);
-    const toastIdRef = React.useRef()
 
     const nftContractAddress = contractAddresses[chain!.id]["CommunitasNFT"]["General"];
     const nftContractAddressOnL2 = contractAddresses[defaultChain.id]["CommunitasNFT"]["General"];
-
-    const l1Provider = new providers.JsonRpcProvider(chain!.rpcUrls.default.http[0])
-    const l2Rpc = defaultChain.rpcUrls.default.http[0]
-    const l2Provider = new providers.JsonRpcProvider(l2Rpc)
-
 
     const toast = useToast();
 
@@ -49,6 +40,7 @@ const BridgeNFTButton: React.FC<BridgeNFTButtonProps> = ({tokenId, refetchNFTs})
             checkFinality(hash);
         } else {
             sendUnsuccessfulNotification();
+            setIsLoading(false);
         }
     }, [isConfirming]);
 
@@ -77,7 +69,7 @@ const BridgeNFTButton: React.FC<BridgeNFTButtonProps> = ({tokenId, refetchNFTs})
         });
     };
 
-    const sendWaitingForRetryableNotification = () : ToastId => {
+    const sendWaitingForRetryableNotification = (): ToastId => {
         return toast({
             title: "Transaction is confirmed, waiting for bridge confirmation",
             description: `Waiting for transaction to be executed in the ${defaultChain.name} network. This process can take up to 15 min.`,
@@ -88,7 +80,7 @@ const BridgeNFTButton: React.FC<BridgeNFTButtonProps> = ({tokenId, refetchNFTs})
     }
 
     const checkFinality = async (txHash: string) => {
-        if (!address) return;
+        if (!address || !l1Provider || !l2Provider) return;
         try {
 
             const l1TxReceipt = new ParentTransactionReceipt(await l1Provider.getTransactionReceipt(txHash));
@@ -100,7 +92,6 @@ const BridgeNFTButton: React.FC<BridgeNFTButtonProps> = ({tokenId, refetchNFTs})
             const toastLoadingId = sendWaitingForRetryableNotification();
             const result = await message.waitForStatus();
 
-            console.log("toast id ", toastLoadingId)
             toast.close(toastLoadingId);
 
             if (result.status === ParentToChildMessageStatus.REDEEMED) {
@@ -123,12 +114,9 @@ const BridgeNFTButton: React.FC<BridgeNFTButtonProps> = ({tokenId, refetchNFTs})
     };
 
     const handleBridge = async () => {
-        if (!isConnected || !chain || !address) return;
+        if (!isConnected || !chain || !address || !l1Provider || !l2Provider) return;
 
         setIsLoading(true)
-
-        const orbitChain = await mapOrbitConfigToOrbitChain(outputInfo)
-        registerCustomArbitrumNetwork(orbitChain)
 
         const ABI = ['function mintFromBridge(address receiver, uint256 tokenId)']
         const iface = new ethers.utils.Interface(ABI)
@@ -180,4 +168,4 @@ const BridgeNFTButton: React.FC<BridgeNFTButtonProps> = ({tokenId, refetchNFTs})
     );
 };
 
-export default BridgeNFTButton;
+export default BridgeNFTL1ToL2Button;
