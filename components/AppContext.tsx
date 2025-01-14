@@ -30,14 +30,14 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({children}) => {
 
     const setProvidersWhenConnectedToParentChain = () => {
         if (l1Provider || l2Provider) return;
-        setL1Provider(getProviderForChainId(chain!.id, "https://arbitrum-sepolia.infura.io/v3/cf29898319594df799ef861b6dab7198"))
+        setL1Provider(getProviderForChainId(chain!.id, process.env.NEXT_PUBLIC_INFURA_RPC!))
         setL2Provider(getProviderForChainId(defaultChain.id, defaultChain.rpcUrls.default.http[0]))
     }
 
     const setProvidersWhenConnectedToChildChain = () => {
         if (l1Provider || l2Provider) return;
         const l1chain = config.chains.filter((c) => c.id !== defaultChain.id)[0]
-        setL1Provider(getProviderForChainId(l1chain.id, "https://arbitrum-sepolia.infura.io/v3/cf29898319594df799ef861b6dab7198"))
+        setL1Provider(getProviderForChainId(l1chain.id, process.env.NEXT_PUBLIC_INFURA_RPC!))
         setL2Provider(getProviderForChainId(chain!.id, chain!.rpcUrls.default.http[0]))
     }
 
