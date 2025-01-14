@@ -5,6 +5,8 @@ import {defineChain} from 'viem'
 
 export const DECIMALS = 18;
 
+export const CONFIRMATION_BUFFER_MINUTES = 70
+
 export const communitasMainnet = defineChain({
     id: 99436914197,
     name: 'Communitas',
