@@ -1,46 +1,46 @@
 {
   "chainInfo": {
-    "minL2BaseFee": 100000000,
+    "chainName": "Nova Cidade Chain",
+    "minL2BaseFee": 10000000,
     "networkFeeReceiver": "0xC8271089690f4335fc6F1B538f79e43C4C23A7C0",
     "infrastructureFeeCollector": "0xC8271089690f4335fc6F1B538f79e43C4C23A7C0",
     "batchPoster": "0x7502e2fcD1416648e4F2392B8F274C7f1e5b1081",
     "staker": "0x4C5Ad2B353a1077aE7476bd132edb3C664180c1A",
     "chainOwner": "0xC8271089690f4335fc6F1B538f79e43C4C23A7C0",
-    "chainName": "Communitas",
-    "chainId": 99436914197,
+    "chainId": 93735000855,
     "parentChainId": 421614,
-    "rpcUrl": "http://localhost:8449",
-    "explorerUrl": "http://localhost",
+    "rpcUrl": "http://193.136.119.39:8449",
+    "explorerUrl": "http://193.136.119.39/",
     "nativeToken": "0x0000000000000000000000000000000000000000"
   },
   "coreContracts": {
-    "rollup": "0x46a28348D56d4Ff3ea222a17326C46B71569FC38",
-    "inbox": "0xC56941067ef1081691832Dfa47a1b89Df4bEDa44",
-    "outbox": "0x38379Da3AcCb8D93f25bf0BEA28A1F27526c53d2",
-    "adminProxy": "0x4ED886E63e8df6655192AC9D76B6083Bd7A52c88",
-    "sequencerInbox": "0xE5C953EC6a2b70350d8547D19c6bDa69436925B6",
-    "bridge": "0xDdD3d071b914Fe14AB3145e1462e87E116e14972",
+    "rollup": "0xC93Cd03F1eaCdDa3fb2896E0fFf127A536610f97",
+    "inbox": "0xD454bF0AB63AA4E231f4ba7c0dAa88ef3e4d6cDe",
+    "outbox": "0x2744b7fD183a5913a6556A34e6aC21fDe51Ab729",
+    "adminProxy": "0x544c77E243cb69e76765074f2b7cD5328dCA7B10",
+    "sequencerInbox": "0xF1232169322c35b5579CCb8A10abae2504E8C3a5",
+    "bridge": "0x52af323E39A17C72D39c4CD7967Ad73618f0fE4a",
     "utils": "0x7C100c97a54e2D309a194752Df2f66922A802be3",
     "validatorWalletCreator": "0xFAd2C6Cb969Ab7B18d78BD63e512b650bb70B570"
   },
   "tokenBridgeContracts": {
     "l2Contracts": {
-      "customGateway": "0x36C9fd2b66100A4811766D962D20Ed84Fb12A84A",
+      "customGateway": "0x0Ccf38fB9EB9054C332D1f42d6866f0e0052a11f",
       "multicall": "0xce1CAd780c529e66e3aa6D952a1ED9A6447791c1",
       "proxyAdmin": "0x0000000000000000000000000000000000000000",
-      "router": "0x44fE14676774893FCE98cE62E724dCb1e318bEdB",
-      "standardGateway": "0xdF34712d1B467a7e8Bf38A0F05BE818f6CA78419",
+      "router": "0x578B351682e44c127f971dBE2dC3f5e0d1935A1b",
+      "standardGateway": "0xDbF555B7fBb3ec4845bf25b17610dDD2C2722659",
       "weth": "0x980B62Da83eFf3D4576C647993b0c1D7faf17c73",
-      "wethGateway": "0x3d1DB973c72f419df8d8Ad7d324092641E0fEdc5"
+      "wethGateway": "0x163759aEE3F6161F6b3aB27411b984976272573b"
     },
     "l3Contracts": {
-      "customGateway": "0x8423307eDfd0F6F539EdEB2ea7da7D717dA92a91",
-      "multicall": "0x8406Cc2C3F5eAE5FeF6d944f04C8f44f9B2b03c2",
-      "proxyAdmin": "0x880504320c51D6A7f4f6A329687320681F599F96",
-      "router": "0x798F367203ffb7F1c23AF4E090577399AB4302Da",
-      "standardGateway": "0x4d45122A5596f1cF87054C78FcF1e032cd8bD03d",
-      "weth": "0x55cb2e2b87a5570134958B106F239Ea7Ff0D4359",
-      "wethGateway": "0x4fE57987B5D070900aeb9250371B5c2CDE180149"
+      "customGateway": "0xe4C707013f31077E394CaAf57c7FdC501fD798a4",
+      "multicall": "0x6acaAF1d9C6bfF687A948c5d3693983F1e902e3e",
+      "proxyAdmin": "0x3B71d8670eeE3a76B5fcBB01Ff01A66bf06aBe07",
+      "router": "0xf5AcDbF01523396F97FF6AFBAb89b4c6c8e0B131",
+      "standardGateway": "0xc141Be7539fDc081AC7D85F0B82CbE0f231ee12d",
+      "weth": "0xbc72c2d186C834F3fE3C2c76658A8309fbbdabaB",
+      "wethGateway": "0xB2EF3512002c7E4d299234B49824994eca9dB2f0"
     }
   }
 }

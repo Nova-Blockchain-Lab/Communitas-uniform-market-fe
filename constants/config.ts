@@ -1,25 +1,26 @@
 import {arbitrumSepolia} from "wagmi/chains";
 import {defaultWagmiConfig} from "@web3modal/wagmi";
 import jsonAddresses from "./addresses.json";
+import outputInfo from "./outputInfo.json"
 import {defineChain} from 'viem'
 
 export const DECIMALS = 18;
 
 export const CONFIRMATION_BUFFER_MINUTES = 70
 
-export const communitasMainnet = defineChain({
-    id: 99436914197,
-    name: 'Communitas',
+export const novaCidadeMainnet = defineChain({
+    id: outputInfo.chainInfo.chainId,
+    name: outputInfo.chainInfo.chainName,
     nativeCurrency: {name: 'Ether', symbol: 'ETH', decimals: 18},
     rpcUrls: {
-        default: {http: ['http://localhost:8449']},
+        default: {http: [outputInfo.chainInfo.rpcUrl]},
     },
     blockExplorers: {
-        default: {name: 'Blockscout', url: 'http://localhost'},
+        default: {name: 'Blockscout', url: outputInfo.chainInfo.explorerUrl},
     }
 })
 
-export const defaultChain = communitasMainnet;
+export const defaultChain = novaCidadeMainnet;
 
 export type EthereumAddress = `0x${string}`;
 
