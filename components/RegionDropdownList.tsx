@@ -17,7 +17,6 @@ const RegionDropdownList: React.FC = () => {
     if (!chainId || !isConnected) return;
     const country = await fetchUserCountry();
     if (!country || !Object.entries(contractAddresses[chainId]["EnergyBiddingMarket"]).some((key,) => key[0] == country)) {
-      console.log(Object.values(contractAddresses[chainId]["EnergyBiddingMarket"])[0])
       setEnergyMarketAddress(Object.values(contractAddresses[chainId]["EnergyBiddingMarket"])[0]);
       return;
     }

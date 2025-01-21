@@ -22,7 +22,6 @@ const PendingNFTs: React.FC<PendingNFTsBoxProps> = ({refetchNFTs}) => {
         setIsLoading(true);
         try {
             const nfts = await getPendingOutgoingNftsFromEventLogs(address, l1Provider, l2Provider)
-            console.log("Fetching nfts from cache", nfts)
             setPendingNFTs(nfts);
         } catch (error) {
             console.error("Error fetching pending NFTs:", error);

@@ -154,7 +154,6 @@
                 console.log(e)
                 sendUnsuccessfulNotification()
             } finally {
-                console.log("finaly?")
                 setIsLoading(false)
             }
 

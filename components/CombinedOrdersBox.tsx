@@ -505,8 +505,6 @@ const CombinedOrdersBox: React.FC = () => {
         }
     }, [isConnected]);
 
-    console.log(bids);
-
     return (
         <div className="flex justify-center items-center">
             <div className="flex flex-col px-7 py-9 font-medium bg-white rounded-xl shadow-lg space-y-6">
