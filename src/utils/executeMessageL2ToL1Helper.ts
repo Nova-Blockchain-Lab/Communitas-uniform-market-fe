@@ -129,6 +129,7 @@ export const getPendingOutgoingMessagesFromEventLogs = async (
 
     const states = await Promise.all(
         withdrawals.map(async (event) => {
+            console.log("l1prov:", l1Provider, "l2 prov:", l2Provider)
             const state = await getOutgoingMessageState(event.transactionHash, l1Provider, l2Provider);
             return {...event, state};
         })
