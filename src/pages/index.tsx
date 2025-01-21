@@ -1,16 +1,16 @@
 import Head from "next/head";
 import Image from "next/image";
 import styles from "@/styles/Home.module.css";
-import { useState } from "react";
+import {useState} from "react";
 import BidBox from "../../components/BidBox";
 import Link from "next/link";
 import SellBox from "../../components/SellBox";
 import Slider from "../../components/Slider";
 import CombinedOrdersBox from "../../components/CombinedOrdersBox";
 import ClaimBox from "../../components/ClaimBox";
-import { Box, Select } from "@chakra-ui/react";
-import { AppProvider } from "../../components/AppContext";
+import {AppProvider} from "../../components/AppContext";
 import RegionDropdownList from "../../components/RegionDropdownList";
+import NFTBox from "../../components/NFTBox";
 
 export default function Home() {
   const [isNetworkSwitchHighlighted, setIsNetworkSwitchHighlighted] =
@@ -50,6 +50,7 @@ export default function Home() {
               </Link>
             </div>
             <RegionDropdownList />
+            <Slider selected={selected} setSelected={setSelected} />
             <div className={styles.buttons}>
               <div
                 onClick={closeAll}
@@ -70,12 +71,12 @@ export default function Home() {
             </div>
           </div>
         </header>
-        <div className="flex flex-col items-center justify-center min-h-screen space-y-4">
-          <Slider selected={selected} setSelected={setSelected} />
+        <div className="flex flex-col items-center justify-center min-h-screen space-y-4" style={{ paddingTop: "80px" }}>
           {selected == 1 ? <BidBox /> : ""}
           {selected == 2 ? <SellBox /> : ""}
           {selected == 3 ? <CombinedOrdersBox /> : ""}
           {selected == 4 ? <ClaimBox /> : ""}
+          {selected == 5 ? <NFTBox /> : ""}
         </div>
       </AppProvider>
     </div>

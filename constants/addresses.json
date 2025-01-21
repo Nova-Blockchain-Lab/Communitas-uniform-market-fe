@@ -1,9 +1,19 @@
 {
+  "93735000855": {
+    "EnergyBiddingMarket": {
+      "Portugal": "0x2A9510Ae0aD44955b5749b3b9f31707F8D459529",
+      "Germany": "0xAB42524305A9fC6bBC5C1A27B8C4F0DD40541368",
+      "Greece": "0x48204f4F0aD3ce83cc884853Eb1BDC1E96C870C2",
+      "Italy": "0x2211413e22c945EA22F14269DB1c4Df6BfD1f2E2",
+      "Spain": "0x9B537005734492aEa282eBEa35ca4599D142e795"
+    },
+    "CommunitasNFT": {
+      "General": "0x87D5Ec658a33E29eeFaF7E1BE8bF83D9A7DFCb03"
+    }
+  },
   "421614": {
-    "Germany": "0x2d5B9Fa90408CD1CB8b42C55acF46481A0674101",
-    "Greece": "0xd26F753D80B9fb081f005416D644dFAb6aF28e4A",
-    "Italy": "0xA98c78a4fB779BD0A56cd253c00a4DaD226B3B78",
-    "Portugal": "0x5a726D1a74954B397AD6f6713C5Cf3B83F5d5358",
-    "Spain": "0x3b84038160d4A10288f962e73dDffb98dB31516e"
+    "CommunitasNFT": {
+      "General": "0x32326e209e2B52033E99F9dcDfe1f6c20609d6E1"
+    }
   }
 }

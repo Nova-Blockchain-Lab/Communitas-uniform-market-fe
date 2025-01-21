@@ -1,9 +1,6 @@
 import * as React from "react";
 import {
   useAccount,
-  useConnect,
-  useDisconnect,
-  useReadContract,
   useWaitForTransactionReceipt,
   useWriteContract,
 } from "wagmi";
@@ -19,6 +16,7 @@ import {
 import { useEffect } from "react";
 import { useAppContext } from "./AppContext";
 import { defaultChain } from "../constants/config";
+import ConnectAndSwitchNetworkButton from "./ConnectAndSwitchNetworkButton";
 
 const EnergyBidItem: React.FC<{
   icon: string;
@@ -54,7 +52,7 @@ const EnergyBidItem: React.FC<{
   </div>
 );
 
-const BidBox: React.FC = () => {
+const SellBox: React.FC = () => {
   const energyUnit = "kWh";
 
   const { isConnected, chainId } = useAccount();
@@ -74,6 +72,7 @@ const BidBox: React.FC = () => {
   const toast = useToast();
 
   const handleAsk = async (energy: number, hour: number) => {
+    console.log(energyMarketAddress)
     if (!energyMarketAddress) return;
     writeContract({
       abi: EnergyBiddingMarketAbi.abi,
@@ -138,23 +137,23 @@ const BidBox: React.FC = () => {
         </div>
 
         <div className="shrink-0 mt-4 rounded-lg bg-slate-50 h-[50px] max-md:max-w-full" />
-        {!isConnected && (
-          <div className="py-2 mt-10 text-base text-center text-white bg-blue-600 rounded-lg border border-blue-600 border-solid max-md:px-5 max-md:max-w-full">
-            <div className="flex justify-center">
-              <w3m-connect-button />
+        {(!isConnected || (chainId && defaultChain.id !== chainId)) && (
+            <div className="py-2 mt-10 bg-blue-600 rounded-lg border border-blue-600 border-solid">
+              <div className="flex justify-center flex-col items-center">
+                <ConnectAndSwitchNetworkButton />
+              </div>
             </div>
-          </div>
         )}
 
-        {isWritePending ||
-          (isConfirming && (
+        {(isWritePending ||
+          isConfirming) && (
             <Button
               disabled={true}
               className="justify-center items-center px-8 py-4 mt-10 text-base leading-4 text-center text-white bg-blue-600 rounded-lg border border-blue-600 border-solid max-md:px-5 max-md:max-w-full"
             >
               <Spinner color="inherit" />
             </Button>
-          ))}
+          )}
         {isConnected &&
           !isWritePending &&
           !isConfirming &&
@@ -166,18 +165,9 @@ const BidBox: React.FC = () => {
               Submit
             </Button>
           )}
-
-        {isConnected && chainId && defaultChain.id !== chainId && (
-          <div className="py-2 mt-10 bg-blue-600 rounded-lg border border-blue-600 border-solid">
-            <div className="flex justify-center flex-col items-center">
-              <p className="text-white mb-2">Please change network</p>
-              <w3m-network-button />
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );
 };
 
-export default BidBox;
+export default SellBox;
