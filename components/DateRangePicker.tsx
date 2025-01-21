@@ -71,8 +71,6 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({
     setEndDate(newEndDate);
   };
 
-  console.log(startDate, endDate);
-
   return (
     <>
       <div className="flex justify-center mb-2">

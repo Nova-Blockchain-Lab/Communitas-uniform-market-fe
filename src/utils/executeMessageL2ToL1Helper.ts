@@ -84,9 +84,6 @@ export const getPendingOutgoingNftsFromEventLogs = async (
     const nftAddressOnL3 = contractAddresses[(await l2Provider.getNetwork()).chainId]["CommunitasNFT"]["General"]
 
     const pendingNfts = await getPendingOutgoingMessagesFromEventLogs(nftAddressOnL2, l1Provider, l2Provider)
-    console.log('pending nfts', pendingNfts)
-    console.log(pendingNfts[0].caller)
-    console.log(owner)
 
     const nftIface = new ethers.utils.Interface(CommunitasNFTL2Abi.abi);
 
@@ -129,7 +126,6 @@ export const getPendingOutgoingMessagesFromEventLogs = async (
 
     const states = await Promise.all(
         withdrawals.map(async (event) => {
-            console.log("l1prov:", l1Provider)
             const state = await getOutgoingMessageState(event.transactionHash, l1Provider, l2Provider);
             return {...event, state};
         })
