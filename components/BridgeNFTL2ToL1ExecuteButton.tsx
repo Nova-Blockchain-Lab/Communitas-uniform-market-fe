@@ -74,7 +74,7 @@
             };
 
             fetchAndSetRemainingTime();
-            const interval = setInterval(fetchAndSetRemainingTime, 1000); // Update every second
+            const interval = setInterval(fetchAndSetRemainingTime, 60 * 1000); // Update every minute
             return () => clearInterval(interval); // Clean up on unmount
         }, []);
 
