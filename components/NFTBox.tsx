@@ -1,6 +1,6 @@
 import React, {useEffect, useState} from "react";
-import {useAccount, useConfig, useReadContract, useReadContracts, useSwitchChain} from "wagmi";
-import {Box, Flex, FormControl, FormLabel, Grid, Spinner, Switch, Text, useToast} from "@chakra-ui/react";
+import {useAccount, useConfig, useReadContract, useReadContracts, useSwitchChain, useWriteContract} from "wagmi";
+import {Box, Button, Flex, FormControl, FormLabel, Grid, Spinner, Switch, Text, useToast} from "@chakra-ui/react";
 import {contractAddresses, defaultChain} from "../constants/config";
 import CommunitasNFTAbi from "../abi/CommunitasNFT.json";
 import {AbiFunction} from "viem";
@@ -115,6 +115,32 @@ const NFTBox: React.FC = () => {
         await refetchBalance()
     }
 
+    const {writeContract: mintNFT, isSuccess: isMintSuccess} = useWriteContract();
+
+    const handleMint = () => { // todo remove this
+        if (!nftContractAddress) return
+
+        mintNFT({
+            abi: CommunitasNFTAbi.abi,
+            address: nftContractAddress,
+            functionName: "mint"
+        })
+    }
+
+    useEffect(() => {
+        if (isMintSuccess) {
+            toast({
+                title: "Success!",
+                description: "Your NFT has been minted successfully.",
+                status: "success",
+                duration: 5000,
+                isClosable: true,
+            });
+            refetchNFTs();
+        }
+    }, [isMintSuccess]);
+
+
     useEffect(() => {
         if (isConnected && chainId && chains.map((chain) => chain.id).includes(chainId))
             refetchBalance();
@@ -170,12 +196,21 @@ const NFTBox: React.FC = () => {
                 p={6}
             >
                 <Flex direction="column" alignItems="center" mb={4}>
-
                     <Text fontSize="3xl" fontWeight="bold" textAlign="center" mb={2}>
                         Your NFTs
                     </Text>
                     <Box w="full" h="1px" bg="gray.300"/>
-                    <FormControl display="flex" alignItems="center">
+                    {chainId === defaultChain.id &&
+                        <Button
+                            colorScheme="blue"
+                            size="sm"
+                            onClick={handleMint}
+                            mt={4}
+                        >
+                            Mint NFT
+                        </Button>
+                    }
+                    <FormControl display="flex" alignItems="center" mt={4}>
                         <FormLabel margin={2} fontSize="sm" fontWeight="bold">
                             L1
                         </FormLabel>

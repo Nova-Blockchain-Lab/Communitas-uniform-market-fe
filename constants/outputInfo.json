@@ -9,8 +9,8 @@
     "chainOwner": "0xC8271089690f4335fc6F1B538f79e43C4C23A7C0",
     "chainId": 93735000855,
     "parentChainId": 421614,
-    "rpcUrl": "http://193.136.119.39:8449",
-    "explorerUrl": "http://193.136.119.39/",
+    "rpcUrl": "https://wattswap.novaims.unl.pt:8443/",
+    "explorerUrl": "https://wattswap.novaims.unl.pt/",
     "nativeToken": "0x0000000000000000000000000000000000000000"
   },
   "coreContracts": {
