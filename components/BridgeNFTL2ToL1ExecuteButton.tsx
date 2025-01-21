@@ -62,7 +62,7 @@
 
 
         useEffect(() => {
-            const interval = setInterval(updateWithdrawalStatus, 10_000); // Poll every 10 seconds
+            const interval = setInterval(updateWithdrawalStatus, 60 * 1_000); // Poll every minute
             updateWithdrawalStatus()
             return () => clearInterval(interval);
         }, []);
@@ -74,7 +74,7 @@
             };
 
             fetchAndSetRemainingTime();
-            const interval = setInterval(fetchAndSetRemainingTime, 1000); // Update every second
+            const interval = setInterval(fetchAndSetRemainingTime, 60 * 1000); // Update every minute
             return () => clearInterval(interval); // Clean up on unmount
         }, []);
 
