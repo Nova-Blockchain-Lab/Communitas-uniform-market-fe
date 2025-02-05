@@ -197,8 +197,11 @@ const BidBox: React.FC = () => {
     address: address,
   });
 
-  const handleBid = isMultipleDate
-    ? async (energy: number, amount: BigInt) => {
+  const handleBid = async (energy: number, amount: BigInt) => {
+    if (!validateBidTime(startDate, endDate, selectedDates)) {
+      return;
+    }
+    if (isMultipleDate) {
         if (selectedDates.length == 0) {
           toast({
             title: "Error",
@@ -221,9 +224,9 @@ const BidBox: React.FC = () => {
         }
 
         const timestamps = calculateDifferentHours(
-          selectedDates,
-          startDate!,
-          endDate!
+            selectedDates,
+            startDate!,
+            endDate!
         );
 
         writeContract({
@@ -231,13 +234,12 @@ const BidBox: React.FC = () => {
           address: energyMarketAddress,
           functionName: "placeMultipleBids",
           value:
-            BigInt(energy) *
-            BigInt(amount.toString()) *
-            BigInt(timestamps.length),
+              BigInt(energy) *
+              BigInt(amount.toString()) *
+              BigInt(timestamps.length),
           args: [timestamps, energy],
         });
-      }
-    : async (energy: number, amount: BigInt) => {
+      } else {
         if (!startDate || !endDate) {
           toast({
             title: "Error",
@@ -274,13 +276,67 @@ const BidBox: React.FC = () => {
             address: energyMarketAddress,
             functionName: "placeMultipleBids",
             value:
-              BigInt(energy) *
-              BigInt(amount.toString()) *
-              BigInt(calculateExactHours()),
+                BigInt(energy) *
+                BigInt(amount.toString()) *
+                BigInt(calculateExactHours()),
             args: [startTimestamp, endTimestamp, energy],
           });
         }
-      };
+      }
+  }
+
+  const validateBidTime = (startDate?: Date, endDate?: Date, selectedDates?: Date[]): boolean => {
+    const now = new Date();
+
+    if (startDate && startDate <= now) {
+      toast({
+        title: "Invalid Start Time",
+        description: "The start time must be in the future.",
+        status: "error",
+        duration: 5000,
+        isClosable: true,
+      });
+      return false;
+    }
+
+    if (startDate && endDate && endDate <= startDate) {
+      toast({
+        title: "Invalid End Time",
+        description: "The end time must be after the start time.",
+        status: "error",
+        duration: 5000,
+        isClosable: true,
+      });
+      return false;
+    }
+
+    if (selectedDates && selectedDates.length > 0) {
+      const invalidDates = selectedDates.filter(date => date <= now);
+      if (invalidDates.length > 0) {
+        toast({
+          title: "Invalid Selected Dates",
+          description: "All selected dates must be in the future.",
+          status: "error",
+          duration: 5000,
+          isClosable: true,
+        });
+        return false;
+      }
+    }
+
+    if (calculateExactHours() > 400) {
+      toast({
+        title: "Too Many Bids",
+        description: "The number of bids cannot exceed 400. Please adjust your selection and submit multiple times.",
+        status: "error",
+        duration: 5000,
+        isClosable: true,
+      });
+      return false;
+    }
+
+    return true;
+  };
 
   const calculateDifferentHours = (
     selectedDays: Date[],
@@ -364,6 +420,12 @@ const BidBox: React.FC = () => {
     }
   };
 
+  const clearSelection = () => {
+    setSelectedDates([]);
+    setStartDate(getNextHour(1));
+    setEndDate(getNextHour(2));
+  };
+
   return (
     <div className="flex justify-center items-center space-x-2">
       <div className="relative flex flex-col items-start space-y-2">
@@ -371,23 +433,26 @@ const BidBox: React.FC = () => {
           <div className="flex justify-center w-full">
             <div className="flex items-center bg-gray-100 p-2 rounded-md">
               <FormLabel
-                htmlFor="date-mode"
-                mb="0"
-                className="mr-2 text-lg font-semibold text-gray-700"
+                  htmlFor="date-mode"
+                  mb="0"
+                  className="mr-2 text-lg font-semibold text-gray-700"
               >
                 Range
               </FormLabel>
               <Switch
-                id="date-mode"
-                isChecked={isMultipleDate}
-                onChange={() => setIsMultipleDate(!isMultipleDate)}
-                colorScheme="teal"
-                className="mx-2 scale-125"
+                  id="date-mode"
+                  isChecked={isMultipleDate}
+                  onChange={() => {
+                    clearSelection()
+                    setIsMultipleDate(!isMultipleDate)
+                  }}
+                  colorScheme="teal"
+                  className="mx-2 scale-125"
               />
               <FormLabel
-                htmlFor="date-mode"
-                mb="0"
-                className="ml-2 text-lg font-semibold text-gray-700"
+                  htmlFor="date-mode"
+                  mb="0"
+                  className="ml-2 text-lg font-semibold text-gray-700"
               >
                 Multiple
               </FormLabel>
@@ -395,27 +460,37 @@ const BidBox: React.FC = () => {
           </div>
 
           {isMultipleDate ? (
-            <DateMultiplePicker
-              selectedDates={selectedDates}
-              setSelectedDates={setSelectedDates}
-              startTime={startDate}
-              setStartTime={setStartDate}
-              endTime={endDate}
-              setEndTime={setEndDate}
-            />
+              <DateMultiplePicker
+                  selectedDates={selectedDates}
+                  setSelectedDates={setSelectedDates}
+                  startTime={startDate}
+                  setStartTime={setStartDate}
+                  endTime={endDate}
+                  setEndTime={setEndDate}
+              />
           ) : (
-            <DateRangePicker
-              startDate={startDate}
-              setStartDate={setStartDate}
-              endDate={endDate}
-              setEndDate={setEndDate}
-            />
+              <DateRangePicker
+                  startDate={startDate}
+                  setStartDate={setStartDate}
+                  endDate={endDate}
+                  setEndDate={setEndDate}
+              />
           )}
+
+          <div className="flex justify-center mt-4">
+            <Button
+                onClick={clearSelection}
+                className="py-2 px-6 text-base text-white bg-gray-500 rounded-lg hover:bg-gray-600 transition"
+            >
+              Clear Selection
+            </Button>
+          </div>
         </div>
       </div>
       <div className="flex flex-col px-7 py-9 font-medium bg-white rounded-xl shadow-lg max-w-[526px] max-md:px-5">
-        <div className="flex gap-5 justify-between px-0.5 py-1 text-2xl font-bold leading-6 text-gray-900 whitespace-nowrap max-md:flex-wrap max-md:max-w-full">
-          Bid
+        <div
+            className="flex gap-5 justify-between px-0.5 py-1 text-2xl font-bold leading-6 text-gray-900 whitespace-nowrap max-md:flex-wrap max-md:max-w-full">
+        Bid
         </div>
         <div className="mt-9 text-sm leading-4 text-gray-500 max-md:max-w-full">
           <span className="text-gray-500">Energy</span>
