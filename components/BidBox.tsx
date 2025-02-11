@@ -288,7 +288,7 @@ const BidBox: React.FC = () => {
   const validateBidTime = (startDate?: Date, endDate?: Date, selectedDates?: Date[]): boolean => {
     const now = new Date();
 
-    if (startDate && startDate <= now) {
+    if (!selectedDates && startDate && startDate <= now) {
       toast({
         title: "Invalid Start Time",
         description: "The start time must be in the future.",
@@ -299,7 +299,7 @@ const BidBox: React.FC = () => {
       return false;
     }
 
-    if (startDate && endDate && endDate <= startDate) {
+    if (!selectedDates && startDate && endDate && endDate <= startDate) {
       toast({
         title: "Invalid End Time",
         description: "The end time must be after the start time.",
