@@ -55,7 +55,7 @@ const EnergyBidItem: React.FC<{
 const SellBox: React.FC = () => {
   const energyUnit = "kWh";
 
-  const { isConnected, chainId } = useAccount();
+  const { isConnected, chainId, address } = useAccount();
   const [energy, setEnergy] = React.useState<number>(0);
 
   const { energyMarketAddress } = useAppContext();
@@ -78,7 +78,7 @@ const SellBox: React.FC = () => {
       abi: EnergyBiddingMarketAbi.abi,
       address: energyMarketAddress,
       functionName: "placeAsk",
-      args: [hour, energy],
+      args: [energy, address],
     });
   };
 
