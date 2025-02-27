@@ -60,6 +60,19 @@ const getTimestampsForDay = (day: Date): number[] => {
     return timestamps;
 };
 
+
+const formatDate = (timestamp: number): string => {
+    const date = new Date(timestamp * 1000);
+    return date.toLocaleString("en-US", {
+        weekday: "long",
+        month: "long",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+    });
+};
+
+
 // BidItem component
 interface BidItemProps {
     time: number;
@@ -100,7 +113,7 @@ const BidItem: React.FC<BidItemProps> = ({
     const sendSuccessfulNotification = () => {
         toast({
             title: "Success!",
-            description: "Your bid has been placed successfully",
+            description: "Your transaction was successful",
             status: "success",
             duration: 9000,
             isClosable: true,
@@ -114,17 +127,6 @@ const BidItem: React.FC<BidItemProps> = ({
             status: "error",
             duration: 9000,
             isClosable: true,
-        });
-    };
-
-    const formatDate = (timestamp: number): string => {
-        const date = new Date(timestamp * 1000);
-        return date.toLocaleString("en-US", {
-            weekday: "long",
-            month: "long",
-            day: "numeric",
-            hour: "2-digit",
-            minute: "2-digit",
         });
     };
 
@@ -142,6 +144,18 @@ const BidItem: React.FC<BidItemProps> = ({
         });
     };
 
+    const isMarketClearingAllowed = new Date().getTime() / 1000 - time >= 3600;
+
+    const handleClearMarket = async () => { // this function should work as a backup in case the clearMarketBot fails for some reason
+        if (!energyMarketAddress) return;
+        writeContract({
+            abi: EnergyBiddingMarketAbi.abi as AbiFunction[],
+            address: energyMarketAddress,
+            functionName: "clearMarket",
+            args: [time],
+        });
+    };
+
     useEffect(() => {
         if (!hash || isConfirming) return;
         if (isConfirmed) {
@@ -155,7 +169,7 @@ const BidItem: React.FC<BidItemProps> = ({
             className="relative flex flex-col justify-center p-2.5 w-full bg-white border-b border-gray-100 border-solid">
             <div className="relative z-10 flex gap-2.5 text-neutral-700">
                 <div className="flex-1 text-base font-semibold">Bid</div>
-                <div className="flex gap-2.5 self-start text-sm text-right">
+                <div className="flex gap-2 justify-end self-start text-sm text-right">
                     <div>{formatDate(time)}</div>
                 </div>
                 <div>
@@ -163,10 +177,19 @@ const BidItem: React.FC<BidItemProps> = ({
                         <Spinner size="sm" color="red"/>
                     )}
                     {!canceled &&
+                        isMarketClearingAllowed &&
                         !isMarketClearedForHour &&
                         !isWritePending &&
                         !isConfirming && (
-                            <Button w="80%" h="90%" bg="red.500" onClick={handleCancelButton}>
+                            <Button w="48%" h="90%" bg="blue.500" onClick={handleClearMarket}>
+                                Clear Market
+                            </Button>
+                        )}
+                    {!canceled &&
+                        !isMarketClearedForHour &&
+                        !isWritePending &&
+                        !isConfirming && (
+                            <Button w="48%" h="90%" bg="red.500" onClick={handleCancelButton}>
                                 Cancel
                             </Button>
                         )}
@@ -281,12 +304,13 @@ const MyListBids: React.FC<MyListProps> = ({
 
 // AskItem component
 interface AskItemProps {
-    time: string;
+    time: number;
     settled: boolean;
     amount: BigInt;
     matchedAmount: BigInt;
     isMarketClearedForHour?: boolean;
     clearingPrice?: BigInt;
+    refetch: () => void;
 }
 
 const AskItem: React.FC<AskItemProps> = ({
@@ -296,17 +320,100 @@ const AskItem: React.FC<AskItemProps> = ({
                                              matchedAmount,
                                              isMarketClearedForHour,
                                              clearingPrice,
+                                             refetch
                                          }) => {
-    const {ethPrice} = useAppContext();
+    const {ethPrice, energyMarketAddress} = useAppContext();
+    const toast = useToast();
+
+    const [marketClearingHack, setMarketClearingHack] = useState<boolean>(true); // todo add function in sc to check if market is clearable for this hour instead of trying to clear and updating if there's an error (ugly)
+
+    const isMarketClearingAllowed = new Date().getTime() / 1000 - time >= 3600 && marketClearingHack;
+
+    const {
+        data: hash,
+        error,
+        isPending: isWritePending,
+        writeContract,
+    } = useWriteContract();
+
+    const {isLoading: isConfirming, isSuccess: isConfirmed} =
+        useWaitForTransactionReceipt({hash});
+
+    const sendSuccessfulNotification = () => {
+        toast({
+            title: "Success!",
+            description: `Market has been successfully cleared for ${formatDate(time)}`,
+            status: "success",
+            duration: 9000,
+            isClosable: true,
+        });
+    };
+
+    const sendUnsuccessfulNotification = () => {
+        toast({
+            title: "Failed",
+            description: "Something has gone wrong, please try again later",
+            status: "error",
+            duration: 9000,
+            isClosable: true,
+        });
+    };
+
+    const sendUnableToClearMarketNotification = () => {
+        toast({
+            title: "Unable to Clear Market",
+            description: "Not enough bids for this hour to clear the market",
+            status: "error",
+            duration: 9000,
+            isClosable: true,
+        });
+    };
+
+    const handleClearMarket = async () => {
+        if (!energyMarketAddress) return;
+        writeContract({
+            abi: EnergyBiddingMarketAbi.abi as AbiFunction[],
+            address: energyMarketAddress,
+            functionName: "clearMarket",
+            args: [time],
+        });
+    };
+
+    useEffect(() => {
+        if (!hash || isConfirming) return;
+        if (isConfirmed) {
+            sendSuccessfulNotification();
+            refetch();
+        } else sendUnsuccessfulNotification();
+    }, [isConfirming]);
+
+    useEffect(() => {
+        if (error?.message.includes("EnergyBiddingMarket__NoBidsOrAsksForThisHour")) {
+            sendUnableToClearMarketNotification()
+            setMarketClearingHack(false);
+        }
+    }, [error]);
 
     return (
         <div className="flex flex-col justify-center p-2.5 w-full bg-white border-b border-gray-100 border-solid">
             <div className="flex gap-2.5 text-neutral-700">
                 <div className="flex-1 text-base font-semibold">Ask</div>
                 <div className="flex gap-2.5 self-start text-sm text-right">
-                    <div>{time}</div>
+                    <div>{formatDate(time)}</div>
+                    {/* Button Section */}
+                    {(isWritePending || isConfirming) && <Spinner size="sm" color="red"/>}
+                    {!isMarketClearedForHour &&
+                        isMarketClearingAllowed &&
+                        !isWritePending &&
+                        !isConfirming && (
+                            <Button w="48%" h="90%" bg="blue.500" onClick={handleClearMarket}>
+                                Clear Market
+                            </Button>
+                        )}
                 </div>
             </div>
+
+            {/* Status & Price Info */}
             <div className="flex gap-2.5 self-start mt-2.5 text-xs text-neutral-400">
                 {!isMarketClearedForHour ? (
                     <div className="justify-center pr-2.5 border-r border-gray-100 border-solid text-red-600">
@@ -359,24 +466,15 @@ const AskItem: React.FC<AskItemProps> = ({
     );
 };
 
+
 // MyList component for asks
 const MyListAsks: React.FC<{
     asks: any;
     timestamps: number[];
     isMarketClearedForHour?: boolean[];
     clearingPrice?: BigInt[];
-}> = ({asks, timestamps, isMarketClearedForHour, clearingPrice}) => {
-    const formatDate = (timestamp: number): string => {
-        const date = new Date(timestamp * 1000);
-        return date.toLocaleString("en-US", {
-            weekday: "long",
-            month: "long",
-            day: "numeric",
-            hour: "2-digit",
-            minute: "2-digit",
-        });
-    };
-
+    refetch: () => void
+}> = ({asks, timestamps, isMarketClearedForHour, clearingPrice, refetch}) => {
     return (
         <div className="flex flex-col whitespace-nowrap border border-gray-100 border-solid w-auto">
             {asks.map((item: any, i: any) =>
@@ -387,12 +485,13 @@ const MyListAsks: React.FC<{
                     >
                         <AskItem
                             key={i.toString() + j.toString()}
-                            time={formatDate(timestamps[i])}
+                            time={timestamps[i]}
                             settled={ask.settled}
                             amount={ask.amount}
                             matchedAmount={ask.matchedAmount}
                             isMarketClearedForHour={isMarketClearedForHour?.at(i)}
                             clearingPrice={clearingPrice?.at(i)}
+                            refetch={refetch}
                         />
                     </div>
                 ))
@@ -496,13 +595,16 @@ const CombinedOrdersBox: React.FC = () => {
         contracts: defaultChain.id === chainId ? getClearingPriceConfig() : [],
     });
 
+    const refetchAll = () => {
+        refetchBids();
+        refetchAsks();
+        refetchMarketCleared();
+        refetchClearingPrice();
+    }
+
     useEffect(() => {
-        if (isConnected) {
-            refetchBids();
-            refetchAsks();
-            refetchMarketCleared();
-            refetchClearingPrice();
-        }
+        if (isConnected)
+            refetchAll()
     }, [isConnected]);
 
     return (
@@ -575,7 +677,7 @@ const CombinedOrdersBox: React.FC = () => {
                                     (cleared: any) => cleared.result
                                 )}
                                 clearingPrice={clearingPrice?.map((price: any) => price.result)}
-                                refetch={refetchBids}
+                                refetch={refetchAll}
                             />
                         )}
                         {isAsksPending ? (
@@ -588,6 +690,7 @@ const CombinedOrdersBox: React.FC = () => {
                                     (cleared: any) => cleared.result
                                 )}
                                 clearingPrice={clearingPrice?.map((price: any) => price.result)}
+                                refetch={refetchAll}
                             />
                         )}
                     </div>
