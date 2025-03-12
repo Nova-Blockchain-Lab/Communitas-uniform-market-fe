@@ -1,4 +1,6 @@
 import {StaticJsonRpcProvider} from '@ethersproject/providers'
+import {DECIMALS} from "../../constants/config";
+import {formatUnits} from "viem";
 
 const getProviderForChainCache: {
     [chainId: number]: StaticJsonRpcProvider
@@ -20,5 +22,15 @@ export function getProviderForChainId(chainId: number, rpcUrl: string): StaticJs
     }
 
     return createProviderWithCache(chainId, rpcUrl)
+}
+
+export function formatBalance(balance: BigInt | bigint | undefined, decimals: number = DECIMALS, tokenSymbol: string = 'ETH'): string {
+    if (!balance) return `0 ${tokenSymbol}`;
+
+    const formattedBalance = formatUnits(BigInt(balance.toString()), decimals);
+
+    const displayBalance = parseFloat(formattedBalance).toFixed(4);
+
+    return `${displayBalance} ${tokenSymbol}`;
 }
 

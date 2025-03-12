@@ -21,6 +21,7 @@ export const novaCidadeMainnet = defineChain({
 })
 
 export const defaultChain = novaCidadeMainnet;
+export const baseChain = arbitrumSepolia
 
 export type EthereumAddress = `0x${string}`;
 
