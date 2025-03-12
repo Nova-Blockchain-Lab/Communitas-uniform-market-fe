@@ -9,9 +9,10 @@ import {useAccount} from "wagmi";
 
 interface SubmitWithdrawalButtonProps {
     amount: BigInt;
+    hasEnoughBalance: boolean;
 }
 
-export const SubmitWithdrawalButton: React.FC<SubmitWithdrawalButtonProps> = ({amount}) => {
+export const SubmitWithdrawalButton: React.FC<SubmitWithdrawalButtonProps> = ({amount, hasEnoughBalance}) => {
     const {address} = useAccount()
     const signer = useEthersSigner()
     const {l2Provider} = useAppContext()
@@ -70,7 +71,7 @@ export const SubmitWithdrawalButton: React.FC<SubmitWithdrawalButtonProps> = ({a
     return (
         <button
             onClick={handleWithdrawal}
-            disabled={isLoading}
+            disabled={isLoading || !hasEnoughBalance || !amount}
             className="flex gap-3 justify-center items-center p-4 mt-5 bg-blue-700 hover:bg-blue-600 text-white font-semibold rounded-xl border border-solid cursor-pointer border-white border-opacity-10 transition duration-200 w-full max-sm:p-3">
             {isLoading ? <Spinner/> : "Withdrawal"}
         </button>

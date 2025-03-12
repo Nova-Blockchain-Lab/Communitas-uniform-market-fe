@@ -14,9 +14,10 @@ import {SubmitWithdrawalButton} from "./SubmitWithdrawalButton";
 interface SubmitButtonProps {
     originNetwork: number;
     amount: BigInt;
+    hasEnoughBalance: boolean;
 }
 
-export const SubmitButton: React.FC<SubmitButtonProps> = ({originNetwork, amount}) => {
+export const SubmitButton: React.FC<SubmitButtonProps> = ({originNetwork, amount, hasEnoughBalance}) => {
     const {isConnected, chain} = useAccount();
     const {switchChain} = useSwitchChain();
 
@@ -44,7 +45,7 @@ export const SubmitButton: React.FC<SubmitButtonProps> = ({originNetwork, amount
         )
 
     if (originNetwork === defaultChain.id)
-        return ( <SubmitWithdrawalButton amount={amount}/> )
+        return ( <SubmitWithdrawalButton amount={amount} hasEnoughBalance={hasEnoughBalance}/> )
 
-    return (<SubmitDepositButton amount={amount}/>);
+    return (<SubmitDepositButton amount={amount} hasEnoughBalance={hasEnoughBalance}/>);
 };

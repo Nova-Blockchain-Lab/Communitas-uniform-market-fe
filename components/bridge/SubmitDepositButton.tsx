@@ -8,9 +8,10 @@ import {BigNumber} from "ethers";
 
 interface SubmitDepositButtonProps {
     amount: BigInt;
+    hasEnoughBalance: boolean;
 }
 
-export const SubmitDepositButton: React.FC<SubmitDepositButtonProps> = ({amount}) => {
+export const SubmitDepositButton: React.FC<SubmitDepositButtonProps> = ({amount, hasEnoughBalance}) => {
     const signer = useEthersSigner()
     const {l2Provider} = useAppContext()
     const toast = useToast()
@@ -94,7 +95,7 @@ export const SubmitDepositButton: React.FC<SubmitDepositButtonProps> = ({amount}
     return (
         <button
             onClick={handleDeposit}
-            disabled={isLoading}
+            disabled={isLoading || !hasEnoughBalance || !amount}
             className="flex gap-3 justify-center items-center p-4 mt-5 bg-blue-700 hover:bg-blue-600 text-white font-semibold rounded-xl border border-solid cursor-pointer border-white border-opacity-10 transition duration-200 w-full max-sm:p-3">
             {isLoading ? <Spinner/> : "Deposit"}
         </button>

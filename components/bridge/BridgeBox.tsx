@@ -139,7 +139,7 @@ export const BridgeBox: React.FC = () => {
                         </div>
                     </div>
 
-                    <SubmitButton originNetwork={selectedOriginNetwork} amount={depositAmount}/>
+                    <SubmitButton originNetwork={selectedOriginNetwork} amount={depositAmount} hasEnoughBalance={hasEnoughBalance}/>
                 </div>
             </article>
         </section>
