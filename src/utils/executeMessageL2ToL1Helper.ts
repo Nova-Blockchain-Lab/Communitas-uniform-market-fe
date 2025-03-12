@@ -1,8 +1,9 @@
 import {BlockTag, Provider} from "@ethersproject/abstract-provider";
 import {ChildToParentMessageReader, ChildToParentMessageStatus, ChildTransactionReceipt} from "@arbitrum/sdk";
-import {contractAddresses} from "../../constants/config";
+import {baseChain, contractAddresses, defaultChain} from "../../constants/config";
 import CommunitasNFTL2Abi from "../../abi/CommunitasNFTL2.json";
-import {ethers} from "ethers";
+import {BigNumber, ethers} from "ethers";
+import {formatBalance} from "@/utils/utils";
 
 const PENDING_MESSAGES_KEY = "arbitrum:bridge:pending-messages";
 
@@ -21,6 +22,15 @@ export interface NFTDataStorage extends NFTData {
 
 export interface NFTDataWithStatus extends NFTDataStorage {
     state: ChildToParentMessageStatus;
+}
+
+export interface ETHWithdrawalMessage {
+    time: BigNumber;
+    token: string;
+    from: string;
+    to: string;
+    status: WithdrawalStatusType;
+    hash: string;
 }
 
 // Retrieve the NFT data from localStorage
@@ -83,7 +93,9 @@ export const getPendingOutgoingNftsFromEventLogs = async (
     const nftAddressOnL2 = contractAddresses[(await l1Provider.getNetwork()).chainId]["CommunitasNFT"]["General"]
     const nftAddressOnL3 = contractAddresses[(await l2Provider.getNetwork()).chainId]["CommunitasNFT"]["General"]
 
-    const pendingNfts = await getPendingOutgoingMessagesFromEventLogs(nftAddressOnL2, l1Provider, l2Provider)
+    const allNfts = await getOutgoingMessagesFromEventLogs(nftAddressOnL2, l1Provider, l2Provider)
+
+    const pendingNfts = allNfts.filter(({state}) => state !== ChildToParentMessageStatus.EXECUTED)
 
     const nftIface = new ethers.utils.Interface(CommunitasNFTL2Abi.abi);
 
@@ -111,7 +123,7 @@ export const getPendingOutgoingNftsFromEventLogs = async (
     return nftsData.filter((nft) => nft.owner === owner)
 }
 
-export const getPendingOutgoingMessagesFromEventLogs = async (
+export const getOutgoingMessagesFromEventLogs = async (
     receiver: string,
     l1Provider: Provider,
     l2Provider: Provider
@@ -124,14 +136,12 @@ export const getPendingOutgoingMessagesFromEventLogs = async (
         l2Provider
     })
 
-    const states = await Promise.all(
+    return Promise.all(
         withdrawals.map(async (event) => {
             const state = await getOutgoingMessageState(event.transactionHash, l1Provider, l2Provider);
             return {...event, state};
         })
-    )
-
-    return states.filter(({state}) => state !== ChildToParentMessageStatus.EXECUTED);
+    );
 }
 
 export function fetchETHWithdrawalsFromEventLogs({receiver, fromBlock, toBlock, l2Provider}: {
@@ -143,7 +153,7 @@ export function fetchETHWithdrawalsFromEventLogs({receiver, fromBlock, toBlock, 
     if (typeof receiver === 'undefined') {
         return []
     }
-    // funds sent by this address
+
     return ChildToParentMessageReader.getChildToParentEvents(
         l2Provider,
         {fromBlock, toBlock},
@@ -151,3 +161,60 @@ export function fetchETHWithdrawalsFromEventLogs({receiver, fromBlock, toBlock, 
         receiver
     )
 }
+
+export const getETHWithdrawalsInfo = async (receiver: string, l1Provider: Provider, l2Provider: Provider): Promise<ETHWithdrawalMessage[]> => {
+    const events = await getOutgoingMessagesFromEventLogs(receiver, l1Provider, l2Provider)
+
+    return Promise.all(events.map(async (event) => {
+        return {
+            time: event.timestamp,
+            token: formatBalance(event.callvalue.toBigInt()),
+            from: defaultChain.name,
+            to: baseChain.name,
+            status: WITHDRAWAL_STATUS[await getOutgoingMessageState(event.transactionHash, l1Provider, l2Provider)],
+            hash: event.transactionHash
+        }
+    }))
+}
+
+export function formatTimestamp(bigNumberTimestamp: any) {
+    const timestamp = BigNumber.from(bigNumberTimestamp).toNumber() * 1000; // Convert to milliseconds
+    const now = Date.now();
+    const diff = now - timestamp;
+
+    const seconds = Math.floor(diff / 1000);
+    const minutes = Math.floor(seconds / 60);
+    const hours = Math.floor(minutes / 60);
+    const days = Math.floor(hours / 24);
+    const weeks = Math.floor(days / 7);
+    const months = Math.floor(days / 30);
+    const years = Math.floor(days / 365);
+
+    if (seconds < 60) return "just now";
+    if (minutes < 60) return `${minutes} minute${minutes !== 1 ? "s" : ""} ago`;
+    if (hours < 24) return `${hours} hour${hours !== 1 ? "s" : ""} ago`;
+    if (days < 7) return `${days} day${days !== 1 ? "s" : ""} ago`;
+    if (weeks < 4) return `${weeks} week${weeks !== 1 ? "s" : ""} ago`;
+    if (months < 12) return `${months} month${months !== 1 ? "s" : ""} ago`;
+    return `${years} year${years !== 1 ? "s" : ""} ago`;
+}
+
+interface WithdrawalStatusType {
+    status: string;
+    color: string;
+}
+
+const WITHDRAWAL_STATUS = [
+    /**
+     * ArbSys.sendTxToL1 called, but assertion not yet confirmed
+     */
+    {status: "Pending", color: "yellow"},
+    /**
+     * Assertion for outgoing message confirmed, but message not yet executed
+     */
+    {status: "Claimable", color: "green"},
+    /**
+     * Outgoing message executed (terminal state)
+     */
+    {status: "Claimed", color: "gray"}
+]

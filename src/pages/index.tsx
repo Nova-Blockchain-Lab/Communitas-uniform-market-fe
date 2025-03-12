@@ -78,11 +78,11 @@ export default function Home() {
           </div>
         </header>
         <div className="flex flex-col items-center justify-center min-h-screen space-y-4" style={{ paddingTop: "80px" }}>
-          {selected == 1 ? <BidBox /> : ""}
-          {selected == 2 ? <SellBox /> : ""}
-          {selected == 3 ? <CombinedOrdersBox /> : ""}
-          {selected == 4 ? <ClaimBox /> : ""}
-          {selected == 5 ? <NFTBox /> : ""}
+          {selected == 1 && <BidBox /> }
+          {selected == 2 && <SellBox /> }
+          {selected == 3 && <CombinedOrdersBox /> }
+          {selected == 4 && <ClaimBox /> }
+          {selected == 5 && <NFTBox /> }
         </div>
       </AppProvider>
     </div>

@@ -4,12 +4,17 @@ import {Link} from "@chakra-ui/react";
 import BridgeBox from "../../components/bridge/BridgeBox";
 import styles from "@/styles/Home.module.css";
 import Image from "next/image";
-import {useState} from "react";
+import React, {useState} from "react";
+import DefaultNavigationTabs, {defaultTabs} from "../../components/bridge/NavigationTabs";
+import {SettingsIcon} from "../../components/bridge/IconComponents";
+import NavigationTabs from "../../components/bridge/NavigationTabs";
 
 export default function Bridge() {
     const [isNetworkSwitchHighlighted, setIsNetworkSwitchHighlighted] =
         useState(false);
     const [isConnectHighlighted, setIsConnectHighlighted] = useState(false);
+
+    const [activeTabId, onTabChange] = useState<string>(defaultTabs[0].id)
 
     const closeAll = () => {
         setIsNetworkSwitchHighlighted(false);
@@ -68,9 +73,20 @@ export default function Bridge() {
                         className="absolute top-10 -left-20 w-96 h-96 bg-green-500 rounded-full opacity-20 blur-sm"></div>
                     <div
                         className="absolute bottom-10 -right-10 w-96 h-96 bg-green-500 rounded-full opacity-20 blur-sm"></div>
-                    <BridgeBox/>
+                    <section className="flex justify-center items-center min-h-screen">
+                        <article
+                            className="p-6 rounded-[30px] bg-white bg-opacity-10 backdrop-blur-xl shadow-2xl border border-white border-opacity-20 max-w-4xl">
+                            <div className="flex justify-between items-center mb-6">
+                                <NavigationTabs tabs={defaultTabs} activeTabId={activeTabId} onTabChange={onTabChange}/>
+                                <button aria-label="Settings">
+                                    <SettingsIcon/>
+                                </button>
+                            </div>
+                            {defaultTabs.filter((tab) => tab.id === activeTabId)[0].component}
+                        </article>
+                    </section>
                 </div>
             </div>
         </AppProvider>
-    );
+);
 }

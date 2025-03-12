@@ -1,7 +1,7 @@
 "use client";
 import React, {useEffect, useState} from "react";
 import {AmountInput} from "./AmountInput";
-import {SettingsIcon, SwapIcon} from "./IconComponents";
+import {SwapIcon} from "./IconComponents";
 import {SubmitButton} from "./SubmitButton";
 import NetworkSelector from "./NetworkSelector";
 import {useAccount, useConfig} from "wagmi";
@@ -72,10 +72,10 @@ export const BridgeBox: React.FC = () => {
             return;
         }
 
-        if (selectedDestinationNetwork === defaultChain.id) {
+        if (chainId === defaultChain.id) {
             setOriginBalance(BigInt((await l1Provider.getBalance(address)).toString()))
             setDestinationBalance(BigInt((await l2Provider.getBalance(address)).toString()))
-        } else if (selectedDestinationNetwork === baseChain.id) {
+        } else if (chainId === baseChain.id) {
             setOriginBalance(BigInt((await l2Provider.getBalance(address)).toString()))
             setDestinationBalance(BigInt((await l1Provider.getBalance(address)).toString()))
         }
@@ -86,63 +86,58 @@ export const BridgeBox: React.FC = () => {
     }, [selectedDestinationNetwork, address, isConnected, l1Provider, l2Provider]);
 
     return (
-        <section className="flex justify-center items-center min-h-screen">
-            <article
-                className="p-6 rounded-[30px] bg-white bg-opacity-10 backdrop-blur-xl shadow-2xl border border-white border-opacity-20 w-full max-w-md">
-                <div className="flex justify-between items-center mb-6">
-                    <span className="text-white font-extrabold text-xl">Bridge</span>
-                    <button aria-label="Settings">
-                        <SettingsIcon/>
-                    </button>
+        <div className="space-y-4">
+            <div>
+                <div className="flex items-center mb-2">
+                    <span className="text-sm text-white font-bold mr-4">From</span>
+                    <NetworkSelector
+                        selectedNetwork={selectedOriginNetwork}
+                        onSelectNetwork={onSelectOriginNetworkHelper}
+                    />
                 </div>
-
-                <div className="space-y-4">
-                    <div>
-                        <span className="text-sm text-white opacity-90">From</span>
-                        <NetworkSelector selectedNetwork={selectedOriginNetwork}
-                                         onSelectNetwork={onSelectOriginNetworkHelper}/>
-                        <AmountInput
-                            label="Send:"
-                            maxAmount={formatBalance(originBalance)}
-                            amount={inputDisplayValue}
-                            showTokenSelector={true}
-                            tokenName="ETH"
-                            isInput={true}
-                            onChange={handleAmountChange}
-                        />
-                        {!hasEnoughBalance && originBalance && (
-                            <div className="text-red-500 text-sm">
-                                Insufficient balance
-                            </div>
-                        )}
+                <AmountInput
+                    label="Send:"
+                    maxAmount={formatBalance(originBalance)}
+                    amount={inputDisplayValue}
+                    showTokenSelector={true}
+                    tokenName="ETH"
+                    isInput={true}
+                    onChange={handleAmountChange}
+                />
+                {!hasEnoughBalance && originBalance && (
+                    <div className="text-red-500 text-sm">
+                        Insufficient balance
                     </div>
+                )}
+            </div>
 
-                    <div className="flex justify-center my-2">
-                        <button onClick={switchNetworks} aria-label="Swap networks"
-                                className="p-2 rounded-full bg-white bg-opacity-20 backdrop-blur-sm">
-                            <SwapIcon/>
-                        </button>
+            <div className="flex justify-center my-2">
+                <button onClick={switchNetworks} aria-label="Swap networks"
+                        className="p-2 rounded-full bg-white bg-opacity-20 backdrop-blur-sm">
+                    <SwapIcon/>
+                </button>
+            </div>
+
+            <div className="space-y-4">
+                <div>
+                    <div className="flex items-center mb-2">
+                        <span className="text-sm text-white font-bold mr-4">To</span>
+                        <NetworkSelector selectedNetwork={selectedDestinationNetwork}
+                                         onSelectNetwork={onSelectDestinationNetworkHelper}/>
                     </div>
-
-                    <div className="space-y-4">
-                        <div>
-                            <span className="text-sm text-white opacity-90">To</span>
-                            <NetworkSelector selectedNetwork={selectedDestinationNetwork}
-                                             onSelectNetwork={onSelectDestinationNetworkHelper}/>
-                            <AmountInput
-                                label="Current balance:"
-                                amount={formatBalance(destinationBalance)}
-                                showTokenSelector={false}
-                                isInput={false}
-                                showInfoIcon={true}
-                            />
-                        </div>
-                    </div>
-
-                    <SubmitButton originNetwork={selectedOriginNetwork} amount={depositAmount} hasEnoughBalance={hasEnoughBalance}/>
+                    <AmountInput
+                        label="Current balance:"
+                        amount={formatBalance(destinationBalance)}
+                        showTokenSelector={false}
+                        isInput={false}
+                        showInfoIcon={true}
+                    />
                 </div>
-            </article>
-        </section>
+            </div>
+
+            <SubmitButton originNetwork={selectedOriginNetwork} amount={depositAmount}
+                          hasEnoughBalance={hasEnoughBalance}/>
+        </div>
     );
 };
 
