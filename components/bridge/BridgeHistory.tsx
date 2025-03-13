@@ -1,49 +1,18 @@
 "use client";
 import React, {useEffect, useState} from "react";
-import {useAccount, useSwitchChain} from "wagmi";
-import {ETHWithdrawalMessage, formatTimestamp, getETHWithdrawalsInfo} from "@/utils/executeMessageL2ToL1Helper";
+import {useAccount} from "wagmi";
+import {ETHWithdrawalMessage, getETHWithdrawalsInfo} from "@/utils/executeMessageL2ToL1Helper";
 import {useAppContext} from "../AppContext";
 import {Spinner} from "@chakra-ui/react";
-import {ArbitrumIcon, NovaCidadeIcon} from "./IconComponents";
-import {baseChain, defaultChain} from "../../constants/config";
-import {ChildTransactionReceipt} from "@arbitrum/sdk";
-import {useEthersSigner} from "@/utils/ethersHelper";
+import MessageHistoryRow from "./MessageHistoryRow";
 
 
 const BridgeHistory: React.FC = () => {
-    const {address, isConnected, chainId} = useAccount();
+    const {address, isConnected} = useAccount();
     const {l1Provider, l2Provider} = useAppContext();
-    const {switchChain} = useSwitchChain();
-    const signer = useEthersSigner()
 
     const [messages, setMessages] = useState<ETHWithdrawalMessage[]>([]);
     const [isLoading, setIsLoading] = useState<boolean>(false)
-
-    const handleBridge = async (hash: string) => {
-        if (chainId === defaultChain.id)
-            switchChain({chainId: baseChain.id})
-
-        if (!isConnected || !address || !l1Provider || !l2Provider || !signer) return;
-
-        const receipt = await l2Provider.getTransactionReceipt(hash)
-        const l2Receipt = new ChildTransactionReceipt(receipt)
-
-        const messages = await l2Receipt.getChildToParentMessages(signer)
-        const childToParentMsg = messages[0]
-
-        try {
-
-            const tx = await childToParentMsg.execute(l2Provider)
-
-            const txReceipt = await tx.wait(1)
-
-            //sendSuccessfulExecutionNotification()
-
-        } catch (e) {
-            console.log(e)
-            //sendUnsuccessfulNotification()
-        }
-    };
 
     const getWithdrawalsMessages = async () => {
         if (!isConnected || !address || !l1Provider || !l2Provider || isLoading) return;
@@ -77,24 +46,18 @@ const BridgeHistory: React.FC = () => {
                 </thead>
                 <tbody>
                 {isLoading && (
-                    <div className="absolute inset-0 flex justify-center items-center bg-white bg-opacity-75"><Spinner/></div>
+                    <div className="absolute inset-0 flex justify-center items-center bg-white bg-opacity-75"><Spinner/>
+                    </div>
                 )}
                 {!isLoading && messages.map((msg, idx) => (
-                    <tr key={idx} className="border-b hover:bg-gray-100">
-                        <td className="px-4 py-2">{formatTimestamp(msg.time)}</td>
-                        <td className="px-4 py-2">{msg.token}</td>
-                        <td className="px-4 py-2 truncate max-w-xs"><NovaCidadeIcon/> {msg.from}</td>
-                        <td className="px-4 py-2 truncate max-w-xs"><ArbitrumIcon/> {msg.to}</td>
-                        <td className={`px-4 py-2 text-${msg.status.color}-600 font-semibold`}>{msg.status.status}</td>
-                        <td className="px-4 py-2"><button className="px-4 py-2 bg-blue-600 text-white rounded-lg shadow transition duration-200 hover:bg-blue-700 text-center max-sm:px-3 max-sm:py-3" onClick={() => handleBridge(msg.hash)}>Claim</button></td>
-                        {/*<td className="px-4 py-2 text-blue-600 hover:underline cursor-pointer">
-                            {"Details"}
-                        </td>*/}
-                    </tr>
+                    <MessageHistoryRow idx={idx} message={msg} refetchMessages={getWithdrawalsMessages}/>
                 ))}
                 </tbody>
             </table>
-            {!messages.length && (
+            {!isConnected && (
+                <div className="py-4 text-center text-gray-500">Please connect your wallet.</div>
+            )}
+            {isConnected && !messages.length && (
                 <div className="py-4 text-center text-gray-500">No bridge history found.</div>
             )}
         </div>

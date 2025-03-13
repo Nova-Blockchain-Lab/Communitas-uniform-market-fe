@@ -1,9 +1,11 @@
 import {BlockTag, Provider} from "@ethersproject/abstract-provider";
 import {ChildToParentMessageReader, ChildToParentMessageStatus, ChildTransactionReceipt} from "@arbitrum/sdk";
-import {baseChain, contractAddresses, defaultChain} from "../../constants/config";
+import {baseChain, CONFIRMATION_BUFFER_MINUTES, contractAddresses, defaultChain} from "../../constants/config";
 import CommunitasNFTL2Abi from "../../abi/CommunitasNFTL2.json";
 import {BigNumber, ethers} from "ethers";
 import {formatBalance} from "@/utils/utils";
+import {Chain} from "viem";
+import dayjs from "dayjs";
 
 const PENDING_MESSAGES_KEY = "arbitrum:bridge:pending-messages";
 
@@ -27,8 +29,8 @@ export interface NFTDataWithStatus extends NFTDataStorage {
 export interface ETHWithdrawalMessage {
     time: BigNumber;
     token: string;
-    from: string;
-    to: string;
+    from: Chain;
+    to: Chain;
     status: WithdrawalStatusType;
     hash: string;
 }
@@ -168,43 +170,23 @@ export const getETHWithdrawalsInfo = async (receiver: string, l1Provider: Provid
     return Promise.all(events.map(async (event) => {
         return {
             time: event.timestamp,
-            token: formatBalance(event.callvalue.toBigInt()),
-            from: defaultChain.name,
-            to: baseChain.name,
+            token: formatBalance(event.callvalue.toBigInt(), 6),
+            from: defaultChain,
+            to: baseChain,
             status: WITHDRAWAL_STATUS[await getOutgoingMessageState(event.transactionHash, l1Provider, l2Provider)],
             hash: event.transactionHash
         }
     }))
 }
 
-export function formatTimestamp(bigNumberTimestamp: any) {
-    const timestamp = BigNumber.from(bigNumberTimestamp).toNumber() * 1000; // Convert to milliseconds
-    const now = Date.now();
-    const diff = now - timestamp;
 
-    const seconds = Math.floor(diff / 1000);
-    const minutes = Math.floor(seconds / 60);
-    const hours = Math.floor(minutes / 60);
-    const days = Math.floor(hours / 24);
-    const weeks = Math.floor(days / 7);
-    const months = Math.floor(days / 30);
-    const years = Math.floor(days / 365);
-
-    if (seconds < 60) return "just now";
-    if (minutes < 60) return `${minutes} minute${minutes !== 1 ? "s" : ""} ago`;
-    if (hours < 24) return `${hours} hour${hours !== 1 ? "s" : ""} ago`;
-    if (days < 7) return `${days} day${days !== 1 ? "s" : ""} ago`;
-    if (weeks < 4) return `${weeks} week${weeks !== 1 ? "s" : ""} ago`;
-    if (months < 12) return `${months} month${months !== 1 ? "s" : ""} ago`;
-    return `${years} year${years !== 1 ? "s" : ""} ago`;
-}
 
 interface WithdrawalStatusType {
     status: string;
     color: string;
 }
 
-const WITHDRAWAL_STATUS = [
+export const WITHDRAWAL_STATUS: WithdrawalStatusType[] = [
     /**
      * ArbSys.sendTxToL1 called, but assertion not yet confirmed
      */
@@ -216,5 +198,12 @@ const WITHDRAWAL_STATUS = [
     /**
      * Outgoing message executed (terminal state)
      */
-    {status: "Claimed", color: "gray"}
+    {status: "Success", color: "gray"}
 ]
+
+export const getTxExpectedDeadlineTimestamp = async (l2Provider: Provider, hash: string) => {
+    const txReceipt = await l2Provider.getTransactionReceipt(hash);
+    const block = await l2Provider.getBlock(txReceipt.blockNumber);
+    const createdAt = dayjs.unix(block.timestamp);
+    return createdAt.add(CONFIRMATION_BUFFER_MINUTES, 'minutes').unix()
+};
