@@ -2,11 +2,16 @@
     import {Button, Link, Spinner, useToast} from "@chakra-ui/react";
     import {useAccount, useConfig, useSwitchChain} from "wagmi";
     import {CONFIRMATION_BUFFER_MINUTES, contractAddresses, defaultChain, OPENSEA_URL_CREATOR} from "../constants/config";
-    import {getOutgoingMessageState, NFTDataWithStatus} from "@/utils/executeMessageL2ToL1Helper";
+    import {
+    getOutgoingMessageState,
+        getTxExpectedDeadlineTimestamp,
+    NFTDataWithStatus
+} from "@/utils/executeMessageL2ToL1Helper";
     import {useAppContext} from "./AppContext";
     import {ChildToParentMessageStatus, ChildTransactionReceipt} from "@arbitrum/sdk";
     import {useEthersProvider, useEthersSigner} from "@/utils/ethersHelper";
     import dayjs from "dayjs";
+    import {formatTimestamp} from "@/utils/utils";
 
     interface BridgeNFTL2ToL1ExecuteButtonProps {
         nft: NFTDataWithStatus;
@@ -28,8 +33,8 @@
         const toast = useToast();
 
         const [isLoading, setIsLoading] = useState<boolean>(false);
-        const [isWaitingForConfirmation, setIsWaitingForConfirmation] = useState<boolean>(true);
-        const [remainingTime, setRemainingTime] = useState(0);
+        const [isWaitingForConfirmation, setIsWaitingForConfirmation] = useState<boolean>(false);
+        const [remainingTime, setRemainingTime] = useState<number | undefined>(undefined);
 
         const handleChangeChain = async () => {
             const targetChain = chains.map((chain) => chain.id).filter((id) => id !== chainId)[0]
@@ -41,38 +46,34 @@
                 waitForConfirmedStatus();
         }, []);*/
 
-        const updateWithdrawalStatus = async () => {
-            if (!l1Provider || !l2Provider) return
-            nft.state = await getOutgoingMessageState(
-                nft.hash,
-                l1Provider,
-                l2Provider
-            )
-            setIsWaitingForConfirmation(nft.state === ChildToParentMessageStatus.UNCONFIRMED)
-        }
-
-        const getTxRemainingTimeInMinutes = async () => {
-            if (!l2Provider) return 0;
-            const txReceipt = await l2Provider.getTransactionReceipt(nft.hash);
-            const block = await l2Provider.getBlock(txReceipt.blockNumber);
-            const createdAt = dayjs.unix(block.timestamp);
-            const now = dayjs();
-            return Math.max(CONFIRMATION_BUFFER_MINUTES - now.diff(createdAt, 'minutes'), 0);
-        };
-
-
         useEffect(() => {
+            const updateWithdrawalStatus = async () => {
+                if (!l1Provider || !l2Provider) return
+                setIsLoading(true)
+                console.log(2, true)
+                nft.state = await getOutgoingMessageState(
+                    nft.hash,
+                    l1Provider,
+                    l2Provider
+                )
+                setIsWaitingForConfirmation(nft.state === ChildToParentMessageStatus.UNCONFIRMED)
+                setIsLoading(false)
+            }
             const interval = setInterval(updateWithdrawalStatus, 60 * 1_000); // Poll every minute
             updateWithdrawalStatus()
             return () => clearInterval(interval);
         }, []);
 
         useEffect(() => {
+            if (!l2Provider) return;
             const fetchAndSetRemainingTime = async () => {
-                const time = await getTxRemainingTimeInMinutes();
+                setIsLoading(true)
+                console.log(1, true)
+                const time = await getTxExpectedDeadlineTimestamp(l2Provider, nft.hash);
                 setRemainingTime(time);
+                setIsLoading(false)
+                console.log(1, false)
             };
-
             fetchAndSetRemainingTime();
             const interval = setInterval(fetchAndSetRemainingTime, 60 * 1000); // Update every minute
             return () => clearInterval(interval); // Clean up on unmount
@@ -171,7 +172,7 @@
                     >
                         <Spinner/>
                     </Button>
-                    { isWaitingForConfirmation && <p>Remaining time: {remainingTime} minutes</p> }
+                    {isWaitingForConfirmation && remainingTime && <p>Time left:<br/>{formatTimestamp(remainingTime)}</p> }
                 </div>
             )
 

@@ -51,6 +51,12 @@ export default function Home() {
             </div>
             <RegionDropdownList />
             <Slider selected={selected} setSelected={setSelected} />
+            <Link
+                href="/bridge"
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg shadow transition duration-200 hover:bg-blue-700 text-center max-sm:px-3 max-sm:py-3"
+            >
+              Go to Bridge
+            </Link>
             <div className={styles.buttons}>
               <div
                 onClick={closeAll}
@@ -72,11 +78,11 @@ export default function Home() {
           </div>
         </header>
         <div className="flex flex-col items-center justify-center min-h-screen space-y-4" style={{ paddingTop: "80px" }}>
-          {selected == 1 ? <BidBox /> : ""}
-          {selected == 2 ? <SellBox /> : ""}
-          {selected == 3 ? <CombinedOrdersBox /> : ""}
-          {selected == 4 ? <ClaimBox /> : ""}
-          {selected == 5 ? <NFTBox /> : ""}
+          {selected == 1 && <BidBox /> }
+          {selected == 2 && <SellBox /> }
+          {selected == 3 && <CombinedOrdersBox /> }
+          {selected == 4 && <ClaimBox /> }
+          {selected == 5 && <NFTBox /> }
         </div>
       </AppProvider>
     </div>

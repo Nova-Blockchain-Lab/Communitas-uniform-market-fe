@@ -21,6 +21,7 @@ export const novaCidadeMainnet = defineChain({
 })
 
 export const defaultChain = novaCidadeMainnet;
+export const baseChain = arbitrumSepolia
 
 export type EthereumAddress = `0x${string}`;
 
@@ -60,3 +61,4 @@ export const config = defaultWagmiConfig({
 });
 
 export const OPENSEA_URL_CREATOR = (contract: string, tokenId: string) => `https://testnets.opensea.io/assets/arbitrum_sepolia/${contract}/${tokenId}`
+export const ARBITRUM_EXPLORER_URL_CREATOR = (txHash: string) => `https://sepolia.arbiscan.io/tx/${txHash}`
