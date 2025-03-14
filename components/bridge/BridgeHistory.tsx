@@ -1,7 +1,11 @@
 "use client";
 import React, {useEffect, useState} from "react";
 import {useAccount} from "wagmi";
-import {ETHWithdrawalMessage, getETHWithdrawalsInfo} from "@/utils/executeMessageL2ToL1Helper";
+import {
+    ETHDepositOrWithdrawalMessage,
+    getETHDepositsInfo,
+    getETHWithdrawalsInfo
+} from "@/utils/executeMessageL2ToL1Helper";
 import {useAppContext} from "../AppContext";
 import {Spinner} from "@chakra-ui/react";
 import MessageHistoryRow from "./MessageHistoryRow";
@@ -11,22 +15,26 @@ const BridgeHistory: React.FC = () => {
     const {address, isConnected} = useAccount();
     const {l1Provider, l2Provider} = useAppContext();
 
-    const [messages, setMessages] = useState<ETHWithdrawalMessage[]>([]);
+    const [messages, setMessages] = useState<ETHDepositOrWithdrawalMessage[]>([]);
     const [isLoading, setIsLoading] = useState<boolean>(false)
 
-    const getWithdrawalsMessages = async () => {
+    const getMessages = async () => {
         if (!isConnected || !address || !l1Provider || !l2Provider || isLoading) return;
 
         setIsLoading(true)
 
-        const messages = await getETHWithdrawalsInfo(address, l1Provider, l2Provider)
-        setMessages(messages)
+        const withdraws = await getETHWithdrawalsInfo(address, l1Provider, l2Provider)
+        const deposits = await getETHDepositsInfo(address, l1Provider, l2Provider)
+
+        const allMessages = [...withdraws, ...deposits].sort((a, b) => b.time.sub(a.time).toNumber());
+
+        setMessages(allMessages)
 
         setIsLoading(false)
     }
 
     useEffect(() => {
-        getWithdrawalsMessages()
+        getMessages()
     }, [address, isConnected, l1Provider, l2Provider]);
 
 
@@ -50,7 +58,7 @@ const BridgeHistory: React.FC = () => {
                     </div>
                 )}
                 {!isLoading && messages.map((msg, idx) => (
-                    <MessageHistoryRow idx={idx} message={msg} refetchMessages={getWithdrawalsMessages}/>
+                    <MessageHistoryRow key={idx} message={msg} refetchMessages={getMessages}/>
                 ))}
                 </tbody>
             </table>

@@ -1,8 +1,9 @@
 import React, {useEffect, useState} from "react";
 import {
-    ETHWithdrawalMessage,
+    ETHDepositOrWithdrawalMessage,
     getOutgoingMessageState,
     getTxExpectedDeadlineTimestamp,
+    MessageType,
     WITHDRAWAL_STATUS
 } from "@/utils/executeMessageL2ToL1Helper";
 import {ArbitrumIcon, NovaCidadeIcon, WalletIcon} from "./IconComponents";
@@ -15,12 +16,11 @@ import {Link, Spinner, useToast} from "@chakra-ui/react";
 import {formatTimestamp} from "@/utils/utils";
 
 interface MessageHistoryRowProps {
-    idx: number;
-    message: ETHWithdrawalMessage;
+    message: ETHDepositOrWithdrawalMessage;
     refetchMessages: () => void;
 }
 
-const MessageHistoryRow: React.FC<MessageHistoryRowProps> = ({idx, message, refetchMessages}) => {
+const MessageHistoryRow: React.FC<MessageHistoryRowProps> = ({message, refetchMessages}) => {
     const {address, isConnected, chainId} = useAccount();
     const {l1Provider, l2Provider} = useAppContext();
 
@@ -93,30 +93,32 @@ const MessageHistoryRow: React.FC<MessageHistoryRowProps> = ({idx, message, refe
         });
     };
 
-    const updateWithdrawalStatus = async () => {
-        if (!l1Provider || !l2Provider) return
-        setIsLoading(true)
-        const state = await getOutgoingMessageState(
-            message.hash,
-            l1Provider,
-            l2Provider
-        )
-        message.status = WITHDRAWAL_STATUS[state]
-        setIsWaitingForConfirmation(state === ChildToParentMessageStatus.UNCONFIRMED)
-        setIsLoading(false)
-    }
-
     useEffect(() => {
+        if (message.type === MessageType.DEPOSIT) return;
+        const updateWithdrawalStatus = async () => {
+            if (!l1Provider || !l2Provider) return
+            setIsLoading(true)
+            const state = await getOutgoingMessageState(
+                message.hash,
+                l1Provider,
+                l2Provider
+            )
+            message.status = WITHDRAWAL_STATUS[state]
+            setIsWaitingForConfirmation(state === ChildToParentMessageStatus.UNCONFIRMED)
+            setIsLoading(false)
+        }
         const interval = setInterval(updateWithdrawalStatus, 60 * 1_000); // Poll every minute
         updateWithdrawalStatus()
         return () => clearInterval(interval);
     }, []);
 
     useEffect(() => {
-        if (!l2Provider) return;
+        if (!l2Provider || MessageType.DEPOSIT) return;
         const fetchAndSetRemainingTime = async () => {
+            setIsLoading(true)
             const time = await getTxExpectedDeadlineTimestamp(l2Provider, message.hash);
             setRemainingTime(time);
+            setIsLoading(false)
         };
 
         fetchAndSetRemainingTime();
@@ -125,45 +127,48 @@ const MessageHistoryRow: React.FC<MessageHistoryRowProps> = ({idx, message, refe
     }, []);
 
     return (
-        <tr key={idx} className="border-b hover:bg-gray-100">
+        <tr className="border-b hover:bg-gray-100">
             <td className="px-4 py-2">{formatTimestamp(message.time)} ago</td>
             <td className="px-4 py-2">{message.token}</td>
-            <td className="px-4 py-2 truncate max-w-xs"><NovaCidadeIcon/> {message.from.name}</td>
-            <td className="px-4 py-2 truncate max-w-xs"><ArbitrumIcon/> {message.to.name}</td>
+            <td className="px-4 py-2 truncate max-w-xs">{message.from.id === defaultChain.id ? <NovaCidadeIcon/> :
+                <ArbitrumIcon/>} {message.from.name}</td>
+            <td className="px-4 py-2 truncate max-w-xs">{message.to.id === defaultChain.id ? <NovaCidadeIcon/> :
+                <ArbitrumIcon/>} {message.to.name}</td>
             <td className={`px-4 py-2 text-${message.status.color}-600 font-semibold`}>{message.status.status}</td>
-            <td className="px-4 py-2">
-                {!isConnected && (
-                    <button
-                        className="px-4 py-2 bg-blue-600 text-white rounded-lg shadow transition duration-200 hover:bg-blue-700 text-center max-sm:px-3 max-sm:py-3">
-                        <WalletIcon/>
-                        <w3m-connect-button/>
-                    </button>
-                )}
-                {isConnected && chainId !== message.to.id && !isWaitingForConfirmation && message.status.status !== "Success" && (
+            {message.type !== MessageType.DEPOSIT &&
+                (<td className="px-4 py-2">
+                    {!isConnected && (
+                        <button
+                            className="px-4 py-2 bg-blue-600 text-white rounded-lg shadow transition duration-200 hover:bg-blue-700 text-center max-sm:px-3 max-sm:py-3">
+                            <WalletIcon/>
+                            <w3m-connect-button/>
+                        </button>
+                    )}
+                    {isConnected && chainId !== message.to.id && !isWaitingForConfirmation && message.status.status !== "Success" && (
 
-                    <button
-                        onClick={() => switchChain({chainId: message.to.id})}
-                        className="px-4 py-2 bg-blue-600 text-white rounded-lg shadow transition duration-200 hover:bg-blue-700 text-center max-sm:px-3 max-sm:py-3"
-                    >
-                        Change Network
-                    </button>
-                )}
-                {isConnected && chainId === message.to.id && !isWaitingForConfirmation && message.status.status !== "Success" && (
-                    <button
-                        className="px-4 py-2 bg-blue-600 text-white rounded-lg shadow transition duration-200 hover:bg-blue-700 text-center max-sm:px-3 max-sm:py-3"
-                        onClick={() => executeBridge(message.hash)}
-                        disabled={isLoading}>
-                        {isLoading ? <Spinner/> : "Claim"}
-                    </button>
-                )}
-                {isConnected && chainId === message.to.id && isWaitingForConfirmation && message.status.status !== "Success" && (
-                    <div
-                        className="px-4 py-2 rounded-lg shadow transition duration-200 text-center max-sm:px-3 max-sm:py-3">
-                        Time left:<br/>
-                        {formatTimestamp(remainingTime)}
-                    </div>
-                )}
-            </td>
+                        <button
+                            onClick={() => switchChain({chainId: message.to.id})}
+                            className="px-4 py-2 bg-blue-600 text-white rounded-lg shadow transition duration-200 hover:bg-blue-700 text-center max-sm:px-3 max-sm:py-3"
+                        >
+                            Change Network
+                        </button>
+                    )}
+                    {isConnected && chainId === message.to.id && !isWaitingForConfirmation && message.status.status !== "Success" && (
+                        <button
+                            className="px-4 py-2 bg-blue-600 text-white rounded-lg shadow transition duration-200 hover:bg-blue-700 text-center max-sm:px-3 max-sm:py-3"
+                            onClick={() => executeBridge(message.hash)}
+                            disabled={isLoading}>
+                            {isLoading ? <Spinner/> : "Claim"}
+                        </button>
+                    )}
+                    {isConnected && isWaitingForConfirmation && message.status.status !== "Success" && (
+                        <p
+                            className="px-4 py-2 rounded-lg shadow transition duration-200 text-center max-sm:px-3 max-sm:py-3">
+                            Time left:<br/>
+                            {formatTimestamp(remainingTime)}
+                        </p>
+                    )}
+                </td>)}
             {/*<td className="px-4 py-2 text-blue-600 hover:underline cursor-pointer">
                             {"Details"}
                         </td>*/}
