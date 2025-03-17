@@ -113,7 +113,7 @@ const MessageHistoryRow: React.FC<MessageHistoryRowProps> = ({message, refetchMe
     }, []);
 
     useEffect(() => {
-        if (!l2Provider || MessageType.DEPOSIT) return;
+        if (!l2Provider || message.type === MessageType.DEPOSIT) return;
         const fetchAndSetRemainingTime = async () => {
             setIsLoading(true)
             const time = await getTxExpectedDeadlineTimestamp(l2Provider, message.hash);
