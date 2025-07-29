@@ -29,7 +29,7 @@ export default function Home() {
         <Head>
           <title>COMMUNITAS Energy Market</title>
           <link rel="icon" href="/communitas.ico" />
-          <meta name="google-site-verification" content="6Gtzx3veON661xdrUMbM-KbCCO2MrRfVAWDu-tlZy84" />
+          <meta name="google-site-verification" content="6Gtzx3veON661xdrUMbM-KbCCO2MrRfVAWDu-tlZy84"  />
         </Head>
         <header>
           <div
