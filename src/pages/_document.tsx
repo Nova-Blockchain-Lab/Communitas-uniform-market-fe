@@ -9,10 +9,12 @@ export default function Document() {
 					name="google-site-verification"
 					content="6Gtzx3veON661xdrUMbM-KbCCO2MrRfVAWDu-tlZy84"
 				/>
+				<meta name="description"
+					  content="WattSwap lets users trade energy in real-time using blockchain. Built for transparency and sustainability. Built by the Communitas project."/>
 			</Head>
 			<body>
-				<Main />
-				<NextScript />
+			<Main/>
+			<NextScript/>
 			</body>
 		</Html>
 	);
