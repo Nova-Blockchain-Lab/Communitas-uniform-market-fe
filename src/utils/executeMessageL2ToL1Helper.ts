@@ -7,8 +7,8 @@ import {
     getArbitrumNetwork,
     ParentEthDepositTransactionReceipt
 } from "@arbitrum/sdk";
-import {baseChain, CONFIRMATION_BUFFER_MINUTES, contractAddresses, defaultChain} from "../../constants/config";
-import CommunitasNFTL2Abi from "../../abi/CommunitasNFTL2.json";
+import {baseChain, CONFIRMATION_BUFFER_MINUTES, contractAddresses, defaultChain} from "@/config";
+import CommunitasNFTL2Abi from "@/../abi/CommunitasNFTL2.json";
 import {BigNumber, ethers} from "ethers";
 import {formatBalance} from "@/utils/utils";
 import {Chain} from "viem";

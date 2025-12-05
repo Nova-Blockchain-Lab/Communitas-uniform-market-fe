@@ -2,21 +2,19 @@ import "@/styles/globals.css";
 import { WagmiProvider } from "wagmi";
 import type { AppProps } from "next/app";
 import { useEffect, useState } from "react";
-import { config, projectId } from "../../constants/config";
+import { wagmiConfig, projectId } from "@/config";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { createWeb3Modal } from "@web3modal/wagmi/react";
 import { ChakraProvider, extendTheme } from "@chakra-ui/react";
-import { Analytics } from "@vercel/analytics/react"
+import { Analytics } from "@vercel/analytics/react";
 
 createWeb3Modal({
-  wagmiConfig: config,
-  defaultChain: config.chains[0],
+  wagmiConfig: wagmiConfig,
+  defaultChain: wagmiConfig.chains[0],
   projectId,
-  enableAnalytics: true, // Optional - defaults to your Cloud configuration
-  enableOnramp: true, // Optional - false as default
+  enableAnalytics: true,
+  enableOnramp: true,
 });
-
-
 
 const queryClient = new QueryClient();
 
@@ -36,13 +34,14 @@ export default function App({ Component, pageProps }: AppProps) {
   useEffect(() => {
     setReady(true);
   }, []);
+
   return (
     <>
       {ready ? (
         <ChakraProvider theme={theme}>
-          <WagmiProvider config={config}>
+          <WagmiProvider config={wagmiConfig}>
             <QueryClientProvider client={queryClient}>
-              <Analytics/>
+              <Analytics />
               <Component {...pageProps} />
             </QueryClientProvider>
           </WagmiProvider>
