@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { ArrowUpRight, ArrowDownLeft, Clock, Check, AlertCircle, Loader2, ExternalLink } from "lucide-react";
+import { ArrowUpRight, ArrowDownLeft, Clock, Check, AlertCircle, Loader2 } from "lucide-react";
 import {
   ETHDepositOrWithdrawalMessage,
   getOutgoingMessageState,
@@ -7,13 +7,13 @@ import {
   MessageType,
   WITHDRAWAL_STATUS,
 } from "@/utils/executeMessageL2ToL1Helper";
-import { ARBITRUM_EXPLORER_URL_CREATOR, baseChain, defaultChain } from "@/config";
+import { baseChain, defaultChain } from "@/config";
 import { ChildToParentMessageStatus, ChildTransactionReceipt } from "@arbitrum/sdk";
 import { useAccount, useSwitchChain } from "wagmi";
 import { useEthersSigner } from "@/utils/ethersHelper";
 import { useAppContext } from "@/context/AppContext";
-import { useToast, Link } from "@chakra-ui/react";
 import { formatTimestamp } from "@/utils/utils";
+import { TransactionModal, TransactionStatus } from "@/components/ui";
 
 interface MessageHistoryRowProps {
   message: ETHDepositOrWithdrawalMessage;
@@ -25,68 +25,71 @@ const MessageHistoryRow: React.FC<MessageHistoryRowProps> = ({ message, refetchM
   const { l1Provider, l2Provider } = useAppContext();
   const { switchChain } = useSwitchChain();
   const signer = useEthersSigner();
-  const toast = useToast();
 
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [remainingTime, setRemainingTime] = useState<number | undefined>(undefined);
   const [isWaitingForConfirmation, setIsWaitingForConfirmation] = useState<boolean>(false);
 
+  // Modal state
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [txStatus, setTxStatus] = useState<TransactionStatus>("idle");
+  const [txError, setTxError] = useState<string | undefined>();
+  const [txHash, setTxHash] = useState<string | undefined>();
+
   const isDeposit = message.type === MessageType.DEPOSIT;
   const isSuccess = message.status.status === "Success";
 
+  const closeModal = () => {
+    setIsModalOpen(false);
+    setTimeout(() => {
+      setTxStatus("idle");
+      setTxError(undefined);
+      setTxHash(undefined);
+    }, 300);
+  };
+
   const executeBridge = async (hash: string) => {
-    if (chainId === defaultChain.id) switchChain({ chainId: baseChain.id });
+    if (chainId === defaultChain.id) {
+      switchChain({ chainId: baseChain.id });
+      return;
+    }
 
     if (!isConnected || !address || !l1Provider || !l2Provider || !signer) return;
 
+    setIsModalOpen(true);
+    setTxStatus("pending");
+    setTxError(undefined);
+    setTxHash(undefined);
     setIsLoading(true);
 
-    const receipt = await l2Provider.getTransactionReceipt(hash);
-    const l2Receipt = new ChildTransactionReceipt(receipt);
-
-    const messages = await l2Receipt.getChildToParentMessages(signer);
-    const childToParentMsg = messages[0];
-
     try {
+      const receipt = await l2Provider.getTransactionReceipt(hash);
+      const l2Receipt = new ChildTransactionReceipt(receipt);
+
+      const messages = await l2Receipt.getChildToParentMessages(signer);
+      const childToParentMsg = messages[0];
+
       const tx = await childToParentMsg.execute(l2Provider);
-      const txReceipt = await tx.wait(1);
+      setTxHash(tx.hash);
+      setTxStatus("confirming");
 
-      sendSuccessfulExecutionNotification(txReceipt.transactionHash);
+      await tx.wait(1);
+
+      setTxStatus("success");
       refetchMessages();
-    } catch (e) {
-      console.log(e);
-      sendUnsuccessfulNotification();
+    } catch (error: any) {
+      console.error("Bridge execution failed:", error);
+      setTxStatus("error");
+      let errorMessage = error?.message || "Something went wrong. Please try again later.";
+      if (errorMessage.includes("User rejected") || errorMessage.includes("user rejected")) {
+        errorMessage = "Transaction was rejected in your wallet";
+      } else if (errorMessage.length > 150) {
+        errorMessage = errorMessage.substring(0, 150) + "...";
+      }
+      setTxError(errorMessage);
+    } finally {
+      setIsLoading(false);
     }
-
-    setIsLoading(false);
-  };
-
-  const sendSuccessfulExecutionNotification = (hash: string) => {
-    const openseaLink = ARBITRUM_EXPLORER_URL_CREATOR(hash);
-    toast({
-      title: "Withdrawal Complete!",
-      description: (
-        <>
-          Your funds are now available.{" "}
-          <Link href={openseaLink} isExternal color="emerald.400">
-            View Transaction
-          </Link>
-        </>
-      ),
-      status: "success",
-      duration: 9000,
-      isClosable: true,
-    });
-  };
-
-  const sendUnsuccessfulNotification = () => {
-    toast({
-      title: "Transaction Failed",
-      description: "Something went wrong. Please try again later.",
-      status: "error",
-      duration: 9000,
-      isClosable: true,
-    });
   };
 
   useEffect(() => {
@@ -238,6 +241,17 @@ const MessageHistoryRow: React.FC<MessageHistoryRowProps> = ({ message, refetchM
           </div>
         )}
       </div>
+
+      {/* Transaction Modal */}
+      <TransactionModal
+        isOpen={isModalOpen}
+        status={txStatus}
+        hash={txHash}
+        error={txError}
+        details={{ type: "bridge_execute" }}
+        onClose={closeModal}
+        onRetry={() => executeBridge(message.hash)}
+      />
     </div>
   );
 };

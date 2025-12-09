@@ -6,7 +6,7 @@ import {
   useWriteContract,
 } from "wagmi";
 import { ClipboardList, Calendar, ChevronLeft, ChevronRight, X, Check, AlertCircle } from "lucide-react";
-import { Spinner, useToast } from "@chakra-ui/react";
+import { Spinner } from "@chakra-ui/react";
 import { DayPicker } from "react-day-picker";
 import { motion, AnimatePresence } from "framer-motion";
 import "react-day-picker/dist/style.css";
@@ -15,7 +15,7 @@ import EnergyBiddingMarketAbi from "@/../abi/EnergyBiddingMarket.json";
 import { DECIMALS, defaultChain } from "@/config";
 import { useAppContext } from "@/context/AppContext";
 import ConnectAndSwitchNetworkButton from "@/components/common/ConnectAndSwitchNetworkButton";
-import { Card, CardHeader, Button, Badge } from "@/components/ui";
+import { Card, CardHeader, Button, Badge, TransactionModal, TransactionStatus } from "@/components/ui";
 import { AbiFunction } from "viem";
 
 // Helper functions
@@ -250,11 +250,16 @@ const OrderItem: React.FC<OrderItemProps> = ({
 const CombinedOrdersBox: React.FC = () => {
   const { isConnected, address, chainId } = useAccount();
   const { ethPrice, energyMarketAddress } = useAppContext();
-  const toast = useToast();
 
   const [selectedDay, setSelectedDay] = useState<Date>(new Date());
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const [activeOrderIndex, setActiveOrderIndex] = useState<string | null>(null);
+
+  // Modal state
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [txStatus, setTxStatus] = useState<TransactionStatus>("idle");
+  const [txError, setTxError] = useState<string | undefined>();
+  const [txType, setTxType] = useState<"cancel" | "clear">("cancel");
 
   const timestamps = getTimestampsForDay(selectedDay);
 
@@ -288,8 +293,8 @@ const CombinedOrdersBox: React.FC = () => {
   });
 
   // Write contract for actions
-  const { data: hash, isPending: isWritePending, writeContract } = useWriteContract();
-  const { isLoading: isConfirming, isSuccess: isConfirmed } = useWaitForTransactionReceipt({ hash });
+  const { data: hash, isPending: isWritePending, writeContract, error: writeError, reset: resetWrite } = useWriteContract();
+  const { isLoading: isConfirming, isSuccess: isConfirmed, error: confirmError } = useWaitForTransactionReceipt({ hash });
 
   const refetchAll = useCallback(() => {
     refetchBids();
@@ -302,22 +307,42 @@ const CombinedOrdersBox: React.FC = () => {
     if (isConnected) refetchAll();
   }, [isConnected, selectedDay, refetchAll]);
 
+  // Update modal status based on transaction state
   useEffect(() => {
-    if (isConfirmed) {
-      toast({
-        title: "Transaction Successful",
-        status: "success",
-        duration: 5000,
-        isClosable: true,
-      });
+    if (isWritePending) {
+      setTxStatus("pending");
+    } else if (isConfirming) {
+      setTxStatus("confirming");
+    } else if (isConfirmed) {
+      setTxStatus("success");
       setActiveOrderIndex(null);
       refetchAll();
+    } else if (writeError || confirmError) {
+      setTxStatus("error");
+      const err = writeError || confirmError;
+      if (err) {
+        let message = err.message;
+        if (message.includes("User rejected") || message.includes("user rejected")) {
+          message = "Transaction was rejected in your wallet";
+        } else if (message.includes("insufficient funds")) {
+          message = "Insufficient funds for this transaction";
+        } else if (message.length > 150) {
+          message = message.substring(0, 150) + "...";
+        }
+        setTxError(message);
+      }
     }
-  }, [isConfirmed, refetchAll, toast]);
+  }, [isWritePending, isConfirming, isConfirmed, writeError, confirmError, refetchAll]);
 
   const handleCancelBid = (timestamp: number, index: number) => {
     if (!energyMarketAddress) return;
     setActiveOrderIndex(`bid-${timestamp}-${index}`);
+    setTxType("cancel");
+    setIsModalOpen(true);
+    setTxStatus("idle");
+    setTxError(undefined);
+    resetWrite();
+
     writeContract({
       abi: EnergyBiddingMarketAbi.abi as AbiFunction[],
       address: energyMarketAddress,
@@ -329,12 +354,26 @@ const CombinedOrdersBox: React.FC = () => {
   const handleClearMarket = (timestamp: number) => {
     if (!energyMarketAddress) return;
     setActiveOrderIndex(`clear-${timestamp}`);
+    setTxType("clear");
+    setIsModalOpen(true);
+    setTxStatus("idle");
+    setTxError(undefined);
+    resetWrite();
+
     writeContract({
       abi: EnergyBiddingMarketAbi.abi as AbiFunction[],
       address: energyMarketAddress,
       functionName: "clearMarket",
       args: [timestamp],
     });
+  };
+
+  const closeModal = () => {
+    setIsModalOpen(false);
+    setTimeout(() => {
+      setTxStatus("idle");
+      setTxError(undefined);
+    }, 300);
   };
 
   // Navigation
@@ -360,206 +399,216 @@ const CombinedOrdersBox: React.FC = () => {
   const askCount = asks?.reduce((acc, a) => acc + (a.result as any[])?.length || 0, 0) || 0;
 
   return (
-    <div className="w-full max-w-4xl">
-      <Card padding="lg">
-        <CardHeader
-          title="My Orders"
-          subtitle="View and manage your bids and asks"
-          icon={<ClipboardList size={20} />}
-        />
+    <>
+      <div className="w-full max-w-4xl">
+        <Card padding="lg">
+          <CardHeader
+            title="My Orders"
+            subtitle="View and manage your bids and asks"
+            icon={<ClipboardList size={20} />}
+          />
 
-        {/* Date Navigation */}
-        <div className="flex items-center justify-between p-4 bg-white/5 rounded-xl mb-6">
-          <button
-            onClick={goToPreviousDay}
-            className="p-2 rounded-lg bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white transition-colors"
-          >
-            <ChevronLeft size={20} />
-          </button>
-
-          <div className="flex items-center gap-3">
+          {/* Date Navigation */}
+          <div className="flex items-center justify-between p-4 bg-white/5 rounded-xl mb-6">
             <button
-              onClick={() => setIsCalendarOpen(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-white/5 hover:bg-white/10 rounded-lg transition-colors"
+              onClick={goToPreviousDay}
+              className="p-2 rounded-lg bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white transition-colors"
             >
-              <Calendar size={18} className="text-gray-400" />
-              <span className="text-white font-medium">
-                {selectedDay.toLocaleDateString("en-US", {
-                  weekday: "long",
-                  month: "long",
-                  day: "numeric",
-                })}
-              </span>
+              <ChevronLeft size={20} />
             </button>
-            {selectedDay.toDateString() !== new Date().toDateString() && (
+
+            <div className="flex items-center gap-3">
               <button
-                onClick={goToToday}
-                className="px-3 py-1 text-xs bg-blue-500/20 text-blue-400 rounded-lg hover:bg-blue-500/30 transition-colors"
+                onClick={() => setIsCalendarOpen(true)}
+                className="flex items-center gap-2 px-4 py-2 bg-white/5 hover:bg-white/10 rounded-lg transition-colors"
               >
-                Today
+                <Calendar size={18} className="text-gray-400" />
+                <span className="text-white font-medium">
+                  {selectedDay.toLocaleDateString("en-US", {
+                    weekday: "long",
+                    month: "long",
+                    day: "numeric",
+                  })}
+                </span>
               </button>
-            )}
-          </div>
+              {selectedDay.toDateString() !== new Date().toDateString() && (
+                <button
+                  onClick={goToToday}
+                  className="px-3 py-1 text-xs bg-blue-500/20 text-blue-400 rounded-lg hover:bg-blue-500/30 transition-colors"
+                >
+                  Today
+                </button>
+              )}
+            </div>
 
-          <button
-            onClick={goToNextDay}
-            className="p-2 rounded-lg bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white transition-colors"
-          >
-            <ChevronRight size={20} />
-          </button>
-        </div>
-
-        {/* Calendar Modal */}
-        <AnimatePresence>
-          {isCalendarOpen && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm"
-              onClick={() => setIsCalendarOpen(false)}
+            <button
+              onClick={goToNextDay}
+              className="p-2 rounded-lg bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white transition-colors"
             >
+              <ChevronRight size={20} />
+            </button>
+          </div>
+
+          {/* Calendar Modal */}
+          <AnimatePresence>
+            {isCalendarOpen && (
               <motion.div
-                initial={{ scale: 0.9, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                exit={{ scale: 0.9, opacity: 0 }}
-                className="bg-gray-900 border border-white/10 rounded-2xl p-6"
-                onClick={(e) => e.stopPropagation()}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm"
+                onClick={() => setIsCalendarOpen(false)}
               >
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-semibold text-white">Select Date</h3>
-                  <button
-                    onClick={() => setIsCalendarOpen(false)}
-                    className="p-2 rounded-lg hover:bg-white/10 text-gray-400"
-                  >
-                    <X size={18} />
-                  </button>
-                </div>
-                <DayPicker
-                  mode="single"
-                  selected={selectedDay}
-                  onSelect={(day) => {
-                    if (day) {
-                      setSelectedDay(day);
-                      setIsCalendarOpen(false);
-                    }
-                  }}
-                  className="!bg-transparent"
-                  classNames={{
-                    day_selected: "bg-blue-500 text-white rounded-lg",
-                    day_today: "font-bold text-blue-400",
-                  }}
-                />
+                <motion.div
+                  initial={{ scale: 0.9, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  exit={{ scale: 0.9, opacity: 0 }}
+                  className="bg-gray-900 border border-white/10 rounded-2xl p-6"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-semibold text-white">Select Date</h3>
+                    <button
+                      onClick={() => setIsCalendarOpen(false)}
+                      className="p-2 rounded-lg hover:bg-white/10 text-gray-400"
+                    >
+                      <X size={18} />
+                    </button>
+                  </div>
+                  <DayPicker
+                    showOutsideDays
+                    mode="single"
+                    selected={selectedDay}
+                    onSelect={(day) => {
+                      if (day) {
+                        setSelectedDay(day);
+                        setIsCalendarOpen(false);
+                      }
+                    }}
+                  />
+                </motion.div>
               </motion.div>
-            </motion.div>
+            )}
+          </AnimatePresence>
+
+          {needsConnection ? (
+            <div className="py-8">
+              <ConnectAndSwitchNetworkButton />
+            </div>
+          ) : isLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <Spinner size="lg" color="blue.400" />
+            </div>
+          ) : (
+            <div className="grid md:grid-cols-2 gap-6">
+              {/* Bids Column */}
+              <div className="space-y-4">
+                <div className="flex items-center gap-3 pb-3 border-b border-blue-500/20">
+                  <div className="w-8 h-8 rounded-lg bg-blue-500/20 flex items-center justify-center">
+                    <span className="text-blue-400 font-bold text-sm">B</span>
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-white">Buy Orders</h3>
+                    <p className="text-xs text-gray-500">{bidCount} {bidCount === 1 ? "order" : "orders"}</p>
+                  </div>
+                </div>
+                <div className="space-y-3 max-h-[500px] overflow-y-auto">
+                  {bids?.map((bidResult, i) =>
+                    (bidResult.result as any[])?.map((bid, j) => (
+                      <OrderItem
+                        key={`bid-${timestamps[i]}-${j}`}
+                        type="bid"
+                        time={timestamps[i]}
+                        index={j}
+                        amount={bid.amount}
+                        price={bid.price}
+                        settled={bid.settled}
+                        canceled={bid.canceled}
+                        isMarketCleared={cleared?.[i]?.result as boolean}
+                        clearingPrice={prices?.[i]?.result as bigint}
+                        ethPrice={ethPrice}
+                        onCancel={() => handleCancelBid(timestamps[i], j)}
+                        onClearMarket={() => handleClearMarket(timestamps[i])}
+                        isLoading={
+                          (isWritePending || isConfirming) &&
+                          (activeOrderIndex === `bid-${timestamps[i]}-${j}` ||
+                            activeOrderIndex === `clear-${timestamps[i]}`)
+                        }
+                      />
+                    ))
+                  )}
+                  {bidCount === 0 && (
+                    <div className="flex flex-col items-center justify-center py-12 text-center">
+                      <div className="w-12 h-12 rounded-full bg-blue-500/10 flex items-center justify-center mb-3">
+                        <ClipboardList size={20} className="text-blue-500/50" />
+                      </div>
+                      <p className="text-sm text-gray-500">No buy orders for this day</p>
+                      <p className="text-xs text-gray-600 mt-1">Place a bid to get started</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Asks Column */}
+              <div className="space-y-4">
+                <div className="flex items-center gap-3 pb-3 border-b border-emerald-500/20">
+                  <div className="w-8 h-8 rounded-lg bg-emerald-500/20 flex items-center justify-center">
+                    <span className="text-emerald-400 font-bold text-sm">S</span>
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-white">Sell Orders</h3>
+                    <p className="text-xs text-gray-500">{askCount} {askCount === 1 ? "order" : "orders"}</p>
+                  </div>
+                </div>
+                <div className="space-y-3 max-h-[500px] overflow-y-auto">
+                  {asks?.map((askResult, i) =>
+                    (askResult.result as any[])?.map((ask, j) => (
+                      <OrderItem
+                        key={`ask-${timestamps[i]}-${j}`}
+                        type="ask"
+                        time={timestamps[i]}
+                        amount={ask.amount}
+                        settled={ask.settled}
+                        matchedAmount={ask.matchedAmount}
+                        isMarketCleared={cleared?.[i]?.result as boolean}
+                        clearingPrice={prices?.[i]?.result as bigint}
+                        ethPrice={ethPrice}
+                        onClearMarket={() => handleClearMarket(timestamps[i])}
+                        isLoading={
+                          (isWritePending || isConfirming) &&
+                          activeOrderIndex === `clear-${timestamps[i]}`
+                        }
+                      />
+                    ))
+                  )}
+                  {askCount === 0 && (
+                    <div className="flex flex-col items-center justify-center py-12 text-center">
+                      <div className="w-12 h-12 rounded-full bg-emerald-500/10 flex items-center justify-center mb-3">
+                        <ClipboardList size={20} className="text-emerald-500/50" />
+                      </div>
+                      <p className="text-sm text-gray-500">No sell orders for this day</p>
+                      <p className="text-xs text-gray-600 mt-1">List energy to sell</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
           )}
-        </AnimatePresence>
+        </Card>
+      </div>
 
-        {needsConnection ? (
-          <div className="py-8">
-            <ConnectAndSwitchNetworkButton />
-          </div>
-        ) : isLoading ? (
-          <div className="flex items-center justify-center py-12">
-            <Spinner size="lg" color="blue.400" />
-          </div>
-        ) : (
-          <div className="grid md:grid-cols-2 gap-6">
-            {/* Bids Column */}
-            <div className="space-y-4">
-              <div className="flex items-center gap-3 pb-3 border-b border-blue-500/20">
-                <div className="w-8 h-8 rounded-lg bg-blue-500/20 flex items-center justify-center">
-                  <span className="text-blue-400 font-bold text-sm">B</span>
-                </div>
-                <div>
-                  <h3 className="text-sm font-bold text-white">Buy Orders</h3>
-                  <p className="text-xs text-gray-500">{bidCount} {bidCount === 1 ? "order" : "orders"}</p>
-                </div>
-              </div>
-              <div className="space-y-3 max-h-[500px] overflow-y-auto">
-                {bids?.map((bidResult, i) =>
-                  (bidResult.result as any[])?.map((bid, j) => (
-                    <OrderItem
-                      key={`bid-${timestamps[i]}-${j}`}
-                      type="bid"
-                      time={timestamps[i]}
-                      index={j}
-                      amount={bid.amount}
-                      price={bid.price}
-                      settled={bid.settled}
-                      canceled={bid.canceled}
-                      isMarketCleared={cleared?.[i]?.result as boolean}
-                      clearingPrice={prices?.[i]?.result as bigint}
-                      ethPrice={ethPrice}
-                      onCancel={() => handleCancelBid(timestamps[i], j)}
-                      onClearMarket={() => handleClearMarket(timestamps[i])}
-                      isLoading={
-                        (isWritePending || isConfirming) &&
-                        (activeOrderIndex === `bid-${timestamps[i]}-${j}` ||
-                          activeOrderIndex === `clear-${timestamps[i]}`)
-                      }
-                    />
-                  ))
-                )}
-                {bidCount === 0 && (
-                  <div className="flex flex-col items-center justify-center py-12 text-center">
-                    <div className="w-12 h-12 rounded-full bg-blue-500/10 flex items-center justify-center mb-3">
-                      <ClipboardList size={20} className="text-blue-500/50" />
-                    </div>
-                    <p className="text-sm text-gray-500">No buy orders for this day</p>
-                    <p className="text-xs text-gray-600 mt-1">Place a bid to get started</p>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Asks Column */}
-            <div className="space-y-4">
-              <div className="flex items-center gap-3 pb-3 border-b border-emerald-500/20">
-                <div className="w-8 h-8 rounded-lg bg-emerald-500/20 flex items-center justify-center">
-                  <span className="text-emerald-400 font-bold text-sm">S</span>
-                </div>
-                <div>
-                  <h3 className="text-sm font-bold text-white">Sell Orders</h3>
-                  <p className="text-xs text-gray-500">{askCount} {askCount === 1 ? "order" : "orders"}</p>
-                </div>
-              </div>
-              <div className="space-y-3 max-h-[500px] overflow-y-auto">
-                {asks?.map((askResult, i) =>
-                  (askResult.result as any[])?.map((ask, j) => (
-                    <OrderItem
-                      key={`ask-${timestamps[i]}-${j}`}
-                      type="ask"
-                      time={timestamps[i]}
-                      amount={ask.amount}
-                      settled={ask.settled}
-                      matchedAmount={ask.matchedAmount}
-                      isMarketCleared={cleared?.[i]?.result as boolean}
-                      clearingPrice={prices?.[i]?.result as bigint}
-                      ethPrice={ethPrice}
-                      onClearMarket={() => handleClearMarket(timestamps[i])}
-                      isLoading={
-                        (isWritePending || isConfirming) &&
-                        activeOrderIndex === `clear-${timestamps[i]}`
-                      }
-                    />
-                  ))
-                )}
-                {askCount === 0 && (
-                  <div className="flex flex-col items-center justify-center py-12 text-center">
-                    <div className="w-12 h-12 rounded-full bg-emerald-500/10 flex items-center justify-center mb-3">
-                      <ClipboardList size={20} className="text-emerald-500/50" />
-                    </div>
-                    <p className="text-sm text-gray-500">No sell orders for this day</p>
-                    <p className="text-xs text-gray-600 mt-1">List energy to sell</p>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
-      </Card>
-    </div>
+      {/* Transaction Modal */}
+      <TransactionModal
+        isOpen={isModalOpen}
+        status={txStatus}
+        hash={hash}
+        error={txError}
+        details={{
+          type: txType,
+        }}
+        onClose={closeModal}
+      />
+    </>
   );
 };
 

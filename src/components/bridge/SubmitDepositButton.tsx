@@ -1,6 +1,5 @@
 import React, { useState } from "react";
-import { ArrowUp, Loader2 } from "lucide-react";
-import { Spinner, useToast, ToastId } from "@chakra-ui/react";
+import { ArrowUp } from "lucide-react";
 import { BigNumber } from "ethers";
 import { EthBridger, EthDepositMessageStatus, getArbitrumNetwork } from "@arbitrum/sdk";
 import { motion } from "framer-motion";
@@ -8,6 +7,7 @@ import { motion } from "framer-motion";
 import { useEthersSigner } from "@/utils/ethersHelper";
 import { useAppContext } from "@/context/AppContext";
 import { defaultChain } from "@/config";
+import { TransactionModal, TransactionStatus } from "@/components/ui";
 
 interface SubmitDepositButtonProps {
   amount: bigint;
@@ -19,14 +19,21 @@ export const SubmitDepositButton: React.FC<SubmitDepositButtonProps> = ({
   hasEnoughBalance,
 }) => {
   const signer = useEthersSigner();
-  const { l2Provider } = useAppContext();
-  const toast = useToast();
-  const [isLoading, setIsLoading] = useState(false);
+  const { l2Provider, ethPrice } = useAppContext();
+
+  // Modal state
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [txStatus, setTxStatus] = useState<TransactionStatus>("idle");
+  const [txError, setTxError] = useState<string | undefined>();
+  const [txHash, setTxHash] = useState<string | undefined>();
 
   const handleDeposit = async () => {
     if (!signer || !l2Provider || !amount) return;
 
-    setIsLoading(true);
+    setIsModalOpen(true);
+    setTxStatus("pending");
+    setTxError(undefined);
+    setTxHash(undefined);
 
     try {
       const childChainNetwork = getArbitrumNetwork(defaultChain.id);
@@ -37,86 +44,97 @@ export const SubmitDepositButton: React.FC<SubmitDepositButtonProps> = ({
         parentSigner: signer,
       });
 
+      setTxHash(depositTransaction.hash);
+      setTxStatus("confirming");
+
       const depositTransactionReceipt = await depositTransaction.wait();
 
-      const toastId = toast({
-        title: "Transaction Confirmed",
-        description: `Waiting for bridge confirmation on ${defaultChain.name}. This may take up to 15 minutes.`,
-        status: "loading",
-        duration: null,
-        isClosable: true,
-      });
+      setTxStatus("bridging");
 
       const transactionResult = await depositTransactionReceipt.waitForChildTransactionReceipt(
         l2Provider
       );
 
-      toast.close(toastId);
-
       if (transactionResult.complete) {
-        toast({
-          title: "Bridge Complete!",
-          description: `Your ETH has been successfully bridged to ${defaultChain.name}.`,
-          status: "success",
-          duration: 5000,
-          isClosable: true,
-        });
+        setTxStatus("success");
       } else {
-        toast({
-          title: "Bridge Failed",
-          description: `Message failed execution. Status: ${
-            EthDepositMessageStatus[await transactionResult.message.status()]
-          }`,
-          status: "error",
-          duration: 5000,
-          isClosable: true,
-        });
+        setTxStatus("error");
+        setTxError(`Bridge failed. Status: ${EthDepositMessageStatus[await transactionResult.message.status()]}`);
       }
     } catch (error: any) {
       console.error("Deposit error:", error);
-      toast({
-        title: "Transaction Failed",
-        description: error?.message || "An error occurred during the deposit.",
-        status: "error",
-        duration: 5000,
-        isClosable: true,
-      });
-    } finally {
-      setIsLoading(false);
+      setTxStatus("error");
+      let message = error?.message || "An error occurred during the deposit.";
+      if (message.includes("User rejected") || message.includes("user rejected")) {
+        message = "Transaction was rejected in your wallet";
+      } else if (message.length > 150) {
+        message = message.substring(0, 150) + "...";
+      }
+      setTxError(message);
     }
   };
 
-  const isDisabled = isLoading || !hasEnoughBalance || amount === BigInt(0);
+  const closeModal = () => {
+    setIsModalOpen(false);
+    setTimeout(() => {
+      setTxStatus("idle");
+      setTxError(undefined);
+      setTxHash(undefined);
+    }, 300);
+  };
+
+  const isDisabled = txStatus === "pending" || txStatus === "confirming" || txStatus === "bridging" || !hasEnoughBalance || amount === BigInt(0);
+  const isLoading = txStatus === "pending" || txStatus === "confirming" || txStatus === "bridging";
+
+  const amountInETH = Number(amount) / 10 ** 18;
+  const amountInEUR = ethPrice ? amountInETH * ethPrice : 0;
 
   return (
-    <motion.button
-      whileHover={isDisabled ? {} : { scale: 1.02 }}
-      whileTap={isDisabled ? {} : { scale: 0.98 }}
-      onClick={handleDeposit}
-      disabled={isDisabled}
-      className={`
-        w-full flex items-center justify-center gap-2
-        px-6 py-4
-        text-white font-semibold
-        rounded-xl
-        transition-all duration-200
-        ${isDisabled
-          ? "bg-gray-600 cursor-not-allowed opacity-50"
-          : "bg-gradient-to-r from-emerald-600 to-emerald-500 shadow-lg hover:shadow-xl hover:shadow-emerald-500/25"
-        }
-      `}
-    >
-      {isLoading ? (
-        <>
-          <Loader2 size={18} className="animate-spin" />
-          Processing Deposit...
-        </>
-      ) : (
-        <>
-          <ArrowUp size={18} />
-          Deposit to Nova Cidade
-        </>
-      )}
-    </motion.button>
+    <>
+      <motion.button
+        whileHover={isDisabled ? {} : { scale: 1.02 }}
+        whileTap={isDisabled ? {} : { scale: 0.98 }}
+        onClick={handleDeposit}
+        disabled={isDisabled}
+        className={`
+          w-full flex items-center justify-center gap-2
+          px-6 py-4
+          text-white font-semibold
+          rounded-xl
+          transition-all duration-200
+          ${isDisabled
+            ? "bg-gray-600 cursor-not-allowed opacity-50"
+            : "bg-gradient-to-r from-emerald-600 to-emerald-500 shadow-lg hover:shadow-xl hover:shadow-emerald-500/25"
+          }
+        `}
+      >
+        {isLoading ? (
+          <>
+            <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+            {txStatus === "pending" ? "Confirm in Wallet..." : txStatus === "bridging" ? "Bridging..." : "Processing..."}
+          </>
+        ) : (
+          <>
+            <ArrowUp size={18} />
+            Deposit to Nova Cidade
+          </>
+        )}
+      </motion.button>
+
+      {/* Transaction Modal */}
+      <TransactionModal
+        isOpen={isModalOpen}
+        status={txStatus}
+        hash={txHash}
+        error={txError}
+        details={{
+          type: "bridge_deposit",
+          totalCost: amountInETH.toFixed(6),
+          currency: "ETH",
+        }}
+        onClose={closeModal}
+        onRetry={handleDeposit}
+      />
+    </>
   );
 };

@@ -1,86 +1,116 @@
-import React, {useEffect} from "react";
-import {Button, Spinner, useToast} from "@chakra-ui/react";
-import {useAccount, useWaitForTransactionReceipt, useWriteContract} from "wagmi";
+import React, { useEffect, useState } from "react";
+import { useAccount, useWaitForTransactionReceipt, useWriteContract } from "wagmi";
 import CommunitasNFTL2 from "@/../abi/CommunitasNFTL2.json";
-import {contractAddresses} from "@/config";
-import {NFTData} from "@/utils/executeMessageL2ToL1Helper";
+import { contractAddresses } from "@/config";
+import { NFTData } from "@/utils/executeMessageL2ToL1Helper";
+import { Button, TransactionModal, TransactionStatus } from "@/components/ui";
+import { ArrowUpDown } from "lucide-react";
 
 interface BridgeNFTL2ToL1ButtonProps {
-    nft: NFTData;
-    refetchNFTs: () => {};
+  nft: NFTData;
+  refetchNFTs: () => void;
 }
 
-const BridgeNFTL2ToL1Button: React.FC<BridgeNFTL2ToL1ButtonProps> = ({nft, refetchNFTs}) => {
-    const {isConnected, address, chain} = useAccount();
+const BridgeNFTL2ToL1Button: React.FC<BridgeNFTL2ToL1ButtonProps> = ({ nft, refetchNFTs }) => {
+  const { isConnected, address, chain } = useAccount();
 
-    const nftContractAddress = contractAddresses[chain!.id]["CommunitasNFT"]["General"];
+  // Modal state
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [txStatus, setTxStatus] = useState<TransactionStatus>("idle");
+  const [txError, setTxError] = useState<string | undefined>();
 
-    const toast = useToast();
+  const nftContractAddress = chain ? contractAddresses[chain.id]?.["CommunitasNFT"]?.["General"] : undefined;
 
-    const {
-        data: hash,
-        isPending: isWritePending,
-        writeContract,
-    } = useWriteContract();
+  const {
+    data: hash,
+    isPending: isWritePending,
+    error: writeError,
+    writeContract,
+    reset: resetWrite,
+  } = useWriteContract();
 
-    const {isLoading: isConfirming, isSuccess: isConfirmed} = useWaitForTransactionReceipt({hash});
+  const { isLoading: isConfirming, isSuccess: isConfirmed, error: confirmError } = useWaitForTransactionReceipt({ hash });
 
-    useEffect(() => {
-        if (!hash || isConfirming) return;
-
-        if (isConfirmed) {
-            sendWaitingForValidationNotification();
-            refetchNFTs();
-        } else {
-            sendUnsuccessfulNotification();
+  // Update modal status based on transaction state
+  useEffect(() => {
+    if (isWritePending) {
+      setTxStatus("pending");
+    } else if (isConfirming) {
+      setTxStatus("confirming");
+    } else if (isConfirmed) {
+      setTxStatus("success");
+      refetchNFTs();
+    } else if (writeError || confirmError) {
+      setTxStatus("error");
+      const err = writeError || confirmError;
+      if (err) {
+        let message = err.message;
+        if (message.includes("User rejected") || message.includes("user rejected")) {
+          message = "Transaction was rejected in your wallet";
+        } else if (message.includes("insufficient funds")) {
+          message = "Insufficient funds for this transaction";
+        } else if (message.length > 150) {
+          message = message.substring(0, 150) + "...";
         }
-    }, [isConfirming]);
-
-
-    const sendUnsuccessfulNotification = () => {
-        toast({
-            title: "Failed",
-            description: "Something went wrong. Please try again later.",
-            status: "error",
-            duration: 9000,
-            isClosable: true,
-        });
-    };
-
-    const sendWaitingForValidationNotification = () => {
-        toast({
-            title: "Transaction is confirmed, waiting for bridge validation",
-            description: `Waiting for transaction to be validated. This process takes about 1 hour.`,
-            status: "loading",
-            duration: 9000,
-            isClosable: true,
-        });
+        setTxError(message);
+      }
     }
+  }, [isWritePending, isConfirming, isConfirmed, writeError, confirmError, refetchNFTs]);
 
-    const handleBridge = async () => {
-        if (!isConnected || !chain || !address) return;
+  const handleBridge = async () => {
+    if (!isConnected || !chain || !address || !nftContractAddress) return;
 
-        writeContract({
-            abi: CommunitasNFTL2.abi,
-            address: nftContractAddress,
-            functionName: "bridgeToL1",
-            args: [nft.tokenId]
-        });
-    };
+    setIsModalOpen(true);
+    setTxStatus("idle");
+    setTxError(undefined);
+    resetWrite();
 
-    return (
-        <Button
-            colorScheme="blue"
-            width="full"
-            size="sm"
-            fontSize="xs"
-            isLoading={isWritePending || isConfirming}
-            onClick={handleBridge}
-            disabled={isWritePending || isConfirming || !isConnected}
-        >
-            {isWritePending || isConfirming ? <Spinner size="sm" /> : "Bridge to L1"}
-        </Button>
-    );
+    writeContract({
+      abi: CommunitasNFTL2.abi,
+      address: nftContractAddress,
+      functionName: "bridgeToL1",
+      args: [nft.tokenId],
+    });
+  };
+
+  const closeModal = () => {
+    setIsModalOpen(false);
+    setTimeout(() => {
+      setTxStatus("idle");
+      setTxError(undefined);
+    }, 300);
+  };
+
+  const isLoading = isWritePending || isConfirming;
+
+  return (
+    <>
+      <Button
+        variant="primary"
+        size="sm"
+        fullWidth
+        onClick={handleBridge}
+        loading={isLoading}
+        disabled={isLoading || !isConnected}
+        icon={<ArrowUpDown size={14} />}
+      >
+        Bridge to L1
+      </Button>
+
+      {/* Transaction Modal */}
+      <TransactionModal
+        isOpen={isModalOpen}
+        status={txStatus}
+        hash={hash}
+        error={txError}
+        details={{
+          type: "bridge_nft_l2",
+        }}
+        onClose={closeModal}
+        onRetry={handleBridge}
+      />
+    </>
+  );
 };
 
 export default BridgeNFTL2ToL1Button;

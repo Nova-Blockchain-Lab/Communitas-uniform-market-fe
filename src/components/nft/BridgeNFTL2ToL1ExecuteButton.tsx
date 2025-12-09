@@ -1,5 +1,4 @@
 import React, { useCallback, useEffect, useState } from "react";
-import { Button, Link, Spinner, useToast } from "@chakra-ui/react";
 import { useAccount, useConfig, useSwitchChain } from "wagmi";
 import { contractAddresses, defaultChain, OPENSEA_URL_CREATOR } from "@/config";
 import {
@@ -11,6 +10,8 @@ import { useAppContext } from "@/context/AppContext";
 import { ChildToParentMessageStatus, ChildTransactionReceipt } from "@arbitrum/sdk";
 import { useEthersProvider, useEthersSigner } from "@/utils/ethersHelper";
 import { formatTimestamp } from "@/utils/utils";
+import { Button, TransactionModal, TransactionStatus } from "@/components/ui";
+import { Loader2, Clock } from "lucide-react";
 
 // Constants
 const STATUS_POLL_INTERVAL = 60 * 1000; // 1 minute
@@ -27,46 +28,31 @@ const BridgeNFTL2ToL1ExecuteButton: React.FC<BridgeNFTL2ToL1ExecuteButtonProps> 
   const provider = useEthersProvider();
   const { switchChain } = useSwitchChain();
   const { chains } = useConfig();
-  const toast = useToast();
 
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [isWaitingForConfirmation, setIsWaitingForConfirmation] = useState<boolean>(false);
   const [remainingTime, setRemainingTime] = useState<number | undefined>(undefined);
   const [messageState, setMessageState] = useState<ChildToParentMessageStatus | undefined>(nft.state);
 
+  // Modal state
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [txStatus, setTxStatus] = useState<TransactionStatus>("idle");
+  const [txError, setTxError] = useState<string | undefined>();
+  const [txHash, setTxHash] = useState<string | undefined>();
+
   const handleChangeChain = useCallback(async () => {
     const targetChain = chains.map((c) => c.id).filter((id) => id !== chainId)[0];
     switchChain({ chainId: targetChain });
   }, [chains, chainId, switchChain]);
 
-  const sendUnsuccessfulNotification = useCallback(() => {
-    toast({
-      title: "Failed",
-      description: "Something went wrong. Please try again later.",
-      status: "error",
-      duration: 9000,
-      isClosable: true,
-    });
-  }, [toast]);
-
-  const sendSuccessfulExecutionNotification = useCallback(() => {
-    if (!chainId) return;
-    const openseaLink = OPENSEA_URL_CREATOR(contractAddresses[chainId]["CommunitasNFT"]["General"], nft.tokenId);
-    toast({
-      title: "NFT bridge process is complete",
-      description: (
-        <>
-          You can now access and interact with your NFT on the base layer. View it on OpenSea:{" "}
-          <Link href={openseaLink} isExternal>
-            Here
-          </Link>
-        </>
-      ),
-      status: "success",
-      duration: 9000,
-      isClosable: true,
-    });
-  }, [chainId, nft.tokenId, toast]);
+  const closeModal = () => {
+    setIsModalOpen(false);
+    setTimeout(() => {
+      setTxStatus("idle");
+      setTxError(undefined);
+      setTxHash(undefined);
+    }, 300);
+  };
 
   // Poll withdrawal status
   useEffect(() => {
@@ -139,6 +125,11 @@ const BridgeNFTL2ToL1ExecuteButton: React.FC<BridgeNFTL2ToL1ExecuteButtonProps> 
       return;
     }
 
+    setIsModalOpen(true);
+    setTxStatus("pending");
+    setTxError(undefined);
+    setTxHash(undefined);
+
     try {
       setIsLoading(true);
 
@@ -152,13 +143,24 @@ const BridgeNFTL2ToL1ExecuteButton: React.FC<BridgeNFTL2ToL1ExecuteButtonProps> 
 
       const childToParentMsg = messages[0];
       const tx = await childToParentMsg.execute(l2Provider);
+
+      setTxHash(tx.hash);
+      setTxStatus("confirming");
+
       await tx.wait(1);
 
+      setTxStatus("success");
       refetchNFTs();
-      sendSuccessfulExecutionNotification();
-    } catch (error) {
+    } catch (error: any) {
       console.error("Bridge execution failed:", error);
-      sendUnsuccessfulNotification();
+      setTxStatus("error");
+      let message = error?.message || "Something went wrong. Please try again later.";
+      if (message.includes("User rejected") || message.includes("user rejected")) {
+        message = "Transaction was rejected in your wallet";
+      } else if (message.length > 150) {
+        message = message.substring(0, 150) + "...";
+      }
+      setTxError(message);
     } finally {
       setIsLoading(false);
     }
@@ -174,37 +176,46 @@ const BridgeNFTL2ToL1ExecuteButton: React.FC<BridgeNFTL2ToL1ExecuteButtonProps> 
     provider,
     nft.hash,
     refetchNFTs,
-    sendSuccessfulExecutionNotification,
-    sendUnsuccessfulNotification,
   ]);
 
   if (isWaitingForConfirmation || isLoading) {
     return (
-      <div className="space-y-1">
-        <Button
-          colorScheme="orange"
-          width="full"
-          size="sm"
-          fontSize="xs"
-          isLoading={isWaitingForConfirmation || isLoading}
-          disabled={!isConnected || isLoading || isWaitingForConfirmation}
-        >
-          <Spinner size="sm" />
-        </Button>
-        {isWaitingForConfirmation && remainingTime !== undefined && (
-          <p className="text-xs text-amber-400 text-center">{formatTimestamp(remainingTime)} left</p>
-        )}
-      </div>
+      <>
+        <div className="space-y-1">
+          <Button
+            variant="secondary"
+            size="sm"
+            fullWidth
+            loading={isWaitingForConfirmation || isLoading}
+            disabled={!isConnected || isLoading || isWaitingForConfirmation}
+            icon={<Clock size={14} />}
+          >
+            {isWaitingForConfirmation ? "Waiting" : "Processing"}
+          </Button>
+          {isWaitingForConfirmation && remainingTime !== undefined && (
+            <p className="text-xs text-amber-400 text-center">{formatTimestamp(remainingTime)} left</p>
+          )}
+        </div>
+
+        <TransactionModal
+          isOpen={isModalOpen}
+          status={txStatus}
+          hash={txHash}
+          error={txError}
+          details={{ type: "bridge_nft_execute" }}
+          onClose={closeModal}
+          onRetry={handleBridge}
+        />
+      </>
     );
   }
 
   if (chainId === defaultChain.id) {
     return (
       <Button
-        colorScheme="blue"
-        width="full"
+        variant="secondary"
         size="sm"
-        fontSize="xs"
+        fullWidth
         onClick={handleChangeChain}
       >
         Switch Chain
@@ -213,16 +224,27 @@ const BridgeNFTL2ToL1ExecuteButton: React.FC<BridgeNFTL2ToL1ExecuteButtonProps> 
   }
 
   return (
-    <Button
-      colorScheme="green"
-      width="full"
-      size="sm"
-      fontSize="xs"
-      onClick={handleBridge}
-      disabled={!isConnected}
-    >
-      Execute
-    </Button>
+    <>
+      <Button
+        variant="primary"
+        size="sm"
+        fullWidth
+        onClick={handleBridge}
+        disabled={!isConnected}
+      >
+        Execute
+      </Button>
+
+      <TransactionModal
+        isOpen={isModalOpen}
+        status={txStatus}
+        hash={txHash}
+        error={txError}
+        details={{ type: "bridge_nft_execute" }}
+        onClose={closeModal}
+        onRetry={handleBridge}
+      />
+    </>
   );
 };
 
