@@ -203,7 +203,7 @@ const MessageHistoryRow: React.FC<MessageHistoryRowProps> = ({ message, refetchM
         {!isDeposit && !isSuccess && (
           <div>
             {!isConnected && (
-              <w3m-connect-button size="sm" />
+              <appkit-button size="sm" />
             )}
 
             {isConnected && chainId !== message.to.id && !isWaitingForConfirmation && (

@@ -13,3 +13,7 @@ export { Badge, StatusDot } from "./Badge";
 // Modal Components
 export { TransactionModal } from "./TransactionModal";
 export type { TransactionStatus, TransactionType } from "./TransactionModal";
+
+// Form Components
+export { Switch } from "./Switch";
+export { Spinner } from "./Spinner";

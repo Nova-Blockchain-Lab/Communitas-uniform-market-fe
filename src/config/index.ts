@@ -7,7 +7,7 @@
 export { novaCidadeMainnet, defaultChain, baseChain, supportedChains } from "./chains";
 
 // Wagmi configuration
-export { projectId, metadata, wagmiConfig } from "./wagmi";
+export { projectId, metadata, wagmiConfig, wagmiAdapter } from "./wagmi";
 
 // Constants
 export {

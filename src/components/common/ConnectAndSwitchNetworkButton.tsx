@@ -23,7 +23,7 @@ const ConnectAndSwitchNetworkButton: React.FC = () => {
             Connect to interact with the energy market
           </p>
         </div>
-        <w3m-connect-button />
+        <appkit-button />
       </div>
     );
   }

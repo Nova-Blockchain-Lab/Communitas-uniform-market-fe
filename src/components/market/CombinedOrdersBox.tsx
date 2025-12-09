@@ -6,7 +6,6 @@ import {
   useWriteContract,
 } from "wagmi";
 import { ClipboardList, Calendar, ChevronLeft, ChevronRight, X, Check, AlertCircle } from "lucide-react";
-import { Spinner } from "@chakra-ui/react";
 import { DayPicker } from "react-day-picker";
 import { motion, AnimatePresence } from "framer-motion";
 import "react-day-picker/dist/style.css";
@@ -15,7 +14,7 @@ import EnergyBiddingMarketAbi from "@/../abi/EnergyBiddingMarket.json";
 import { DECIMALS, defaultChain } from "@/config";
 import { useAppContext } from "@/context/AppContext";
 import ConnectAndSwitchNetworkButton from "@/components/common/ConnectAndSwitchNetworkButton";
-import { Card, CardHeader, Button, Badge, TransactionModal, TransactionStatus } from "@/components/ui";
+import { Card, CardHeader, Button, Badge, TransactionModal, TransactionStatus, Spinner } from "@/components/ui";
 import { AbiFunction } from "viem";
 
 // Helper functions
@@ -497,7 +496,7 @@ const CombinedOrdersBox: React.FC = () => {
             </div>
           ) : isLoading ? (
             <div className="flex items-center justify-center py-12">
-              <Spinner size="lg" color="blue.400" />
+              <Spinner size="lg" color="blue-400" />
             </div>
           ) : (
             <div className="grid md:grid-cols-2 gap-6">

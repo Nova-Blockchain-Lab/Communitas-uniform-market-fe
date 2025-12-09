@@ -6,7 +6,6 @@ import {
   useWriteContract,
 } from "wagmi";
 import { Wallet, Coins, ArrowDown, Info, RefreshCw, AlertCircle } from "lucide-react";
-import { Spinner } from "@chakra-ui/react";
 import { motion } from "framer-motion";
 import Image from "next/image";
 
@@ -14,7 +13,7 @@ import EnergyBiddingMarketAbi from "@/../abi/EnergyBiddingMarket.json";
 import { DECIMALS, defaultChain } from "@/config";
 import { useAppContext } from "@/context/AppContext";
 import ConnectAndSwitchNetworkButton from "@/components/common/ConnectAndSwitchNetworkButton";
-import { Card, CardHeader, Button } from "@/components/ui";
+import { Card, CardHeader, Button, Spinner } from "@/components/ui";
 import { TransactionModal, TransactionStatus } from "@/components/ui/TransactionModal";
 
 const ClaimBox: React.FC = () => {
@@ -175,7 +174,7 @@ const ClaimBox: React.FC = () => {
 
                   {isBalanceLoading ? (
                     <div className="flex items-center justify-center py-4">
-                      <Spinner size="lg" color="blue.400" />
+                      <Spinner size="lg" color="blue-400" />
                     </div>
                   ) : (
                     <>
@@ -213,7 +212,7 @@ const ClaimBox: React.FC = () => {
               <div className="p-3 sm:p-4 bg-white/5 rounded-xl mb-4 md:mb-6">
                 <p className="text-xs text-gray-500 mb-2">Claim to</p>
                 <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-lg bg-blue-500/20 flex-shrink-0">
+                  <div className="p-2 rounded-lg bg-blue-500/20 shrink-0">
                     <Image src="/eth.png" alt="ETH" width={24} height={24} />
                   </div>
                   <div className="flex-1 min-w-0">
@@ -228,7 +227,7 @@ const ClaimBox: React.FC = () => {
               {/* Validation Error */}
               {validationError && (
                 <div className="flex items-center gap-2 p-3 bg-red-500/10 border border-red-500/20 rounded-xl mb-4">
-                  <AlertCircle size={16} className="text-red-400 flex-shrink-0" />
+                  <AlertCircle size={16} className="text-red-400 shrink-0" />
                   <p className="text-xs sm:text-sm text-red-400">{validationError}</p>
                 </div>
               )}
@@ -252,7 +251,7 @@ const ClaimBox: React.FC = () => {
 
               {/* Info Note */}
               <div className="mt-4 flex items-start gap-2 text-[10px] sm:text-xs text-gray-500">
-                <Info size={14} className="mt-0.5 flex-shrink-0" />
+                <Info size={14} className="mt-0.5 shrink-0" />
                 <p>
                   Your earnings come from matched energy trades. The amount shown is the
                   total available for withdrawal from this market region.

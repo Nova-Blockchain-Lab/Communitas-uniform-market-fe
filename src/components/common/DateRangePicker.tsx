@@ -258,7 +258,7 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({
       {/* Next day warning */}
       {endDate && startDate && endDate.getHours() < startDate.getHours() && isSameDay(startDate, endDate) && (
         <div className="flex items-center gap-2 p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl">
-          <Moon size={16} className="text-amber-400 flex-shrink-0" />
+          <Moon size={16} className="text-amber-400 shrink-0" />
           <p className="text-xs text-amber-300">
             This time range spans into the next day
           </p>

@@ -309,7 +309,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
               {status === "error" && error && (
                 <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20">
                   <div className="flex items-start gap-3">
-                    <AlertTriangle size={20} className="text-red-400 flex-shrink-0 mt-0.5" />
+                    <AlertTriangle size={20} className="text-red-400 shrink-0 mt-0.5" />
                     <div>
                       <p className="text-sm font-medium text-red-400 mb-1">Error Details</p>
                       <p className="text-xs text-red-300/80 break-words">{error}</p>

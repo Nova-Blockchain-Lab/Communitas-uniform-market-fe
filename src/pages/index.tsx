@@ -78,10 +78,10 @@ export default function Home() {
               {/* Wallet Buttons */}
               <div className={styles.buttons}>
                 <div className={styles.highlight}>
-                  <w3m-network-button />
+                  <appkit-network-button />
                 </div>
                 <div className={styles.highlight}>
-                  <w3m-button />
+                  <appkit-button />
                 </div>
               </div>
             </div>

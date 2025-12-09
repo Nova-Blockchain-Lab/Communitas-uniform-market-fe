@@ -74,8 +74,8 @@ export default function Bridge() {
               </div>
 
               <div className="flex items-center gap-2">
-                <w3m-network-button />
-                <w3m-button />
+                <appkit-network-button />
+                <appkit-button />
               </div>
             </div>
           </header>

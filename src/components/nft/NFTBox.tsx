@@ -9,7 +9,6 @@ import {
   useWaitForTransactionReceipt,
 } from "wagmi";
 import { Image as ImageIcon, RefreshCw, Plus, AlertCircle } from "lucide-react";
-import { Spinner, Switch } from "@chakra-ui/react";
 import { motion } from "framer-motion";
 
 import { contractAddresses, defaultChain } from "@/config";
@@ -17,7 +16,7 @@ import CommunitasNFTAbi from "@/../abi/CommunitasNFT.json";
 import ConnectAndSwitchNetworkButton from "@/components/common/ConnectAndSwitchNetworkButton";
 import NFTCard from "@/components/nft/NFTCard";
 import PendingNFTs from "@/components/nft/PendingNFTBox";
-import { Card, CardHeader, Button, TransactionModal, TransactionStatus } from "@/components/ui";
+import { Card, CardHeader, Button, TransactionModal, TransactionStatus, Spinner, Switch } from "@/components/ui";
 import { AbiFunction } from "viem";
 import { NFTData } from "@/utils/executeMessageL2ToL1Helper";
 
@@ -253,6 +252,7 @@ const NFTBox: React.FC = () => {
                   onChange={handleSwitchChain}
                   colorScheme="blue"
                   size="lg"
+                  label="Toggle between L1 and L2"
                 />
                 <span className={`text-sm font-medium ${isL2 ? "text-white" : "text-gray-400"}`}>
                   L2 (Nova Cidade)
@@ -277,7 +277,7 @@ const NFTBox: React.FC = () => {
               {/* NFT Grid */}
               {isLoading ? (
                 <div className="flex flex-col items-center justify-center py-12">
-                  <Spinner size="xl" color="blue.400" />
+                  <Spinner size="xl" color="blue-400" />
                   <p className="mt-4 text-gray-400">Loading your NFTs...</p>
                 </div>
               ) : nftCount === 0 ? (

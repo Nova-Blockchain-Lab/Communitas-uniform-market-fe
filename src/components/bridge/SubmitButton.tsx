@@ -29,7 +29,7 @@ export const SubmitButton: React.FC<SubmitButtonProps> = ({
           <Wallet size={24} className="text-emerald-400" />
         </div>
         <p className="text-sm text-gray-400">Connect wallet to bridge</p>
-        <w3m-connect-button />
+        <appkit-button />
       </div>
     );
   }

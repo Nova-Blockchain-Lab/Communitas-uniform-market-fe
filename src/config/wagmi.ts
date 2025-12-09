@@ -1,34 +1,28 @@
 /**
- * Wagmi and Web3Modal configuration
+ * Wagmi and Reown AppKit configuration
  */
 
-import { defaultWagmiConfig } from "@web3modal/wagmi";
-import { supportedChains } from "./chains";
+import { http } from "wagmi";
+import { WagmiAdapter } from "@reown/appkit-adapter-wagmi";
+import { supportedChains, novaCidadeMainnet, customArbitrumSepolia } from "./chains";
 
-// Web3Modal project ID
+// Reown project ID (formerly Web3Modal)
 export const projectId = process.env.NEXT_PUBLIC_PROJECT_ID || "";
 
-// Application metadata for Web3Modal
+// Application metadata for AppKit
 export const metadata = {
   name: "COMMUNITAS Energy Market",
   description: "An Energy Market for the COMMUNITAS community.",
-  url: "https://web3modal.com",
+  url: "https://communitas.energy",
   icons: ["https://avatars.githubusercontent.com/u/37784886"],
 };
 
-// Wagmi configuration
-export const wagmiConfig = defaultWagmiConfig({
-  chains: supportedChains,
+// Create Wagmi Adapter for AppKit
+export const wagmiAdapter = new WagmiAdapter({
+  networks: [...supportedChains],
   projectId,
-  metadata,
-  auth: {
-    email: true,
-    showWallets: true,
-    walletFeatures: true,
-  },
-  enableCoinbase: true,
-  enableInjected: true,
-  enableWalletConnect: true,
-  enableEIP6963: true,
-  coinbasePreference: "all",
+  ssr: true,
 });
+
+// Export wagmi config from adapter
+export const wagmiConfig = wagmiAdapter.wagmiConfig;

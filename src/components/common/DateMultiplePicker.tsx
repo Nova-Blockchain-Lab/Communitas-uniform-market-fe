@@ -236,7 +236,7 @@ const DateMultiplePicker: React.FC<DateMultiplePickerProps> = ({
       {/* Warning for next day span */}
       {spansNextDay && (
         <div className="flex items-center gap-3 px-4 py-3 bg-amber-500/15 border border-amber-500/30 rounded-xl">
-          <div className="flex-shrink-0 w-8 h-8 flex items-center justify-center bg-amber-500/20 rounded-lg">
+          <div className="shrink-0 w-8 h-8 flex items-center justify-center bg-amber-500/20 rounded-lg">
             <AlertTriangle size={18} className="text-amber-400" />
           </div>
           <div>

@@ -1,6 +1,6 @@
 import React from "react";
-import { Spinner } from "@chakra-ui/react";
 import { motion } from "framer-motion";
+import { Spinner } from "./Spinner";
 
 type ButtonVariant = "primary" | "secondary" | "success" | "danger" | "ghost";
 type ButtonSize = "sm" | "md" | "lg";

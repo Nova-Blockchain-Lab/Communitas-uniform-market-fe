@@ -59,7 +59,7 @@ const PendingNFTs: React.FC<PendingNFTsBoxProps> = ({ refetchNFTs }) => {
 
       {/* Warning Banner */}
       <div className="flex items-center gap-3 p-4 bg-amber-500/10 border border-amber-500/20 rounded-xl mb-6">
-        <AlertTriangle size={20} className="text-amber-400 flex-shrink-0" />
+        <AlertTriangle size={20} className="text-amber-400 shrink-0" />
         <p className="text-sm text-amber-200">
           These NFTs are being bridged and require execution to complete the transfer.
         </p>

@@ -135,7 +135,7 @@ const SellBox: React.FC = () => {
 
           {/* Current Hour Display */}
           <div className="flex items-center gap-3 p-3 sm:p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-xl mb-4 md:mb-6">
-            <Clock size={20} className="text-emerald-400 flex-shrink-0" />
+            <Clock size={20} className="text-emerald-400 shrink-0" />
             <div className="min-w-0">
               <p className="text-xs text-emerald-400/70">Selling for current hour</p>
               <p className="text-sm font-medium text-emerald-400 truncate">{getCurrentHourDisplay()}</p>
@@ -182,7 +182,7 @@ const SellBox: React.FC = () => {
           {/* Validation Error */}
           {validationError && (
             <div className="flex items-center gap-2 p-3 bg-red-500/10 border border-red-500/20 rounded-xl mb-4">
-              <AlertCircle size={16} className="text-red-400 flex-shrink-0" />
+              <AlertCircle size={16} className="text-red-400 shrink-0" />
               <p className="text-xs sm:text-sm text-red-400">{validationError}</p>
             </div>
           )}
@@ -220,7 +220,7 @@ const SellBox: React.FC = () => {
 
           {/* Info Note */}
           <div className="mt-4 flex items-start gap-2 text-[10px] sm:text-xs text-gray-500">
-            <Info size={14} className="mt-0.5 flex-shrink-0" />
+            <Info size={14} className="mt-0.5 shrink-0" />
             <p>
               Your energy will be listed for the current hour. If matched with a buyer, you will
               receive payment at the market clearing price.
