@@ -17,11 +17,15 @@ export const metadata = {
   icons: ["https://avatars.githubusercontent.com/u/37784886"],
 };
 
-// Create Wagmi Adapter for AppKit
-export const wagmiAdapter = new WagmiAdapter({
-  networks: [...supportedChains],
+// Wagmi configuration — only MetaMask and Brave wallets
+export const wagmiConfig = defaultWagmiConfig({
+  chains: supportedChains,
   projectId,
-  ssr: true,
+  metadata,
+  enableCoinbase: false,
+  enableInjected: true,
+  enableWalletConnect: true,
+  enableEIP6963: true,
 });
 
 // Export wagmi config from adapter

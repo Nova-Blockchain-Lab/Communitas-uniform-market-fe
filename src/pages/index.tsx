@@ -3,21 +3,23 @@ import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Menu } from "lucide-react";
 
 import styles from "@/styles/Home.module.css";
 import { AppProvider } from "@/context/AppContext";
 import { Slider, RegionDropdownList } from "@/components/common";
-import { BidBox, SellBox, CombinedOrdersBox, ClaimBox } from "@/components/market";
+import MobileDrawer from "@/components/common/MobileDrawer";
+import { BidBox, SellBox, CombinedOrdersBox, TradeHistoryBox, ClaimBox, EnergyDashboard } from "@/components/market";
 import { NFTBox } from "@/components/nft";
 
 export default function Home() {
   const [selected, setSelected] = useState(1);
+  const [drawerOpen, setDrawerOpen] = useState(false);
 
   const pageVariants = {
-    initial: { opacity: 0, y: 20 },
+    initial: { opacity: 0, y: 12 },
     animate: { opacity: 1, y: 0 },
-    exit: { opacity: 0, y: -20 },
+    exit: { opacity: 0, y: -8 },
   };
 
   return (
@@ -35,103 +37,99 @@ export default function Home() {
         <div className="min-h-screen">
           {/* Header */}
           <header className={styles.header}>
-            <div className="flex items-center gap-8">
-              {/* Logo */}
+            {/* Left: Logo + Region */}
+            <div className="flex items-center gap-3 md:gap-5">
               <Link href="/" className={styles.logo}>
                 <Image
                   src="/communitas.png"
                   alt="COMMUNITAS"
                   height={32}
                   width={180}
+                  className="w-[120px] sm:w-[140px] md:w-[160px]"
                   priority
                 />
               </Link>
 
-              {/* Region Selector */}
-              <div className="hidden md:block">
+              <div className="hidden md:flex items-center">
+                <div className="w-px h-5 bg-white/[0.08] mr-4" />
                 <RegionDropdownList />
               </div>
             </div>
 
-            {/* Navigation */}
-            <div className="flex items-center gap-4">
-              <Slider selected={selected} setSelected={setSelected} />
+            {/* Center: Desktop tabs (Slider handles flex-1 + centering + md visibility) */}
+            <Slider selected={selected} setSelected={setSelected} />
 
-              {/* Bridge Link */}
+            {/* Right: Bridge + Wallet + Hamburger */}
+            <div className="flex items-center gap-2.5">
+              {/* Bridge Link (lg+ desktop) */}
               <Link
                 href="/bridge"
                 className="
-                  hidden lg:flex items-center gap-2
-                  px-4 py-2.5
-                  bg-gradient-to-r from-emerald-600 to-emerald-500
-                  text-white text-sm font-semibold
-                  rounded-xl
-                  shadow-lg hover:shadow-xl hover:shadow-emerald-500/25
+                  hidden lg:flex items-center gap-1.5
+                  px-3 py-2
+                  text-emerald-400/80 text-xs font-medium tracking-wide
+                  rounded-lg
+                  hover:text-emerald-300 hover:bg-emerald-500/10
                   transition-all duration-200
-                  hover:from-emerald-500 hover:to-emerald-400
                 "
               >
                 Bridge
-                <ArrowRight size={16} />
+                <ArrowRight size={14} />
               </Link>
 
               {/* Wallet Buttons */}
               <div className={styles.buttons}>
-                <div className={styles.highlight}>
-                  <appkit-network-button />
+                <div className={`${styles.highlight} hidden md:block`}>
+                  <w3m-network-button />
                 </div>
                 <div className={styles.highlight}>
                   <appkit-button />
                 </div>
               </div>
+
+              {/* Hamburger (mobile only) */}
+              <button
+                onClick={() => setDrawerOpen(true)}
+                className="md:hidden p-2 rounded-lg text-gray-500 hover:text-white hover:bg-white/[0.06] transition-all duration-200"
+                aria-label="Open menu"
+              >
+                <Menu size={20} />
+              </button>
             </div>
           </header>
 
-          {/* Mobile Region Selector */}
-          <div className="md:hidden fixed top-20 left-4 z-40">
-            <RegionDropdownList />
-          </div>
+          {/* Mobile Drawer */}
+          <MobileDrawer
+            isOpen={drawerOpen}
+            onClose={() => setDrawerOpen(false)}
+            selected={selected}
+            setSelected={setSelected}
+          />
 
           {/* Main Content */}
-          <main className="pt-24 pb-12 px-4">
+          <main className="pt-20 md:pt-24 pb-12 px-4">
             <div className="max-w-7xl mx-auto">
-              <AnimatePresence mode="wait">
+              <AnimatePresence mode="popLayout">
                 <motion.div
                   key={selected}
                   variants={pageVariants}
                   initial="initial"
                   animate="animate"
                   exit="exit"
-                  transition={{ duration: 0.3 }}
+                  transition={{ duration: 0.25, ease: "easeOut" }}
                   className="flex justify-center"
                 >
                   {selected === 1 && <BidBox />}
                   {selected === 2 && <SellBox />}
                   {selected === 3 && <CombinedOrdersBox />}
-                  {selected === 4 && <ClaimBox />}
-                  {selected === 5 && <NFTBox />}
+                  {selected === 4 && <TradeHistoryBox />}
+                  {selected === 5 && <ClaimBox />}
+                  {selected === 6 && <NFTBox />}
+                  {selected === 7 && <EnergyDashboard />}
                 </motion.div>
               </AnimatePresence>
             </div>
           </main>
-
-          {/* Mobile Bridge Link */}
-          <div className="lg:hidden fixed bottom-6 right-6 z-40">
-            <Link
-              href="/bridge"
-              className="
-                flex items-center justify-center
-                w-14 h-14
-                bg-gradient-to-r from-emerald-600 to-emerald-500
-                text-white
-                rounded-full
-                shadow-xl hover:shadow-2xl hover:shadow-emerald-500/30
-                transition-all duration-200
-              "
-            >
-              <ArrowRight size={24} />
-            </Link>
-          </div>
         </div>
       </AppProvider>
     </>

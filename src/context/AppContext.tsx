@@ -60,7 +60,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     isInitializingProviders.current = true;
 
     try {
-      const l1chain = wagmiConfig.chains.filter((c) => c.id !== defaultChain.id)[0];
+      const l1chain = wagmiConfig.chains.filter((c: { id: number }) => c.id !== defaultChain.id)[0];
       const newL1Provider = getProviderForChainId(l1chain.id, process.env.NEXT_PUBLIC_INFURA_RPC!);
       const newL2Provider = getProviderForChainId(chain!.id, chain!.rpcUrls.default.http[0]);
       setL1Provider(newL1Provider);
@@ -134,7 +134,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
     if (chain.id === defaultChain.id) {
       setProvidersWhenConnectedToChildChain();
-    } else if (wagmiConfig.chains.some((c) => c.id === chain.id)) {
+    } else if (wagmiConfig.chains.some((c: { id: number }) => c.id === chain.id)) {
       setProvidersWhenConnectedToParentChain();
     } else {
       setL1Provider(undefined);
