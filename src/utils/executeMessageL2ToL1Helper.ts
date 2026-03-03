@@ -168,9 +168,12 @@ export const getOutgoingMessagesFromEventLogs = async (
     l2Provider: Provider
 ) => {
 
+    const currentBlock = await l2Provider.getBlockNumber();
+    const fromBlock = currentBlock - 2_592_000; // ~1 month lookback (~1 block/sec)
+
     const withdrawals = await fetchETHWithdrawalsFromEventLogs({
         receiver: receiver,
-        fromBlock: 'earliest',
+        fromBlock: Math.max(0, fromBlock),
         toBlock: 'latest',
         l2Provider
     })

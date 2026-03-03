@@ -35,3 +35,6 @@ export const BRIDGE_WAIT_TIME_MINUTES = 15;
 // Market constants
 export const MAX_BID_HOURS = 400;
 export const MARKET_CLEARING_DELAY_SECONDS = 3600; // 1 hour
+
+// Unit conversion: contract operates in Watts, UI displays kWh
+export const WATTS_PER_KWH = 1000;
