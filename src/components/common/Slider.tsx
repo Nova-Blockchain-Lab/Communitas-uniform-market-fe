@@ -4,22 +4,26 @@ import {
   ShoppingCart,
   TrendingUp,
   ClipboardList,
+  ArrowLeftRight,
   Wallet,
   Image as ImageIcon,
+  BarChart3,
 } from "lucide-react";
 
-interface TabItem {
+export interface TabItem {
   id: number;
   label: string;
   icon: React.ReactNode;
 }
 
-const tabs: TabItem[] = [
+export const tabs: TabItem[] = [
   { id: 1, label: "Buy", icon: <ShoppingCart size={18} /> },
   { id: 2, label: "Sell", icon: <TrendingUp size={18} /> },
   { id: 3, label: "Orders", icon: <ClipboardList size={18} /> },
-  { id: 4, label: "Claim", icon: <Wallet size={18} /> },
-  { id: 5, label: "NFTs", icon: <ImageIcon size={18} /> },
+  { id: 4, label: "Trades", icon: <ArrowLeftRight size={18} /> },
+  { id: 5, label: "Claim", icon: <Wallet size={18} /> },
+  { id: 6, label: "NFTs", icon: <ImageIcon size={18} /> },
+  { id: 7, label: "Dashboard", icon: <BarChart3 size={18} /> },
 ];
 
 interface SliderProps {
@@ -29,8 +33,11 @@ interface SliderProps {
 
 const Slider: React.FC<SliderProps> = ({ selected, setSelected }) => {
   return (
-    <nav className="relative">
-      <div className="flex items-center p-1.5 bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10">
+    <nav
+      className="relative hidden md:flex flex-1 justify-center"
+      aria-label="Main navigation"
+    >
+      <div className="flex items-center gap-0.5">
         {tabs.map((tab) => (
           <TabButton
             key={tab.id}
@@ -54,25 +61,40 @@ const TabButton: React.FC<TabButtonProps> = ({ tab, isSelected, onClick }) => {
   return (
     <button
       onClick={onClick}
+      aria-label={tab.label}
+      aria-current={isSelected ? "page" : undefined}
       className={`
-        relative flex items-center gap-2 px-5 py-2.5
-        text-sm font-medium rounded-xl
-        transition-colors duration-200
-        ${isSelected ? "text-white" : "text-gray-400 hover:text-gray-200"}
+        relative flex items-center gap-2 px-2.5 lg:px-3.5 py-2.5
+        text-[13px] font-medium tracking-[0.02em]
+        rounded-lg transition-all duration-200
+        ${
+          isSelected
+            ? "text-white"
+            : "text-gray-500 hover:text-gray-300 hover:bg-white/[0.04]"
+        }
       `}
     >
       {isSelected && (
         <motion.div
           layoutId="activeTab"
-          className="absolute inset-0 bg-gradient-to-r from-blue-600 to-blue-500 rounded-xl"
-          style={{ boxShadow: "0 4px 12px rgba(59, 130, 246, 0.3)" }}
-          transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+          className="absolute inset-0 rounded-lg"
+          style={{
+            background:
+              "linear-gradient(180deg, rgba(59, 130, 246, 0.12) 0%, rgba(6, 182, 212, 0.05) 100%)",
+            boxShadow:
+              "inset 0 -2px 0 rgba(59, 130, 246, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.04), 0 0 12px rgba(59, 130, 246, 0.06)",
+          }}
+          transition={{ type: "spring", bounce: 0.15, duration: 0.5 }}
         />
       )}
-      <span className="relative z-10 flex items-center gap-2">
+      <span
+        className={`relative z-10 transition-colors duration-200 ${
+          isSelected ? "text-cyan-400" : ""
+        }`}
+      >
         {tab.icon}
-        <span className="hidden sm:inline">{tab.label}</span>
       </span>
+      <span className="relative z-10 hidden lg:inline">{tab.label}</span>
     </button>
   );
 };

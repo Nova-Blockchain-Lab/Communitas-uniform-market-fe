@@ -8,9 +8,10 @@ import { useAppContext } from "@/context/AppContext";
 import { fetchUserCountry } from "@/utils/fetchUserCountry";
 
 const regionFlags: Record<string, string> = {
-  Netherlands: "🇳🇱",
-  Italy: "🇮🇹",
-  Spain: "🇪🇸",
+  Denmark: "\ud83c\udde9\ud83c\uddf0",
+  Italy: "\ud83c\uddee\ud83c\uddf9",
+  Spain: "\ud83c\uddea\ud83c\uddf8",
+  Portugal: "\ud83c\uddf5\ud83c\uddf9",
 };
 
 const RegionDropdownList: React.FC = () => {
