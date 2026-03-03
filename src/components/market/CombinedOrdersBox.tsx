@@ -1,48 +1,25 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useMemo } from "react";
 import {
   useAccount,
+  usePublicClient,
   useReadContracts,
   useWaitForTransactionReceipt,
   useWriteContract,
 } from "wagmi";
-import { ClipboardList, Calendar, ChevronLeft, ChevronRight, X, Check, AlertCircle } from "lucide-react";
-import { DayPicker } from "react-day-picker";
-import { motion, AnimatePresence } from "framer-motion";
-import "react-day-picker/dist/style.css";
+import { ClipboardList, Check, AlertCircle, X } from "lucide-react";
+import { Spinner } from "@chakra-ui/react";
+import { motion } from "framer-motion";
 
 import EnergyBiddingMarketAbi from "@/../abi/EnergyBiddingMarket.json";
 import { DECIMALS, defaultChain } from "@/config";
 import { useAppContext } from "@/context/AppContext";
+import { useMarketToast } from "@/hooks/useMarketToast";
 import ConnectAndSwitchNetworkButton from "@/components/common/ConnectAndSwitchNetworkButton";
-import { Card, CardHeader, Button, Badge, TransactionModal, TransactionStatus, Spinner } from "@/components/ui";
+import DateNavigationBar from "@/components/common/DateNavigationBar";
+import { Card, CardHeader, Button, Badge, EmptyState } from "@/components/ui";
+import { getTimestampsForDay, formatTime } from "@/utils/dateHelpers";
+import { wattsToKWh, pricePerWattToPerKWh } from "@/utils/units";
 import { AbiFunction } from "viem";
-
-// Helper functions
-const getTimestampsForDay = (day: Date): number[] => {
-  const timestamps: number[] = [];
-  const start = new Date(day);
-  start.setHours(0, 0, 0, 0);
-  const end = new Date(day);
-  end.setHours(23, 0, 0, 0);
-  for (let hour = new Date(start); hour <= end; hour.setHours(hour.getHours() + 1)) {
-    timestamps.push(hour.getTime() / 1000);
-  }
-  return timestamps;
-};
-
-const formatTime = (timestamp: number): string => {
-  return new Date(timestamp * 1000).toLocaleTimeString("en-US", {
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-};
-
-const formatDate = (timestamp: number): string => {
-  return new Date(timestamp * 1000).toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-  });
-};
 
 // Order Item Components
 interface OrderItemProps {
@@ -53,6 +30,7 @@ interface OrderItemProps {
   price?: bigint;
   settled: boolean;
   canceled?: boolean;
+  isRefunded?: boolean;
   matchedAmount?: bigint;
   isMarketCleared?: boolean;
   clearingPrice?: bigint;
@@ -69,6 +47,7 @@ const OrderItem: React.FC<OrderItemProps> = ({
   price,
   settled,
   canceled,
+  isRefunded,
   matchedAmount,
   isMarketCleared,
   clearingPrice,
@@ -82,9 +61,29 @@ const OrderItem: React.FC<OrderItemProps> = ({
 
   const getStatus = () => {
     if (canceled) return { label: "Canceled", variant: "error" as const, icon: <X size={12} /> };
-    if (settled) return { label: "Settled", variant: "success" as const, icon: <Check size={12} /> };
+
+    if (isBid) {
+      // Check refunded status from on-chain events first (most reliable)
+      if (isRefunded) {
+        return { label: "Refunded", variant: "warning" as const, icon: null };
+      }
+      // Bids with settled=true and not refunded are matched
+      if (settled && price !== undefined && clearingPrice !== undefined && price >= clearingPrice && clearingPrice > 0n) {
+        return { label: "Settled", variant: "success" as const, icon: <Check size={12} /> };
+      }
+      if (settled && (price === undefined || clearingPrice === undefined || price < clearingPrice || clearingPrice === 0n)) {
+        return { label: "Refunded", variant: "warning" as const, icon: null };
+      }
+      if (!settled && isMarketCleared) return { label: "Unsettled", variant: "error" as const, icon: <AlertCircle size={12} /> };
+      return { label: "Pending", variant: "info" as const, icon: null };
+    }
+
+    // Asks: derive from matchedAmount (settled no longer written by contract)
     if (isMarketCleared) {
-      if (type === "ask" && matchedAmount && matchedAmount > 0n && !settled) {
+      if (matchedAmount && matchedAmount === amount) {
+        return { label: "Settled", variant: "success" as const, icon: <Check size={12} /> };
+      }
+      if (matchedAmount && matchedAmount > 0n) {
         return { label: "Partial", variant: "warning" as const, icon: null };
       }
       return { label: "Unsettled", variant: "error" as const, icon: <AlertCircle size={12} /> };
@@ -93,6 +92,14 @@ const OrderItem: React.FC<OrderItemProps> = ({
   };
 
   const status = getStatus();
+
+  // Display values in kWh (contract stores Watts)
+  const amountKWh = wattsToKWh(amount);
+  const matchedKWh = matchedAmount ? wattsToKWh(matchedAmount) : 0;
+  const pricePerKWh = price ? pricePerWattToPerKWh(price) : 0;
+  const clearingPricePerKWh = clearingPrice ? pricePerWattToPerKWh(clearingPrice) : 0;
+  // Total value = amount(W) * price(wei/W) / 1e18 — same in both unit systems
+  const totalValueETH = price ? (Number(price) / 10 ** DECIMALS) * Number(amount) : 0;
 
   return (
     <motion.div
@@ -130,11 +137,11 @@ const OrderItem: React.FC<OrderItemProps> = ({
         </div>
 
         {/* Main content grid */}
-        <div className="grid grid-cols-2 gap-x-6 gap-y-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3">
           {/* Amount - Primary highlight */}
           <div className="col-span-2 flex items-baseline gap-2 mb-2">
-            <span className={`text-2xl font-bold ${isBid ? "text-blue-400" : "text-emerald-400"}`}>
-              {amount.toString()}
+            <span className={`text-xl sm:text-2xl font-bold ${isBid ? "text-blue-400" : "text-emerald-400"}`}>
+              {amountKWh % 1 === 0 ? amountKWh.toString() : amountKWh.toFixed(3)}
             </span>
             <span className="text-sm font-medium text-gray-400">kWh</span>
           </div>
@@ -144,11 +151,11 @@ const OrderItem: React.FC<OrderItemProps> = ({
             <div>
               <p className="text-xs text-gray-500 mb-1 uppercase tracking-wide">Price/kWh</p>
               <p className="text-sm font-semibold text-white">
-                {(Number(price) / 10 ** DECIMALS).toFixed(6)} ETH
+                {pricePerKWh.toFixed(6)} ETH
               </p>
               {ethPrice && (
                 <p className="text-xs text-gray-500">
-                  ~€{((Number(price) / 10 ** DECIMALS) * ethPrice).toFixed(4)}
+                  ~€{(pricePerKWh * ethPrice).toFixed(4)}
                 </p>
               )}
             </div>
@@ -159,11 +166,11 @@ const OrderItem: React.FC<OrderItemProps> = ({
             <div>
               <p className="text-xs text-gray-500 mb-1 uppercase tracking-wide">Total Value</p>
               <p className="text-sm font-semibold text-white">
-                {((Number(price) / 10 ** DECIMALS) * Number(amount)).toFixed(6)} ETH
+                {totalValueETH.toFixed(6)} ETH
               </p>
               {ethPrice && (
                 <p className="text-xs text-gray-500">
-                  ~€{(((Number(price) / 10 ** DECIMALS) * Number(amount)) * ethPrice).toFixed(2)}
+                  ~€{(totalValueETH * ethPrice).toFixed(2)}
                 </p>
               )}
             </div>
@@ -174,7 +181,7 @@ const OrderItem: React.FC<OrderItemProps> = ({
             <div>
               <p className="text-xs text-gray-500 mb-1 uppercase tracking-wide">Sold</p>
               <p className="text-sm font-semibold text-emerald-400">
-                {matchedAmount.toString()} kWh
+                {matchedKWh % 1 === 0 ? matchedKWh.toString() : matchedKWh.toFixed(3)} kWh
               </p>
               {Number(amount) > 0 && (
                 <p className="text-xs text-gray-500">
@@ -190,12 +197,12 @@ const OrderItem: React.FC<OrderItemProps> = ({
               <p className="text-xs text-gray-500 mb-1 uppercase tracking-wide">Clearing Price</p>
               <div className="flex items-baseline gap-2">
                 <span className="text-lg font-bold text-amber-400">
-                  {(Number(clearingPrice) / 10 ** DECIMALS).toFixed(6)}
+                  {clearingPricePerKWh.toFixed(6)}
                 </span>
                 <span className="text-sm text-gray-400">ETH/kWh</span>
                 {ethPrice && (
                   <span className="text-xs text-gray-500">
-                    (~€{((Number(clearingPrice) / 10 ** DECIMALS) * ethPrice).toFixed(4)})
+                    (~€{(clearingPricePerKWh * ethPrice).toFixed(4)})
                   </span>
                 )}
               </div>
@@ -245,14 +252,26 @@ const OrderItem: React.FC<OrderItemProps> = ({
   );
 };
 
+// Bid with its global index preserved for correct cancelBid calls
+interface IndexedBid {
+  globalIndex: number;
+  bidder: string;
+  amount: bigint;
+  price: bigint;
+  settled: boolean;
+  canceled: boolean;
+}
+
 // Main Component
 const CombinedOrdersBox: React.FC = () => {
   const { isConnected, address, chainId } = useAccount();
   const { ethPrice, energyMarketAddress } = useAppContext();
+  const publicClient = usePublicClient();
+  const toast = useMarketToast();
 
   const [selectedDay, setSelectedDay] = useState<Date>(new Date());
-  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const [activeOrderIndex, setActiveOrderIndex] = useState<string | null>(null);
+  const [refundedBidKeys, setRefundedBidKeys] = useState<Set<string>>(new Set());
 
   // Modal state
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -265,7 +284,7 @@ const CombinedOrdersBox: React.FC = () => {
   // Contract read configs
   const createContractConfig = useCallback(
     (functionName: string, args: unknown[]) => ({
-      abi: EnergyBiddingMarketAbi.abi as AbiFunction[],
+      abi: EnergyBiddingMarketAbi as AbiFunction[],
       address: energyMarketAddress,
       functionName,
       args,
@@ -273,7 +292,8 @@ const CombinedOrdersBox: React.FC = () => {
     [energyMarketAddress]
   );
 
-  const bidsConfig = timestamps.map((ts) => createContractConfig("getBidsByAddress", [ts, address]));
+  // Fix #1: Use getBidsByHour instead of getBidsByAddress to preserve global indices
+  const bidsConfig = timestamps.map((ts) => createContractConfig("getBidsByHour", [ts]));
   const asksConfig = timestamps.map((ts) => createContractConfig("getAsksByAddress", [ts, address]));
   const clearedConfig = timestamps.map((ts) => createContractConfig("isMarketCleared", [ts]));
   const priceConfig = timestamps.map((ts) => createContractConfig("getClearingPrice", [ts]));
@@ -302,18 +322,56 @@ const CombinedOrdersBox: React.FC = () => {
     refetchPrices();
   }, [refetchBids, refetchAsks, refetchCleared, refetchPrices]);
 
+  // Fix #1: Filter bids client-side, preserving global indices
+  const userBidsByHour = useMemo(() => {
+    if (!bids || !address) return [];
+    return bids.map((bidResult) => {
+      const allBids = (bidResult.result as any[]) || [];
+      return allBids
+        .map((bid, globalIndex): IndexedBid => ({
+          globalIndex,
+          bidder: bid.bidder,
+          amount: bid.amount,
+          price: bid.price,
+          settled: bid.settled,
+          canceled: bid.canceled,
+        }))
+        .filter((bid) => bid.bidder?.toLowerCase() === address.toLowerCase());
+    });
+  }, [bids, address]);
+
+  // Fix #3: Fetch BidRefunded events to distinguish refunded from settled bids
+  useEffect(() => {
+    if (!publicClient || !energyMarketAddress || !address) return;
+
+    const fetchRefundedBids = async () => {
+      try {
+        const events = await publicClient.getContractEvents({
+          address: energyMarketAddress,
+          abi: EnergyBiddingMarketAbi as any,
+          eventName: "BidRefunded",
+          args: { bidder: address },
+        });
+        const keys = new Set(
+          events.map((e: any) => `${e.args.hour}-${e.args.index}`)
+        );
+        setRefundedBidKeys(keys);
+      } catch (err) {
+        console.error("Failed to fetch BidRefunded events:", err);
+      }
+    };
+
+    fetchRefundedBids();
+  }, [publicClient, energyMarketAddress, address, isConfirmed, selectedDay]);
+
   useEffect(() => {
     if (isConnected) refetchAll();
   }, [isConnected, selectedDay, refetchAll]);
 
   // Update modal status based on transaction state
   useEffect(() => {
-    if (isWritePending) {
-      setTxStatus("pending");
-    } else if (isConfirming) {
-      setTxStatus("confirming");
-    } else if (isConfirmed) {
-      setTxStatus("success");
+    if (isConfirmed) {
+      toast.success("Transaction Successful");
       setActiveOrderIndex(null);
       refetchAll();
     } else if (writeError || confirmError) {
@@ -331,22 +389,18 @@ const CombinedOrdersBox: React.FC = () => {
         setTxError(message);
       }
     }
-  }, [isWritePending, isConfirming, isConfirmed, writeError, confirmError, refetchAll]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isConfirmed, refetchAll]);
 
-  const handleCancelBid = (timestamp: number, index: number) => {
+  // Fix #1: Pass global index to cancelBid
+  const handleCancelBid = (timestamp: number, globalIndex: number) => {
     if (!energyMarketAddress) return;
-    setActiveOrderIndex(`bid-${timestamp}-${index}`);
-    setTxType("cancel");
-    setIsModalOpen(true);
-    setTxStatus("idle");
-    setTxError(undefined);
-    resetWrite();
-
+    setActiveOrderIndex(`bid-${timestamp}-${globalIndex}`);
     writeContract({
-      abi: EnergyBiddingMarketAbi.abi as AbiFunction[],
+      abi: EnergyBiddingMarketAbi as AbiFunction[],
       address: energyMarketAddress,
       functionName: "cancelBid",
-      args: [timestamp, index],
+      args: [timestamp, globalIndex],
     });
   };
 
@@ -360,42 +414,19 @@ const CombinedOrdersBox: React.FC = () => {
     resetWrite();
 
     writeContract({
-      abi: EnergyBiddingMarketAbi.abi as AbiFunction[],
+      abi: EnergyBiddingMarketAbi as AbiFunction[],
       address: energyMarketAddress,
       functionName: "clearMarket",
       args: [timestamp],
     });
   };
 
-  const closeModal = () => {
-    setIsModalOpen(false);
-    setTimeout(() => {
-      setTxStatus("idle");
-      setTxError(undefined);
-    }, 300);
-  };
-
-  // Navigation
-  const goToPreviousDay = () => {
-    const prev = new Date(selectedDay);
-    prev.setDate(prev.getDate() - 1);
-    setSelectedDay(prev);
-  };
-
-  const goToNextDay = () => {
-    const next = new Date(selectedDay);
-    next.setDate(next.getDate() + 1);
-    setSelectedDay(next);
-  };
-
-  const goToToday = () => setSelectedDay(new Date());
-
   const isLoading = isBidsLoading || isAsksLoading;
   const needsConnection = !isConnected || (chainId && defaultChain.id !== chainId);
 
   // Count orders
-  const bidCount = bids?.reduce((acc, b) => acc + (b.result as any[])?.length || 0, 0) || 0;
-  const askCount = asks?.reduce((acc, a) => acc + (a.result as any[])?.length || 0, 0) || 0;
+  const bidCount = userBidsByHour.reduce((acc, hourBids) => acc + hourBids.length, 0);
+  const askCount = asks?.reduce((acc, a) => acc + ((a.result as any[])?.length ?? 0), 0) ?? 0;
 
   return (
     <>
@@ -407,207 +438,112 @@ const CombinedOrdersBox: React.FC = () => {
             icon={<ClipboardList size={20} />}
           />
 
-          {/* Date Navigation */}
-          <div className="flex items-center justify-between p-4 bg-white/5 rounded-xl mb-6">
-            <button
-              onClick={goToPreviousDay}
-              className="p-2 rounded-lg bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white transition-colors"
-            >
-              <ChevronLeft size={20} />
-            </button>
+        <DateNavigationBar selectedDay={selectedDay} onDayChange={setSelectedDay} />
 
-            <div className="flex items-center gap-3">
-              <button
-                onClick={() => setIsCalendarOpen(true)}
-                className="flex items-center gap-2 px-4 py-2 bg-white/5 hover:bg-white/10 rounded-lg transition-colors"
-              >
-                <Calendar size={18} className="text-gray-400" />
-                <span className="text-white font-medium">
-                  {selectedDay.toLocaleDateString("en-US", {
-                    weekday: "long",
-                    month: "long",
-                    day: "numeric",
-                  })}
-                </span>
-              </button>
-              {selectedDay.toDateString() !== new Date().toDateString() && (
-                <button
-                  onClick={goToToday}
-                  className="px-3 py-1 text-xs bg-blue-500/20 text-blue-400 rounded-lg hover:bg-blue-500/30 transition-colors"
-                >
-                  Today
-                </button>
-              )}
-            </div>
-
-            <button
-              onClick={goToNextDay}
-              className="p-2 rounded-lg bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white transition-colors"
-            >
-              <ChevronRight size={20} />
-            </button>
+        {needsConnection ? (
+          <div className="py-8">
+            <ConnectAndSwitchNetworkButton />
           </div>
-
-          {/* Calendar Modal */}
-          <AnimatePresence>
-            {isCalendarOpen && (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm"
-                onClick={() => setIsCalendarOpen(false)}
-              >
-                <motion.div
-                  initial={{ scale: 0.9, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  exit={{ scale: 0.9, opacity: 0 }}
-                  className="bg-gray-900 border border-white/10 rounded-2xl p-6"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg font-semibold text-white">Select Date</h3>
-                    <button
-                      onClick={() => setIsCalendarOpen(false)}
-                      className="p-2 rounded-lg hover:bg-white/10 text-gray-400"
-                    >
-                      <X size={18} />
-                    </button>
-                  </div>
-                  <DayPicker
-                    showOutsideDays
-                    mode="single"
-                    selected={selectedDay}
-                    onSelect={(day) => {
-                      if (day) {
-                        setSelectedDay(day);
-                        setIsCalendarOpen(false);
+        ) : isLoading ? (
+          <div className="flex items-center justify-center py-12">
+            <Spinner size="lg" color="blue.400" />
+          </div>
+        ) : (
+          <div className="grid md:grid-cols-2 gap-4 md:gap-6">
+            {/* Bids Column */}
+            <div className="space-y-4">
+              <div className="flex items-center gap-3 pb-3 border-b border-blue-500/20">
+                <div className="w-8 h-8 rounded-lg bg-blue-500/20 flex items-center justify-center">
+                  <span className="text-blue-400 font-bold text-sm">B</span>
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-white">Buy Orders</h3>
+                  <p className="text-xs text-gray-500">{bidCount} {bidCount === 1 ? "order" : "orders"}</p>
+                </div>
+              </div>
+              <div className="space-y-3 max-h-[350px] sm:max-h-[500px] overflow-y-auto">
+                {userBidsByHour.map((hourBids, i) =>
+                  hourBids.map((bid) => (
+                    <OrderItem
+                      key={`bid-${timestamps[i]}-${bid.globalIndex}`}
+                      type="bid"
+                      time={timestamps[i]}
+                      index={bid.globalIndex}
+                      amount={bid.amount}
+                      price={bid.price}
+                      settled={bid.settled}
+                      canceled={bid.canceled}
+                      isRefunded={refundedBidKeys.has(`${BigInt(timestamps[i])}-${BigInt(bid.globalIndex)}`)}
+                      isMarketCleared={cleared?.[i]?.result as boolean}
+                      clearingPrice={prices?.[i]?.result as bigint}
+                      ethPrice={ethPrice}
+                      onCancel={() => handleCancelBid(timestamps[i], bid.globalIndex)}
+                      onClearMarket={() => handleClearMarket(timestamps[i])}
+                      isLoading={
+                        (isWritePending || isConfirming) &&
+                        (activeOrderIndex === `bid-${timestamps[i]}-${bid.globalIndex}` ||
+                          activeOrderIndex === `clear-${timestamps[i]}`)
                       }
-                    }}
+                    />
+                  ))
+                )}
+                {bidCount === 0 && (
+                  <EmptyState
+                    icon={<ClipboardList size={20} className="text-blue-500/50" />}
+                    iconColorClass="bg-blue-500/10"
+                    title="No buy orders for this day"
+                    subtitle="Place a bid to get started"
                   />
-                </motion.div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          {needsConnection ? (
-            <div className="py-8">
-              <ConnectAndSwitchNetworkButton />
-            </div>
-          ) : isLoading ? (
-            <div className="flex items-center justify-center py-12">
-              <Spinner size="lg" color="blue-400" />
-            </div>
-          ) : (
-            <div className="grid md:grid-cols-2 gap-6">
-              {/* Bids Column */}
-              <div className="space-y-4">
-                <div className="flex items-center gap-3 pb-3 border-b border-blue-500/20">
-                  <div className="w-8 h-8 rounded-lg bg-blue-500/20 flex items-center justify-center">
-                    <span className="text-blue-400 font-bold text-sm">B</span>
-                  </div>
-                  <div>
-                    <h3 className="text-sm font-bold text-white">Buy Orders</h3>
-                    <p className="text-xs text-gray-500">{bidCount} {bidCount === 1 ? "order" : "orders"}</p>
-                  </div>
-                </div>
-                <div className="space-y-3 max-h-[500px] overflow-y-auto">
-                  {bids?.map((bidResult, i) =>
-                    (bidResult.result as any[])?.map((bid, j) => (
-                      <OrderItem
-                        key={`bid-${timestamps[i]}-${j}`}
-                        type="bid"
-                        time={timestamps[i]}
-                        index={j}
-                        amount={bid.amount}
-                        price={bid.price}
-                        settled={bid.settled}
-                        canceled={bid.canceled}
-                        isMarketCleared={cleared?.[i]?.result as boolean}
-                        clearingPrice={prices?.[i]?.result as bigint}
-                        ethPrice={ethPrice}
-                        onCancel={() => handleCancelBid(timestamps[i], j)}
-                        onClearMarket={() => handleClearMarket(timestamps[i])}
-                        isLoading={
-                          (isWritePending || isConfirming) &&
-                          (activeOrderIndex === `bid-${timestamps[i]}-${j}` ||
-                            activeOrderIndex === `clear-${timestamps[i]}`)
-                        }
-                      />
-                    ))
-                  )}
-                  {bidCount === 0 && (
-                    <div className="flex flex-col items-center justify-center py-12 text-center">
-                      <div className="w-12 h-12 rounded-full bg-blue-500/10 flex items-center justify-center mb-3">
-                        <ClipboardList size={20} className="text-blue-500/50" />
-                      </div>
-                      <p className="text-sm text-gray-500">No buy orders for this day</p>
-                      <p className="text-xs text-gray-600 mt-1">Place a bid to get started</p>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Asks Column */}
-              <div className="space-y-4">
-                <div className="flex items-center gap-3 pb-3 border-b border-emerald-500/20">
-                  <div className="w-8 h-8 rounded-lg bg-emerald-500/20 flex items-center justify-center">
-                    <span className="text-emerald-400 font-bold text-sm">S</span>
-                  </div>
-                  <div>
-                    <h3 className="text-sm font-bold text-white">Sell Orders</h3>
-                    <p className="text-xs text-gray-500">{askCount} {askCount === 1 ? "order" : "orders"}</p>
-                  </div>
-                </div>
-                <div className="space-y-3 max-h-[500px] overflow-y-auto">
-                  {asks?.map((askResult, i) =>
-                    (askResult.result as any[])?.map((ask, j) => (
-                      <OrderItem
-                        key={`ask-${timestamps[i]}-${j}`}
-                        type="ask"
-                        time={timestamps[i]}
-                        amount={ask.amount}
-                        settled={ask.settled}
-                        matchedAmount={ask.matchedAmount}
-                        isMarketCleared={cleared?.[i]?.result as boolean}
-                        clearingPrice={prices?.[i]?.result as bigint}
-                        ethPrice={ethPrice}
-                        onClearMarket={() => handleClearMarket(timestamps[i])}
-                        isLoading={
-                          (isWritePending || isConfirming) &&
-                          activeOrderIndex === `clear-${timestamps[i]}`
-                        }
-                      />
-                    ))
-                  )}
-                  {askCount === 0 && (
-                    <div className="flex flex-col items-center justify-center py-12 text-center">
-                      <div className="w-12 h-12 rounded-full bg-emerald-500/10 flex items-center justify-center mb-3">
-                        <ClipboardList size={20} className="text-emerald-500/50" />
-                      </div>
-                      <p className="text-sm text-gray-500">No sell orders for this day</p>
-                      <p className="text-xs text-gray-600 mt-1">List energy to sell</p>
-                    </div>
-                  )}
-                </div>
+                )}
               </div>
             </div>
-          )}
-        </Card>
-      </div>
 
-      {/* Transaction Modal */}
-      <TransactionModal
-        isOpen={isModalOpen}
-        status={txStatus}
-        hash={hash}
-        error={txError}
-        details={{
-          type: txType,
-        }}
-        onClose={closeModal}
-      />
-    </>
+            {/* Asks Column */}
+            <div className="space-y-4">
+              <div className="flex items-center gap-3 pb-3 border-b border-emerald-500/20">
+                <div className="w-8 h-8 rounded-lg bg-emerald-500/20 flex items-center justify-center">
+                  <span className="text-emerald-400 font-bold text-sm">S</span>
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-white">Sell Orders</h3>
+                  <p className="text-xs text-gray-500">{askCount} {askCount === 1 ? "order" : "orders"}</p>
+                </div>
+              </div>
+              <div className="space-y-3 max-h-[350px] sm:max-h-[500px] overflow-y-auto">
+                {asks?.map((askResult, i) =>
+                  (askResult.result as any[])?.map((ask, j) => (
+                    <OrderItem
+                      key={`ask-${timestamps[i]}-${j}`}
+                      type="ask"
+                      time={timestamps[i]}
+                      amount={ask.amount}
+                      settled={ask.settled}
+                      matchedAmount={ask.matchedAmount}
+                      isMarketCleared={cleared?.[i]?.result as boolean}
+                      clearingPrice={prices?.[i]?.result as bigint}
+                      ethPrice={ethPrice}
+                      onClearMarket={() => handleClearMarket(timestamps[i])}
+                      isLoading={
+                        (isWritePending || isConfirming) &&
+                        activeOrderIndex === `clear-${timestamps[i]}`
+                      }
+                    />
+                  ))
+                )}
+                {askCount === 0 && (
+                  <EmptyState
+                    icon={<ClipboardList size={20} className="text-emerald-500/50" />}
+                    iconColorClass="bg-emerald-500/10"
+                    title="No sell orders for this day"
+                    subtitle="List energy to sell"
+                  />
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+      </Card>
+    </div>
   );
 };
 
