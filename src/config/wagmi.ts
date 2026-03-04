@@ -4,7 +4,8 @@
 
 import { http } from "wagmi";
 import { WagmiAdapter } from "@reown/appkit-adapter-wagmi";
-import { supportedChains, novaCidadeMainnet, customArbitrumSepolia } from "./chains";
+import { novaCidadeMainnet, customArbitrumSepolia } from "./chains";
+import type { AppKitNetwork } from "@reown/appkit/networks";
 
 // Reown project ID (formerly Web3Modal)
 export const projectId = process.env.NEXT_PUBLIC_PROJECT_ID || "";
@@ -17,11 +18,20 @@ export const metadata = {
   icons: ["https://avatars.githubusercontent.com/u/37784886"],
 };
 
-// Create Wagmi Adapter for AppKit
+// Networks for the adapter
+const networks: [AppKitNetwork, ...AppKitNetwork[]] = [
+  novaCidadeMainnet as AppKitNetwork,
+  customArbitrumSepolia as AppKitNetwork,
+];
+
+// Create WagmiAdapter
 export const wagmiAdapter = new WagmiAdapter({
-  networks: [...supportedChains],
   projectId,
-  ssr: true,
+  networks,
+  transports: {
+    [novaCidadeMainnet.id]: http(),
+    [customArbitrumSepolia.id]: http(),
+  },
 });
 
 // Export wagmi config from adapter

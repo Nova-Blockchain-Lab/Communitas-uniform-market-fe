@@ -23,7 +23,7 @@ const appKitNetworks: [AppKitNetwork, ...AppKitNetwork[]] = [
 // Create AppKit modal
 if (projectId) {
   createAppKit({
-    adapters: [wagmiAdapter],
+    adapters: [wagmiAdapter as any],
     projectId,
     networks: appKitNetworks,
     defaultNetwork: defaultChain as AppKitNetwork,

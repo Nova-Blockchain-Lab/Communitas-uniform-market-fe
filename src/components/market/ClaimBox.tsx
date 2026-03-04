@@ -15,8 +15,7 @@ import { DECIMALS, defaultChain } from "@/config";
 import { useAppContext } from "@/context/AppContext";
 import { useMarketToast } from "@/hooks/useMarketToast";
 import ConnectAndSwitchNetworkButton from "@/components/common/ConnectAndSwitchNetworkButton";
-import { Card, CardHeader, Button, Spinner } from "@/components/ui";
-import { TransactionModal, TransactionStatus } from "@/components/ui/TransactionModal";
+import { Card, CardHeader, Button } from "@/components/ui";
 
 const ClaimBox: React.FC = () => {
   const { isConnected, address, chainId } = useAccount();
@@ -78,6 +77,7 @@ const ClaimBox: React.FC = () => {
       }
     }
   }, [isWritePending, isConfirming, isConfirmed, writeError, confirmError, refetchBalance]);
+
 
   const handleClaim = () => {
     if (!hasBalance) {

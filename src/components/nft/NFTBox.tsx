@@ -17,7 +17,8 @@ import CommunitasNFTAbi from "@/../abi/CommunitasNFT.json";
 import ConnectAndSwitchNetworkButton from "@/components/common/ConnectAndSwitchNetworkButton";
 import NFTCard from "@/components/nft/NFTCard";
 import PendingNFTs from "@/components/nft/PendingNFTBox";
-import { Card, CardHeader, Button, TransactionModal, TransactionStatus, Spinner, Switch } from "@/components/ui";
+import { Card, CardHeader, Button, TransactionModal } from "@/components/ui";
+import type { TransactionStatus } from "@/components/ui";
 import { AbiFunction } from "viem";
 import { NFTData } from "@/utils/executeMessageL2ToL1Helper";
 
