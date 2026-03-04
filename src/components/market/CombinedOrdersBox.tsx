@@ -20,7 +20,6 @@ import { Card, CardHeader, Button, Badge, EmptyState, type TransactionStatus } f
 import { getTimestampsForDay, formatTime } from "@/utils/dateHelpers";
 import { wattsToKWh, pricePerWattToPerKWh } from "@/utils/units";
 import { AbiFunction } from "viem";
-import type { TransactionStatus } from "@/components/ui/TransactionModal";
 
 // Order Item Components
 interface OrderItemProps {

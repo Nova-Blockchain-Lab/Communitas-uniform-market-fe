@@ -6,7 +6,7 @@ import {
   useWriteContract,
 } from "wagmi";
 import { Wallet, Coins, ArrowDown, Info, RefreshCw } from "lucide-react";
-import { Switch } from "@chakra-ui/react";
+import { Switch, Spinner } from "@chakra-ui/react";
 import { motion } from "framer-motion";
 import Image from "next/image";
 
@@ -15,7 +15,7 @@ import { DECIMALS, defaultChain } from "@/config";
 import { useAppContext } from "@/context/AppContext";
 import { useMarketToast } from "@/hooks/useMarketToast";
 import ConnectAndSwitchNetworkButton from "@/components/common/ConnectAndSwitchNetworkButton";
-import { Card, CardHeader, Button } from "@/components/ui";
+import { Card, CardHeader, Button, type TransactionStatus } from "@/components/ui";
 
 const ClaimBox: React.FC = () => {
   const { isConnected, address, chainId } = useAccount();
