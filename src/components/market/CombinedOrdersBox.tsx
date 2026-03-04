@@ -543,7 +543,6 @@ const CombinedOrdersBox: React.FC = () => {
         )}
       </Card>
     </div>
-    </>
   );
 };
 
