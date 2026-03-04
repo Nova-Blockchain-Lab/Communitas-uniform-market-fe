@@ -77,8 +77,7 @@ const SellBox: React.FC = () => {
     });
   };
 
-  // Live validation
-  useEffect(() => {
+  const handleSell = () => {
     if (energy <= 0) {
       toast.error("Invalid Amount", "Please enter a positive energy amount.");
       return;

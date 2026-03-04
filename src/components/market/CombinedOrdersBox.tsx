@@ -16,7 +16,7 @@ import { useAppContext } from "@/context/AppContext";
 import { useMarketToast } from "@/hooks/useMarketToast";
 import ConnectAndSwitchNetworkButton from "@/components/common/ConnectAndSwitchNetworkButton";
 import DateNavigationBar from "@/components/common/DateNavigationBar";
-import { Card, CardHeader, Button, Badge, EmptyState } from "@/components/ui";
+import { Card, CardHeader, Button, Badge, EmptyState, type TransactionStatus } from "@/components/ui";
 import { getTimestampsForDay, formatTime } from "@/utils/dateHelpers";
 import { wattsToKWh, pricePerWattToPerKWh } from "@/utils/units";
 import { AbiFunction } from "viem";
@@ -429,7 +429,6 @@ const CombinedOrdersBox: React.FC = () => {
   const askCount = asks?.reduce((acc, a) => acc + ((a.result as any[])?.length ?? 0), 0) ?? 0;
 
   return (
-    <>
       <div className="w-full max-w-4xl">
         <Card padding="lg">
           <CardHeader

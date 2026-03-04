@@ -9,7 +9,6 @@ import {
   useWaitForTransactionReceipt,
 } from "wagmi";
 import { Image as ImageIcon, RefreshCw, Plus, ArrowLeftRight, AlertCircle } from "lucide-react";
-import { Spinner, Switch } from "@chakra-ui/react";
 import { motion } from "framer-motion";
 
 import { contractAddresses, defaultChain } from "@/config";
@@ -194,12 +193,12 @@ const NFTBox: React.FC = () => {
 
   // Effects
   useEffect(() => {
-    if (isMintSuccess) {
+    if (isConfirmed) {
       toast.success("NFT Minted!", "Your new NFT has been minted successfully.");
       refetchAll();
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isMintSuccess, refetchAll]);
+  }, [isConfirmed, refetchAll]);
 
   useEffect(() => {
     if (isConnected && nftContractAddress) {

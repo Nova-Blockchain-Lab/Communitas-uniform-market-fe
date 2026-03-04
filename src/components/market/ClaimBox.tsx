@@ -6,7 +6,7 @@ import {
   useWriteContract,
 } from "wagmi";
 import { Wallet, Coins, ArrowDown, Info, RefreshCw } from "lucide-react";
-import { Spinner, Switch } from "@chakra-ui/react";
+import { Switch } from "@chakra-ui/react";
 import { motion } from "framer-motion";
 import Image from "next/image";
 
@@ -25,6 +25,10 @@ const ClaimBox: React.FC = () => {
 
   const [claimToOther, setClaimToOther] = useState(false);
   const [customAddress, setCustomAddress] = useState("");
+
+  // Modal state
+  const [txStatus, setTxStatus] = useState<TransactionStatus>("idle");
+  const [txError, setTxError] = useState<string | undefined>();
 
   // Contract interactions
   const { data: hash, isPending: isWritePending, writeContract, error: writeError, reset: resetWrite } = useWriteContract();
@@ -75,8 +79,7 @@ const ClaimBox: React.FC = () => {
     }
   }, [isWritePending, isConfirming, isConfirmed, writeError, confirmError, refetchBalance]);
 
-  // Live validation
-  useEffect(() => {
+  const handleClaim = () => {
     if (!hasBalance) {
       toast.info("No Claimable Balance", "You don't have any earnings to claim.");
       return;
