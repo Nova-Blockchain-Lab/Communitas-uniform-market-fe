@@ -11,19 +11,7 @@ import { createAppKit } from "@reown/appkit/react";
 import { Analytics } from "@vercel/analytics/react";
 import type { AppKitNetwork } from "@reown/appkit/networks";
 
-// MetaMask WalletConnect registry ID
-const METAMASK_WALLET_ID = "c57ca95b47569778a828d19178114f4db188b89b763c899ba0be274e97267d96";
-
-createWeb3Modal({
-  wagmiConfig: wagmiConfig,
-  defaultChain: wagmiConfig.chains[0],
-  projectId,
-  enableAnalytics: false,
-  enableOnramp: false,
-  includeWalletIds: [METAMASK_WALLET_ID],
-});
-
-
+// Create queryClient outside component to prevent recreation
 const queryClient = new QueryClient();
 
 // Define networks for AppKit (needs mutable array)
