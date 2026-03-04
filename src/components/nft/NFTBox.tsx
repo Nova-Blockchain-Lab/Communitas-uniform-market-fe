@@ -10,6 +10,7 @@ import {
 } from "wagmi";
 import { Image as ImageIcon, RefreshCw, Plus, ArrowLeftRight, AlertCircle } from "lucide-react";
 import { motion } from "framer-motion";
+import { Switch, Spinner } from "@chakra-ui/react";
 
 import { contractAddresses, defaultChain } from "@/config";
 import { useMarketToast } from "@/hooks/useMarketToast";
