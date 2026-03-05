@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useRef, useState, useEffect, useCallback } from "react";
 import { motion } from "motion/react";
 import {
   ShoppingCart,
@@ -32,12 +32,41 @@ interface SliderProps {
 }
 
 const Slider: React.FC<SliderProps> = ({ selected, setSelected }) => {
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [hasOverflow, setHasOverflow] = useState(false);
+
+  const checkOverflow = useCallback(() => {
+    const el = scrollRef.current;
+    if (el) {
+      setHasOverflow(el.scrollWidth > el.clientWidth);
+    }
+  }, []);
+
+  useEffect(() => {
+    checkOverflow();
+    window.addEventListener("resize", checkOverflow);
+    return () => window.removeEventListener("resize", checkOverflow);
+  }, [checkOverflow]);
+
   return (
     <nav
-      className="relative hidden md:flex flex-1 justify-center"
+      className="relative hidden md:flex flex-1 justify-center overflow-hidden"
       aria-label="Main navigation"
     >
-      <div className="flex items-center gap-0.5">
+      <div
+        ref={scrollRef}
+        className="flex items-center gap-0.5 overflow-x-auto scrollbar-hide"
+        style={
+          hasOverflow
+            ? {
+                maskImage:
+                  "linear-gradient(to right, transparent, black 2rem, black calc(100% - 2rem), transparent)",
+                WebkitMaskImage:
+                  "linear-gradient(to right, transparent, black 2rem, black calc(100% - 2rem), transparent)",
+              }
+            : undefined
+        }
+      >
         {tabs.map((tab) => (
           <TabButton
             key={tab.id}
@@ -61,12 +90,13 @@ const TabButton: React.FC<TabButtonProps> = ({ tab, isSelected, onClick }) => {
   return (
     <button
       onClick={onClick}
+      title={tab.label}
       aria-label={tab.label}
       aria-current={isSelected ? "page" : undefined}
       className={`
         relative flex items-center gap-2 px-2.5 lg:px-3.5 py-2.5
         text-[13px] font-medium tracking-[0.02em]
-        rounded-lg transition-all duration-200
+        rounded-lg transition-all duration-200 shrink-0
         ${
           isSelected
             ? "text-white"
@@ -84,7 +114,7 @@ const TabButton: React.FC<TabButtonProps> = ({ tab, isSelected, onClick }) => {
             boxShadow:
               "inset 0 -2px 0 rgba(59, 130, 246, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.04), 0 0 12px rgba(59, 130, 246, 0.06)",
           }}
-          transition={{ type: "spring", bounce: 0.15, duration: 0.5 }}
+          transition={{ type: "spring", stiffness: 400, damping: 30 }}
         />
       )}
       <span

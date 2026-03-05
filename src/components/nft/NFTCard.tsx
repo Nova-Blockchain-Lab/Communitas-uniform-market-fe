@@ -1,11 +1,12 @@
-import React from "react";
+import React, { useState } from "react";
 import Image from "next/image";
-import { ExternalLink, ArrowUpRight, ArrowDownLeft, Clock } from "lucide-react";
+import { ExternalLink, ArrowUpRight, ArrowDownLeft, Clock, Eye } from "lucide-react";
 import BridgeNFTL1ToL2Button from "@/components/nft/BridgeNFTL1ToL2Button";
 import { NFTData, NFTDataWithStatus } from "@/utils/executeMessageL2ToL1Helper";
 import BridgeNFTL2ToL1Button from "@/components/nft/BridgeNFTL2ToL1Button";
 import BridgeNFTL2ToL1ExecuteButton from "@/components/nft/BridgeNFTL2ToL1ExecuteButton";
 import ViewOnOpenseaButton from "@/components/nft/ViewOnOpenseaButton";
+import { SkeletonBlock } from "@/components/ui";
 
 interface NFTCardProps {
   isL3: boolean;
@@ -15,6 +16,8 @@ interface NFTCardProps {
 
 const NFTCard: React.FC<NFTCardProps> = ({ nft, isL3, refetchNFTs }) => {
   const isPendingMessage = (nft as NFTDataWithStatus).hash !== undefined;
+  const [imageLoaded, setImageLoaded] = useState(false);
+  const hasImage = nft.image && nft.image.length > 0;
 
   return (
     <div
@@ -39,24 +42,61 @@ const NFTCard: React.FC<NFTCardProps> = ({ nft, isL3, refetchNFTs }) => {
         #{nft.tokenId.toString()}
       </div>
 
-      {/* Image */}
+      {/* Image with skeleton loading and hover overlay */}
       <div className="relative w-full pt-[100%] overflow-hidden bg-white/5">
-        {nft.image && nft.image.length > 0 ? (
+        {/* Skeleton while image loads */}
+        {hasImage && !imageLoaded && (
+          <div className="absolute inset-0">
+            <SkeletonBlock width="100%" height="100%" rounded="sm" />
+          </div>
+        )}
+
+        {hasImage ? (
           <Image
             src={nft.image}
             alt={nft.name || "NFT"}
             fill
             sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, 25vw"
-            className="absolute inset-0 object-contain group-hover:scale-105 transition-transform duration-300"
+            className={`
+              absolute inset-0 object-contain group-hover:scale-105 transition-all duration-300
+              ${imageLoaded ? "opacity-100" : "opacity-0"}
+            `}
+            onLoad={() => setImageLoaded(true)}
             unoptimized
           />
         ) : (
           <div className="absolute inset-0 flex items-center justify-center">
             <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center">
-              <span className="text-2xl text-gray-600">🖼️</span>
+              <Eye size={24} className="text-gray-600" />
             </div>
           </div>
         )}
+
+        {/* Gradient overlay for text readability */}
+        <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-black/60 via-black/20 to-transparent pointer-events-none" />
+
+        {/* Hover quick-action overlay */}
+        <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center gap-3 z-[5]">
+          {!isPendingMessage && !isL3 && (
+            <div className="flex flex-col gap-2 px-4 w-full">
+              <BridgeNFTL1ToL2Button tokenId={nft.tokenId} refetchNFTs={refetchNFTs} />
+              <ViewOnOpenseaButton tokenId={nft.tokenId} />
+            </div>
+          )}
+          {!isPendingMessage && isL3 && (
+            <div className="px-4 w-full">
+              <BridgeNFTL2ToL1Button nft={nft} refetchNFTs={refetchNFTs} />
+            </div>
+          )}
+          {isPendingMessage && (
+            <div className="px-4 w-full">
+              <BridgeNFTL2ToL1ExecuteButton
+                nft={nft as NFTDataWithStatus}
+                refetchNFTs={refetchNFTs}
+              />
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Content */}
@@ -69,8 +109,8 @@ const NFTCard: React.FC<NFTCardProps> = ({ nft, isL3, refetchNFTs }) => {
           <p className="text-xs text-gray-500 line-clamp-2">{nft.description}</p>
         )}
 
-        {/* Actions */}
-        <div className="pt-2 mt-auto space-y-2 nft-card-actions">
+        {/* Actions (kept for non-hover/mobile fallback) */}
+        <div className="pt-2 mt-auto space-y-2 nft-card-actions md:hidden">
           {/* On L1 - Bridge to L2 or view on OpenSea */}
           {!isPendingMessage && !isL3 && (
             <div className="flex flex-col gap-2">

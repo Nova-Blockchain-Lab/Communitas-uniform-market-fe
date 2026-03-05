@@ -44,38 +44,62 @@ const statusConfig = {
   pending: {
     title: "Waiting for Confirmation",
     subtitle: "Please confirm the transaction in your wallet",
-    color: "blue",
     bgGradient: "from-blue-500/20 to-blue-600/10",
+    iconBg: "bg-blue-500/20",
+    iconColor: "text-blue-400",
+    badgeBg: "bg-blue-500/20",
+    badgeText: "text-blue-400",
+    decorBg: "bg-blue-500/10",
   },
   confirming: {
     title: "Processing Transaction",
     subtitle: "Your transaction is being confirmed on the blockchain",
-    color: "amber",
     bgGradient: "from-amber-500/20 to-orange-600/10",
+    iconBg: "bg-amber-500/20",
+    iconColor: "text-amber-400",
+    badgeBg: "bg-amber-500/20",
+    badgeText: "text-amber-400",
+    decorBg: "bg-amber-500/10",
   },
   bridging: {
     title: "Bridging in Progress",
     subtitle: "Waiting for cross-chain confirmation",
-    color: "purple",
     bgGradient: "from-purple-500/20 to-purple-600/10",
+    iconBg: "bg-purple-500/20",
+    iconColor: "text-purple-400",
+    badgeBg: "bg-purple-500/20",
+    badgeText: "text-purple-400",
+    decorBg: "bg-purple-500/10",
   },
   success: {
     title: "Transaction Successful",
     subtitle: "Your transaction has been confirmed",
-    color: "emerald",
     bgGradient: "from-emerald-500/20 to-green-600/10",
+    iconBg: "bg-emerald-500/20",
+    iconColor: "text-emerald-400",
+    badgeBg: "bg-emerald-500/20",
+    badgeText: "text-emerald-400",
+    decorBg: "bg-emerald-500/10",
   },
   error: {
     title: "Transaction Failed",
     subtitle: "Something went wrong with your transaction",
-    color: "red",
     bgGradient: "from-red-500/20 to-red-600/10",
+    iconBg: "bg-red-500/20",
+    iconColor: "text-red-400",
+    badgeBg: "bg-red-500/20",
+    badgeText: "text-red-400",
+    decorBg: "bg-red-500/10",
   },
   idle: {
     title: "",
     subtitle: "",
-    color: "gray",
     bgGradient: "",
+    iconBg: "",
+    iconColor: "",
+    badgeBg: "",
+    badgeText: "",
+    decorBg: "",
   },
 };
 
@@ -192,14 +216,14 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
             animate={{ scale: 1, opacity: 1, y: 0 }}
             exit={{ scale: 0.9, opacity: 0, y: 20 }}
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            className="w-full max-w-md overflow-hidden rounded-2xl bg-gray-900 border border-white/10 shadow-2xl"
+            className="w-full max-w-md overflow-hidden rounded-2xl bg-[var(--color-bg-card)] border border-[var(--color-border)] shadow-2xl"
           >
             {/* Header with gradient */}
             <div className={`relative p-6 bg-gradient-to-br ${config.bgGradient}`}>
-              {/* Background decoration */}
+              {/* Background decoration — explicit classes, no template interpolation */}
               <div className="absolute inset-0 overflow-hidden">
-                <div className={`absolute -top-12 -right-12 w-32 h-32 rounded-full bg-${config.color}-500/10 blur-3xl`} />
-                <div className={`absolute -bottom-8 -left-8 w-24 h-24 rounded-full bg-${config.color}-500/10 blur-2xl`} />
+                <div className={`absolute -top-12 -right-12 w-32 h-32 rounded-full ${config.decorBg} blur-3xl`} />
+                <div className={`absolute -bottom-8 -left-8 w-24 h-24 rounded-full ${config.decorBg} blur-2xl`} />
               </div>
 
               <div className="relative flex flex-col items-center text-center">
@@ -209,27 +233,27 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
                     <motion.div
                       animate={{ rotate: 360 }}
                       transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-                      className="w-16 h-16 rounded-full bg-blue-500/20 flex items-center justify-center"
+                      className={`w-16 h-16 rounded-full ${config.iconBg} flex items-center justify-center`}
                     >
-                      <Loader2 size={32} className="text-blue-400" />
+                      <Loader2 size={32} className={config.iconColor} />
                     </motion.div>
                   )}
                   {status === "confirming" && (
                     <motion.div
                       animate={{ scale: [1, 1.1, 1] }}
                       transition={{ duration: 1.5, repeat: Infinity }}
-                      className="w-16 h-16 rounded-full bg-amber-500/20 flex items-center justify-center"
+                      className={`w-16 h-16 rounded-full ${config.iconBg} flex items-center justify-center`}
                     >
-                      <Loader2 size={32} className="text-amber-400 animate-spin" />
+                      <Loader2 size={32} className={`${config.iconColor} animate-spin`} />
                     </motion.div>
                   )}
                   {status === "bridging" && (
                     <motion.div
                       animate={{ y: [0, -5, 0] }}
                       transition={{ duration: 1.5, repeat: Infinity }}
-                      className="w-16 h-16 rounded-full bg-purple-500/20 flex items-center justify-center"
+                      className={`w-16 h-16 rounded-full ${config.iconBg} flex items-center justify-center`}
                     >
-                      <ArrowUpDown size={32} className="text-purple-400" />
+                      <ArrowUpDown size={32} className={config.iconColor} />
                     </motion.div>
                   )}
                   {status === "success" && (
@@ -237,9 +261,9 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
                       initial={{ scale: 0 }}
                       animate={{ scale: 1 }}
                       transition={{ type: "spring", damping: 15 }}
-                      className="w-16 h-16 rounded-full bg-emerald-500/20 flex items-center justify-center"
+                      className={`w-16 h-16 rounded-full ${config.iconBg} flex items-center justify-center`}
                     >
-                      <CheckCircle2 size={32} className="text-emerald-400" />
+                      <CheckCircle2 size={32} className={config.iconColor} />
                     </motion.div>
                   )}
                   {status === "error" && (
@@ -247,16 +271,16 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
                       initial={{ scale: 0 }}
                       animate={{ scale: 1 }}
                       transition={{ type: "spring", damping: 15 }}
-                      className="w-16 h-16 rounded-full bg-red-500/20 flex items-center justify-center"
+                      className={`w-16 h-16 rounded-full ${config.iconBg} flex items-center justify-center`}
                     >
-                      <XCircle size={32} className="text-red-400" />
+                      <XCircle size={32} className={config.iconColor} />
                     </motion.div>
                   )}
                 </div>
 
                 {/* Type badge */}
                 {typeInfo && (
-                  <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full bg-${config.color}-500/20 text-${config.color}-400 text-xs font-medium mb-3`}>
+                  <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full ${config.badgeBg} ${config.badgeText} text-xs font-medium mb-3`}>
                     {typeInfo.icon}
                     <span>{typeInfo.label}</span>
                   </div>
@@ -264,7 +288,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
 
                 {/* Title */}
                 <h3 className="text-xl font-bold text-white mb-1">{config.title}</h3>
-                <p className="text-sm text-gray-400">
+                <p className="text-sm text-[var(--color-text-secondary)]">
                   {status === "success" && typeInfo
                     ? typeInfo.successMessage
                     : config.subtitle}
@@ -276,16 +300,16 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
             <div className="p-6 space-y-4">
               {/* Transaction details */}
               {details && status !== "error" && (
-                <div className="p-4 rounded-xl bg-white/5 space-y-3">
+                <div className="p-4 rounded-xl bg-white/4 space-y-3">
                   {details.amount !== undefined && (
                     <div className="flex items-center justify-between">
-                      <span className="text-sm text-gray-400">Amount</span>
+                      <span className="text-sm text-[var(--color-text-secondary)]">Amount</span>
                       <span className="text-sm font-semibold text-white">{details.amount} kWh</span>
                     </div>
                   )}
                   {details.hours !== undefined && (
                     <div className="flex items-center justify-between">
-                      <span className="text-sm text-gray-400">Duration</span>
+                      <span className="text-sm text-[var(--color-text-secondary)]">Duration</span>
                       <span className="text-sm font-semibold text-white">
                         {details.hours} {details.hours === 1 ? "hour" : "hours"}
                       </span>
@@ -293,9 +317,9 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
                   )}
                   {details.totalCost && (
                     <>
-                      <div className="h-px bg-white/10" />
+                      <div className="h-px bg-white/8" />
                       <div className="flex items-center justify-between">
-                        <span className="text-sm text-gray-400">Total Cost</span>
+                        <span className="text-sm text-[var(--color-text-secondary)]">Total Cost</span>
                         <span className="text-sm font-bold text-white">
                           {details.totalCost} {details.currency || "ETH"}
                         </span>
@@ -307,7 +331,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
 
               {/* Error message */}
               {status === "error" && error && (
-                <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20">
+                <div className="p-4 rounded-xl bg-red-500/8 border border-red-500/20">
                   <div className="flex items-start gap-3">
                     <AlertTriangle size={20} className="text-red-400 shrink-0 mt-0.5" />
                     <div>
@@ -320,15 +344,15 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
 
               {/* Transaction hash */}
               {hash && (
-                <div className="p-4 rounded-xl bg-white/5">
-                  <p className="text-xs text-gray-500 mb-2">Transaction Hash</p>
+                <div className="p-4 rounded-xl bg-white/4">
+                  <p className="text-xs text-[var(--color-text-muted)] mb-2">Transaction Hash</p>
                   <div className="flex items-center gap-2">
                     <code className="flex-1 text-xs text-gray-300 font-mono truncate">
                       {hash}
                     </code>
                     <button
                       onClick={copyHash}
-                      className="p-2 rounded-lg bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white transition-colors"
+                      className="p-2 rounded-lg bg-white/5 hover:bg-white/10 text-[var(--color-text-muted)] hover:text-white transition-colors"
                       title="Copy hash"
                     >
                       {copied ? <Check size={14} /> : <Copy size={14} />}
@@ -337,7 +361,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
                       href={`${explorerUrl}/tx/${hash}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="p-2 rounded-lg bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white transition-colors"
+                      className="p-2 rounded-lg bg-white/5 hover:bg-white/10 text-[var(--color-text-muted)] hover:text-white transition-colors"
                       title="View on explorer"
                     >
                       <ExternalLink size={14} />
@@ -350,7 +374,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
               {status === "confirming" && (
                 <div className="space-y-2">
                   <div className="flex items-center justify-between text-xs">
-                    <span className="text-gray-400">Waiting for confirmation...</span>
+                    <span className="text-[var(--color-text-secondary)]">Waiting for confirmation...</span>
                     <motion.span
                       animate={{ opacity: [0.5, 1, 0.5] }}
                       transition={{ duration: 1.5, repeat: Infinity }}
@@ -359,7 +383,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
                       Processing
                     </motion.span>
                   </div>
-                  <div className="h-1 rounded-full bg-white/10 overflow-hidden">
+                  <div className="h-1 rounded-full bg-white/8 overflow-hidden">
                     <motion.div
                       className="h-full bg-gradient-to-r from-amber-500 to-orange-500"
                       animate={{ x: ["-100%", "100%"] }}

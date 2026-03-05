@@ -1,7 +1,8 @@
 import React, { useEffect, useState, useCallback, useMemo } from "react";
-import { ArrowLeftRight } from "lucide-react";
+import { ArrowLeftRight, TrendingUp, BarChart3 } from "lucide-react";
 import { Spinner } from "@/components/ui/Spinner";
 import { motion } from "motion/react";
+import { SkeletonBlock, SkeletonLine } from "@/components/ui";
 import {
   createPublicClient,
   http,
@@ -48,14 +49,15 @@ const TradeItem: React.FC<{
       <div
         className="pl-4 pr-4 py-3 ml-1 bg-gradient-to-r from-indigo-500/10 to-transparent border border-l-0 rounded-r-xl border-indigo-500/20"
       >
-        <div className="flex items-center justify-between mb-2">
-          <div className="flex items-center gap-3">
-            <ArrowLeftRight size={14} className="text-indigo-400" />
+        {/* Header - responsive: stacks on mobile */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-2">
+          <div className="flex items-center gap-3 flex-wrap">
+            <ArrowLeftRight size={14} className="text-indigo-400 hidden sm:block" />
             <div className="flex items-center gap-1.5">
               <span className="text-xs text-gray-500">Buyer</span>
               <span className="text-xs text-blue-400 font-mono">{truncateAddress(trade.buyer)}</span>
             </div>
-            <span className="text-xs text-gray-600">&rarr;</span>
+            <span className="text-xs text-gray-600 hidden sm:inline">&rarr;</span>
             <div className="flex items-center gap-1.5">
               <span className="text-xs text-gray-500">Seller</span>
               <span className="text-xs text-emerald-400 font-mono">{truncateAddress(trade.seller)}</span>
@@ -64,29 +66,34 @@ const TradeItem: React.FC<{
           <span className="text-xs text-gray-500">{formatTime(Number(trade.hour))}</span>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-4">
-          <div>
+        {/* Data grid - stacks vertically on mobile, horizontal on sm+ */}
+        <div className="flex flex-col sm:grid sm:grid-cols-3 gap-2 sm:gap-4">
+          <div className="flex justify-between sm:block">
             <p className="text-xs text-gray-500 mb-0.5">Amount</p>
             <p className="text-sm font-semibold text-indigo-400">
               {wattsToKWh(trade.amount).toFixed(2)} kWh
             </p>
           </div>
-          <div className="border-t border-white/5 pt-2 sm:border-0 sm:pt-0">
-            <p className="text-xs text-gray-500 mb-0.5">Price/kWh</p>
-            <p className="text-sm font-semibold text-white">
-              {pricePerKwh.toFixed(6)} ETH
-            </p>
+          <div className="flex justify-between sm:block border-t border-white/5 pt-2 sm:border-0 sm:pt-0">
+            <div>
+              <p className="text-xs text-gray-500 mb-0.5">Price/kWh</p>
+              <p className="text-sm font-semibold text-white">
+                {pricePerKwh.toFixed(6)} ETH
+              </p>
+            </div>
             {ethPrice && (
-              <p className="text-xs text-gray-500">~{"\u20AC"}{(pricePerKwh * ethPrice).toFixed(4)}</p>
+              <p className="text-xs text-gray-500 sm:mt-0 self-end sm:self-auto">~{"\u20AC"}{(pricePerKwh * ethPrice).toFixed(4)}</p>
             )}
           </div>
-          <div className="border-t border-white/5 pt-2 sm:border-0 sm:pt-0">
-            <p className="text-xs text-gray-500 mb-0.5">Total</p>
-            <p className="text-sm font-semibold text-white">
-              {totalValue.toFixed(6)} ETH
-            </p>
+          <div className="flex justify-between sm:block border-t border-white/5 pt-2 sm:border-0 sm:pt-0">
+            <div>
+              <p className="text-xs text-gray-500 mb-0.5">Total</p>
+              <p className="text-sm font-semibold text-white">
+                {totalValue.toFixed(6)} ETH
+              </p>
+            </div>
             {ethPrice && (
-              <p className="text-xs text-gray-500">~{"\u20AC"}{(totalValue * ethPrice).toFixed(2)}</p>
+              <p className="text-xs text-gray-500 sm:mt-0 self-end sm:self-auto">~{"\u20AC"}{(totalValue * ethPrice).toFixed(2)}</p>
             )}
           </div>
         </div>
@@ -210,6 +217,10 @@ const TradeHistoryBox: React.FC = () => {
 
   // Summaries
   const totalVolume = trades.reduce((sum, t) => sum + wattsToKWh(t.amount), 0);
+  const totalValueETH = trades.reduce((sum, t) => {
+    const pKwh = pricePerWattToPerKWh(t.clearingPrice);
+    return sum + pKwh * wattsToKWh(t.amount);
+  }, 0);
 
   return (
     <div className="w-full max-w-4xl">
@@ -223,21 +234,46 @@ const TradeHistoryBox: React.FC = () => {
         <DateNavigationBar selectedDay={selectedDay} onDayChange={setSelectedDay} />
 
         {isLoading ? (
-          <div className="flex items-center justify-center py-12">
-            <Spinner size="lg" color="blue.400" />
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+              <SkeletonBlock height="4.5rem" rounded="xl" />
+              <SkeletonBlock height="4.5rem" rounded="xl" />
+              <SkeletonBlock height="4.5rem" rounded="xl" className="hidden sm:block" />
+            </div>
+            <div className="space-y-3">
+              <SkeletonBlock height="5rem" rounded="xl" />
+              <SkeletonBlock height="5rem" rounded="xl" />
+              <SkeletonBlock height="5rem" rounded="xl" />
+            </div>
           </div>
         ) : (
           <>
             {/* Summary */}
             {trades.length > 0 && (
-              <div className="grid grid-cols-2 gap-4 mb-6">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-6">
                 <div className="p-4 bg-indigo-500/10 border border-indigo-500/20 rounded-xl">
-                  <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Total Trades</p>
+                  <div className="flex items-center gap-2 mb-1">
+                    <BarChart3 size={14} className="text-indigo-400" />
+                    <p className="text-xs text-gray-500 uppercase tracking-wide">Total Trades</p>
+                  </div>
                   <p className="text-xl font-bold text-indigo-400">{trades.length}</p>
                 </div>
                 <div className="p-4 bg-indigo-500/10 border border-indigo-500/20 rounded-xl">
-                  <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Total Volume</p>
+                  <div className="flex items-center gap-2 mb-1">
+                    <TrendingUp size={14} className="text-indigo-400" />
+                    <p className="text-xs text-gray-500 uppercase tracking-wide">Total Volume</p>
+                  </div>
                   <p className="text-xl font-bold text-indigo-400">{totalVolume.toFixed(2)} kWh</p>
+                </div>
+                <div className="p-4 bg-indigo-500/10 border border-indigo-500/20 rounded-xl col-span-2 sm:col-span-1">
+                  <div className="flex items-center gap-2 mb-1">
+                    <ArrowLeftRight size={14} className="text-indigo-400" />
+                    <p className="text-xs text-gray-500 uppercase tracking-wide">Total Value</p>
+                  </div>
+                  <p className="text-xl font-bold text-indigo-400">{totalValueETH.toFixed(6)} ETH</p>
+                  {ethPrice && (
+                    <p className="text-xs text-gray-500">~{"\u20AC"}{(totalValueETH * ethPrice).toFixed(2)}</p>
+                  )}
                 </div>
               </div>
             )}

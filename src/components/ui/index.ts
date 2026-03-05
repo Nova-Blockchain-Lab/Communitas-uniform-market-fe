@@ -19,6 +19,12 @@ export { Spinner } from "./Spinner";
 // Switch
 export { Switch } from "./Switch";
 
+// Skeleton
+export { SkeletonLine, SkeletonBlock, SkeletonCircle, SkeletonRows } from "./Skeleton";
+
+// Error Boundary
+export { ErrorBoundary } from "./ErrorBoundary";
+
 // Transaction Components
 export { TransactionModal } from "./TransactionModal";
 export type { TransactionStatus, TransactionType } from "./TransactionModal";

@@ -6,7 +6,7 @@ import {
   useWriteContract,
   useReadContract,
 } from "wagmi";
-import { Zap, ArrowLeftRight, Calendar, Clock, Info } from "lucide-react";
+import { Zap, ArrowLeftRight, Calendar, Clock, Info, AlertCircle } from "lucide-react";
 import { Spinner } from "@/components/ui/Spinner";
 import Image from "next/image";
 
@@ -16,7 +16,7 @@ import { useAppContext } from "@/context/AppContext";
 import { useMarketToast } from "@/hooks/useMarketToast";
 import DateTimePicker from "@/components/common/DateTimePicker";
 import ConnectAndSwitchNetworkButton from "@/components/common/ConnectAndSwitchNetworkButton";
-import { Card, CardHeader, CardSection, Button } from "@/components/ui";
+import { Card, CardHeader, CardSection, Button, SkeletonBlock, SkeletonRows, SkeletonLine } from "@/components/ui";
 
 const BidBox: React.FC = () => {
   const { isConnected, address, chainId } = useAccount();
@@ -132,11 +132,16 @@ const BidBox: React.FC = () => {
 
   const isLoading = isWritePending || isConfirming;
   const needsConnection = !isConnected || (chainId && defaultChain.id !== chainId);
+  const isDataLoading = isBalanceLoading;
+
+  // Inline validation
+  const energyError = energy !== 0 && energy <= 0 ? "Amount must be greater than 0" : null;
+  const hoursError = bidTimestamps.length === 0 ? "Select at least one hour" : null;
 
   return (
     <div className="flex flex-col lg:flex-row gap-4 lg:gap-6 w-full max-w-4xl">
       {/* Date Selection Card */}
-      <Card className="flex-1" padding="lg">
+      <Card className="flex-1" padding="lg" loading={isDataLoading}>
         <CardHeader
           title="Select Time Period"
           subtitle="Choose when you want to buy energy"
@@ -149,7 +154,7 @@ const BidBox: React.FC = () => {
       </Card>
 
       {/* Bid Form Card */}
-      <Card className="flex-1" padding="lg">
+      <Card className="flex-1" padding="lg" loading={isDataLoading}>
         <CardHeader
           title="Place Your Bid"
           subtitle="Set energy amount and price"
@@ -168,9 +173,39 @@ const BidBox: React.FC = () => {
               value={energy}
               onChange={(e) => setEnergy(Math.max(0, parseFloat(e.target.value) || 0))}
               min={0}
-              className="flex-1 px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white text-base sm:text-lg font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className={`flex-1 px-4 py-3 bg-white/5 border rounded-xl text-white text-base sm:text-lg font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                energyError ? "border-red-500/60" : "border-white/10"
+              }`}
             />
           </div>
+          {/* Range Slider */}
+          <div className="mt-3 px-1">
+            <input
+              type="range"
+              min={0}
+              max={100}
+              step={1}
+              value={Math.min(energy, 100)}
+              onChange={(e) => setEnergy(parseFloat(e.target.value))}
+              className="w-full h-2 rounded-full appearance-none cursor-pointer bg-white/10
+                [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-blue-500 [&::-webkit-slider-thumb]:shadow-lg [&::-webkit-slider-thumb]:shadow-blue-500/40 [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:transition-transform [&::-webkit-slider-thumb]:hover:scale-110
+                [&::-moz-range-thumb]:w-5 [&::-moz-range-thumb]:h-5 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-blue-500 [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:shadow-lg [&::-moz-range-thumb]:shadow-blue-500/40 [&::-moz-range-thumb]:cursor-pointer"
+            />
+            <div className="flex justify-between mt-1 text-xs text-gray-500 px-2">
+              <span>0</span>
+              <span>25</span>
+              <span>50</span>
+              <span>75</span>
+              <span>100</span>
+            </div>
+          </div>
+          {/* Inline Validation Feedback */}
+          {energyError && (
+            <div className="flex items-center gap-1.5 mt-2 text-sm text-red-400">
+              <AlertCircle size={14} />
+              <span>{energyError}</span>
+            </div>
+          )}
         </CardSection>
 
         {/* Price Input */}
@@ -232,11 +267,11 @@ const BidBox: React.FC = () => {
           <div className="flex items-center justify-between">
             <span className="text-sm text-gray-400">Total Cost</span>
             <div className="text-right">
-              <div className="font-bold text-lg text-white">
-                {getTotalCost().toFixed(6)} ETH
+              <div className="text-2xl sm:text-3xl font-bold text-white glow-energy">
+                {getTotalCost().toFixed(6)} <span className="text-lg text-amber-400">ETH</span>
               </div>
               {ethPrice && (
-                <div className="text-xs text-gray-500">
+                <div className="text-sm text-gray-400 mt-1">
                   ~{getTotalCostInEUR().toFixed(2)} EUR
                 </div>
               )}

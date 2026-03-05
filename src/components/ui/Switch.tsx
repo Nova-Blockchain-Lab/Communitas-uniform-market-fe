@@ -14,23 +14,26 @@ const sizeClasses = {
     track: "w-8 h-4",
     thumb: "w-3 h-3",
     translate: "translate-x-4",
+    rest: "translate-x-0.5",
   },
   md: {
     track: "w-10 h-5",
     thumb: "w-4 h-4",
     translate: "translate-x-5",
+    rest: "translate-x-0.5",
   },
   lg: {
     track: "w-12 h-6",
     thumb: "w-5 h-5",
     translate: "translate-x-6",
+    rest: "translate-x-0.5",
   },
 };
 
 const colorClasses = {
-  blue: "bg-blue-500",
-  green: "bg-green-500",
-  emerald: "bg-emerald-500",
+  blue: { active: "bg-[var(--color-primary-500)]", glow: "shadow-[0_0_8px_rgba(51,112,255,0.4)]" },
+  green: { active: "bg-green-500", glow: "shadow-[0_0_8px_rgba(34,197,94,0.4)]" },
+  emerald: { active: "bg-emerald-500", glow: "shadow-[0_0_8px_rgba(16,185,129,0.4)]" },
 };
 
 export const Switch: React.FC<SwitchProps> = ({
@@ -42,7 +45,7 @@ export const Switch: React.FC<SwitchProps> = ({
   label,
 }) => {
   const sizes = sizeClasses[size];
-  const activeColor = colorClasses[colorScheme];
+  const colors = colorClasses[colorScheme];
 
   return (
     <button
@@ -56,10 +59,10 @@ export const Switch: React.FC<SwitchProps> = ({
         relative inline-flex items-center shrink-0
         ${sizes.track}
         rounded-full
-        transition-colors duration-200 ease-in-out
-        focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-transparent
+        transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]
+        focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary-500)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-bg-dark)]
         ${disabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}
-        ${isChecked ? activeColor : "bg-white/20"}
+        ${isChecked ? `${colors.active} ${colors.glow}` : "bg-white/15"}
       `}
     >
       <span
@@ -68,10 +71,9 @@ export const Switch: React.FC<SwitchProps> = ({
           inline-block
           rounded-full
           bg-white
-          shadow-lg
-          transform
-          transition-transform duration-200 ease-in-out
-          ${isChecked ? sizes.translate : "translate-x-0.5"}
+          shadow-md
+          transition-transform duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]
+          ${isChecked ? sizes.translate : sizes.rest}
         `}
       />
     </button>

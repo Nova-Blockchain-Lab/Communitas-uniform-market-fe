@@ -1,15 +1,27 @@
 "use client";
 import React, { useEffect, useState, useCallback } from "react";
-import { ArrowDownUp, Wallet, AlertCircle } from "lucide-react";
+import { ArrowDownUp, Wallet, AlertCircle, Check } from "lucide-react";
 import { useAccount, useConfig } from "wagmi";
-import { motion } from "motion/react";
+import { motion, AnimatePresence } from "motion/react";
 import Image from "next/image";
 
 import { useAppContext } from "@/context/AppContext";
 import { baseChain, defaultChain } from "@/config";
 import { formatBalance } from "@/utils/utils";
+import { SkeletonBlock, SkeletonLine } from "@/components/ui";
 import NetworkSelector from "./NetworkSelector";
 import { SubmitButton } from "./SubmitButton";
+
+/** Quick-pick preset amounts in ETH */
+const QUICK_AMOUNTS = ["0.001", "0.01", "0.05", "0.1"] as const;
+
+/** Bridge step indicator */
+const BRIDGE_STEPS = [
+  { id: 1, label: "Enter Amount" },
+  { id: 2, label: "Confirm" },
+  { id: 3, label: "Bridge" },
+  { id: 4, label: "Complete" },
+] as const;
 
 export const BridgeBox: React.FC = () => {
   const { chains } = useConfig();
@@ -25,6 +37,9 @@ export const BridgeBox: React.FC = () => {
   const [originBalance, setOriginBalance] = useState<bigint | undefined>();
   const [destinationBalance, setDestinationBalance] = useState<bigint | undefined>();
 
+  const [swapRotation, setSwapRotation] = useState(0);
+  const [initialLoading, setInitialLoading] = useState(true);
+
   const handleOriginNetworkChange = (id: number) => {
     setSelectedOriginNetwork(id);
     setSelectedDestinationNetwork(chains.find((c) => c.id !== id)?.id || defaultChain.id);
@@ -36,6 +51,7 @@ export const BridgeBox: React.FC = () => {
   };
 
   const switchNetworks = () => {
+    setSwapRotation((r) => r + 180);
     handleDestinationNetworkChange(selectedOriginNetwork);
   };
 
@@ -98,7 +114,7 @@ export const BridgeBox: React.FC = () => {
   }, [address, l1Provider, l2Provider, selectedOriginNetwork]);
 
   useEffect(() => {
-    fetchBalances();
+    fetchBalances().finally(() => setInitialLoading(false));
   }, [fetchBalances]);
 
   const getEURValue = (eth: string | undefined): string => {
@@ -111,8 +127,57 @@ export const BridgeBox: React.FC = () => {
     return chainId === defaultChain.id ? "Nova Cidade" : "Arbitrum";
   };
 
+  // Determine which bridge step the user is at
+  const currentStep = depositAmount > BigInt(0) && hasEnoughBalance ? 2 : 1;
+
+  // Skeleton for initial data load
+  if (initialLoading && !isConnected) {
+    return (
+      <div className="space-y-4">
+        <SkeletonLine width="30%" height="0.875rem" />
+        <SkeletonBlock height="6rem" rounded="xl" />
+        <div className="flex justify-center">
+          <SkeletonBlock width="3rem" height="3rem" rounded="xl" />
+        </div>
+        <SkeletonLine width="20%" height="0.875rem" />
+        <SkeletonBlock height="6rem" rounded="xl" />
+        <SkeletonBlock height="4rem" rounded="xl" />
+        <SkeletonBlock height="3rem" rounded="xl" />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-4">
+      {/* Step Indicator */}
+      <div className="flex items-center justify-between mb-2">
+        {BRIDGE_STEPS.map((step, idx) => (
+          <React.Fragment key={step.id}>
+            <div className="flex flex-col items-center gap-1">
+              <div
+                className={`
+                  w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-300
+                  ${step.id < currentStep
+                    ? "bg-emerald-500 text-white"
+                    : step.id === currentStep
+                      ? "bg-emerald-500/20 text-emerald-400 ring-2 ring-emerald-500/40"
+                      : "bg-white/5 text-gray-600"
+                  }
+                `}
+              >
+                {step.id < currentStep ? <Check size={14} /> : step.id}
+              </div>
+              <span className={`text-[10px] font-medium ${step.id <= currentStep ? "text-gray-300" : "text-gray-600"}`}>
+                {step.label}
+              </span>
+            </div>
+            {idx < BRIDGE_STEPS.length - 1 && (
+              <div className={`flex-1 h-px mx-1 mb-4 transition-colors duration-300 ${step.id < currentStep ? "bg-emerald-500/50" : "bg-white/10"}`} />
+            )}
+          </React.Fragment>
+        ))}
+      </div>
+
       {/* From Section */}
       <div className="space-y-3">
         <div className="flex items-center justify-between">
@@ -161,6 +226,27 @@ export const BridgeBox: React.FC = () => {
           </div>
         </div>
 
+        {/* Quick amount pick buttons */}
+        <div className="flex items-center gap-2">
+          {QUICK_AMOUNTS.map((amount) => (
+            <motion.button
+              key={amount}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => handleAmountChange(amount)}
+              className={`
+                flex-1 py-1.5 text-xs font-medium rounded-lg border transition-colors
+                ${inputDisplayValue === amount
+                  ? "bg-emerald-500/20 border-emerald-500/40 text-emerald-400"
+                  : "bg-white/5 border-white/10 text-gray-400 hover:bg-white/10 hover:text-white"
+                }
+              `}
+            >
+              {amount}
+            </motion.button>
+          ))}
+        </div>
+
         {!hasEnoughBalance && depositAmount > BigInt(0) && originBalance !== undefined && (
           <motion.div
             initial={{ opacity: 0, y: -10 }}
@@ -173,11 +259,13 @@ export const BridgeBox: React.FC = () => {
         )}
       </div>
 
-      {/* Swap Button */}
+      {/* Swap Button with rotation animation */}
       <div className="flex justify-center -my-1">
         <motion.button
           whileHover={{ scale: 1.1 }}
           whileTap={{ scale: 0.9 }}
+          animate={{ rotate: swapRotation }}
+          transition={{ type: "spring", stiffness: 200, damping: 15 }}
           onClick={switchNetworks}
           className="p-3 bg-emerald-500/20 hover:bg-emerald-500/30 rounded-xl text-emerald-400 transition-colors"
           aria-label="Swap networks"

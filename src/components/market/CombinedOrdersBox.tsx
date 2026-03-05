@@ -6,9 +6,9 @@ import {
   useWaitForTransactionReceipt,
   useWriteContract,
 } from "wagmi";
-import { ClipboardList, Check, AlertCircle, X } from "lucide-react";
+import { ClipboardList, Check, AlertCircle, X, ChevronDown, Filter, ArrowUpDown, Trash2 } from "lucide-react";
 import { Spinner } from "@/components/ui/Spinner";
-import { motion } from "motion/react";
+import { motion, AnimatePresence } from "motion/react";
 
 import EnergyBiddingMarketAbi from "@/../abi/EnergyBiddingMarket.json";
 import { DECIMALS, defaultChain } from "@/config";
@@ -16,10 +16,13 @@ import { useAppContext } from "@/context/AppContext";
 import { useMarketToast } from "@/hooks/useMarketToast";
 import ConnectAndSwitchNetworkButton from "@/components/common/ConnectAndSwitchNetworkButton";
 import DateNavigationBar from "@/components/common/DateNavigationBar";
-import { Card, CardHeader, Button, Badge, EmptyState, type TransactionStatus } from "@/components/ui";
+import { Card, CardHeader, Button, Badge, EmptyState, SkeletonBlock, type TransactionStatus } from "@/components/ui";
 import { getTimestampsForDay, formatTime } from "@/utils/dateHelpers";
 import { wattsToKWh, pricePerWattToPerKWh } from "@/utils/units";
 import { AbiFunction } from "viem";
+
+type StatusFilter = "all" | "active" | "settled" | "canceled";
+type SortMode = "time" | "amount";
 
 // Order Item Components
 interface OrderItemProps {
@@ -56,6 +59,7 @@ const OrderItem: React.FC<OrderItemProps> = ({
   onClearMarket,
   isLoading,
 }) => {
+  const [isExpanded, setIsExpanded] = useState(false);
   const isMarketClearingAllowed = Date.now() / 1000 - time >= 3600;
   const isBid = type === "bid";
 
@@ -120,8 +124,11 @@ const OrderItem: React.FC<OrderItemProps> = ({
         border border-l-0 rounded-r-xl
         ${isBid ? "border-blue-500/20" : "border-emerald-500/20"}
       `}>
-        {/* Header row */}
-        <div className="flex items-center justify-between mb-4">
+        {/* Header row - clickable to expand */}
+        <button
+          onClick={() => setIsExpanded(!isExpanded)}
+          className="flex items-center justify-between w-full text-left"
+        >
           <div className="flex items-center gap-3">
             {/* Type badge */}
             <div className={`
@@ -132,112 +139,129 @@ const OrderItem: React.FC<OrderItemProps> = ({
             </div>
             {/* Time */}
             <span className="text-sm font-medium text-white">{formatTime(time)}</span>
-          </div>
-          <Badge variant={status.variant}>{status.label}</Badge>
-        </div>
-
-        {/* Main content grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3">
-          {/* Amount - Primary highlight */}
-          <div className="col-span-2 flex items-baseline gap-2 mb-2">
-            <span className={`text-xl sm:text-2xl font-bold ${isBid ? "text-blue-400" : "text-emerald-400"}`}>
-              {amountKWh % 1 === 0 ? amountKWh.toString() : amountKWh.toFixed(3)}
+            {/* Amount preview */}
+            <span className={`text-sm font-bold ${isBid ? "text-blue-400" : "text-emerald-400"}`}>
+              {amountKWh % 1 === 0 ? amountKWh.toString() : amountKWh.toFixed(3)} kWh
             </span>
-            <span className="text-sm font-medium text-gray-400">kWh</span>
           </div>
+          <div className="flex items-center gap-2">
+            <Badge variant={status.variant}>{status.label}</Badge>
+            <motion.div
+              animate={{ rotate: isExpanded ? 180 : 0 }}
+              transition={{ duration: 0.2 }}
+            >
+              <ChevronDown size={16} className="text-gray-500" />
+            </motion.div>
+          </div>
+        </button>
 
-          {/* Price per kWh */}
-          {price && (
-            <div>
-              <p className="text-xs text-gray-500 mb-1 uppercase tracking-wide">Price/kWh</p>
-              <p className="text-sm font-semibold text-white">
-                {pricePerKWh.toFixed(6)} ETH
-              </p>
-              {ethPrice && (
-                <p className="text-xs text-gray-500">
-                  ~€{(pricePerKWh * ethPrice).toFixed(4)}
-                </p>
-              )}
-            </div>
-          )}
+        {/* Collapsible details */}
+        <AnimatePresence>
+          {isExpanded && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: "auto", opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="overflow-hidden"
+            >
+              {/* Main content grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3 mt-4 pt-3 border-t border-white/5">
+                {/* Price per kWh */}
+                {price && (
+                  <div>
+                    <p className="text-xs text-gray-500 mb-1 uppercase tracking-wide">Price/kWh</p>
+                    <p className="text-sm font-semibold text-white">
+                      {pricePerKWh.toFixed(6)} ETH
+                    </p>
+                    {ethPrice && (
+                      <p className="text-xs text-gray-500">
+                        ~{"\u20AC"}{(pricePerKWh * ethPrice).toFixed(4)}
+                      </p>
+                    )}
+                  </div>
+                )}
 
-          {/* Total value for bids */}
-          {isBid && price && (
-            <div>
-              <p className="text-xs text-gray-500 mb-1 uppercase tracking-wide">Total Value</p>
-              <p className="text-sm font-semibold text-white">
-                {totalValueETH.toFixed(6)} ETH
-              </p>
-              {ethPrice && (
-                <p className="text-xs text-gray-500">
-                  ~€{(totalValueETH * ethPrice).toFixed(2)}
-                </p>
-              )}
-            </div>
-          )}
+                {/* Total value for bids */}
+                {isBid && price && (
+                  <div>
+                    <p className="text-xs text-gray-500 mb-1 uppercase tracking-wide">Total Value</p>
+                    <p className="text-sm font-semibold text-white">
+                      {totalValueETH.toFixed(6)} ETH
+                    </p>
+                    {ethPrice && (
+                      <p className="text-xs text-gray-500">
+                        ~{"\u20AC"}{(totalValueETH * ethPrice).toFixed(2)}
+                      </p>
+                    )}
+                  </div>
+                )}
 
-          {/* Matched amount for asks */}
-          {!isBid && matchedAmount !== undefined && (
-            <div>
-              <p className="text-xs text-gray-500 mb-1 uppercase tracking-wide">Sold</p>
-              <p className="text-sm font-semibold text-emerald-400">
-                {matchedKWh % 1 === 0 ? matchedKWh.toString() : matchedKWh.toFixed(3)} kWh
-              </p>
-              {Number(amount) > 0 && (
-                <p className="text-xs text-gray-500">
-                  {Math.round((Number(matchedAmount) / Number(amount)) * 100)}% filled
-                </p>
-              )}
-            </div>
-          )}
+                {/* Matched amount for asks */}
+                {!isBid && matchedAmount !== undefined && (
+                  <div>
+                    <p className="text-xs text-gray-500 mb-1 uppercase tracking-wide">Sold</p>
+                    <p className="text-sm font-semibold text-emerald-400">
+                      {matchedKWh % 1 === 0 ? matchedKWh.toString() : matchedKWh.toFixed(3)} kWh
+                    </p>
+                    {Number(amount) > 0 && (
+                      <p className="text-xs text-gray-500">
+                        {Math.round((Number(matchedAmount) / Number(amount)) * 100)}% filled
+                      </p>
+                    )}
+                  </div>
+                )}
 
-          {/* Clearing price */}
-          {isMarketCleared && clearingPrice && Number(clearingPrice) > 0 && (
-            <div className="col-span-2 mt-2 pt-3 border-t border-white/10">
-              <p className="text-xs text-gray-500 mb-1 uppercase tracking-wide">Clearing Price</p>
-              <div className="flex items-baseline gap-2">
-                <span className="text-lg font-bold text-amber-400">
-                  {clearingPricePerKWh.toFixed(6)}
-                </span>
-                <span className="text-sm text-gray-400">ETH/kWh</span>
-                {ethPrice && (
-                  <span className="text-xs text-gray-500">
-                    (~€{(clearingPricePerKWh * ethPrice).toFixed(4)})
-                  </span>
+                {/* Clearing price */}
+                {isMarketCleared && clearingPrice && Number(clearingPrice) > 0 && (
+                  <div className="col-span-2 mt-2 pt-3 border-t border-white/10">
+                    <p className="text-xs text-gray-500 mb-1 uppercase tracking-wide">Clearing Price</p>
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-lg font-bold text-amber-400">
+                        {clearingPricePerKWh.toFixed(6)}
+                      </span>
+                      <span className="text-sm text-gray-400">ETH/kWh</span>
+                      {ethPrice && (
+                        <span className="text-xs text-gray-500">
+                          (~{"\u20AC"}{(clearingPricePerKWh * ethPrice).toFixed(4)})
+                        </span>
+                      )}
+                    </div>
+                  </div>
                 )}
               </div>
-            </div>
-          )}
-        </div>
 
-        {/* Actions */}
-        {!canceled && !isMarketCleared && (
-          <div className="flex gap-2 mt-4 pt-3 border-t border-white/10">
-            {isMarketClearingAllowed && onClearMarket && (
-              <Button
-                size="sm"
-                variant="secondary"
-                onClick={onClearMarket}
-                loading={isLoading}
-                disabled={isLoading}
-              >
-                Clear Market
-              </Button>
-            )}
-            {isBid && onCancel && (
-              <Button
-                size="sm"
-                variant="danger"
-                onClick={onCancel}
-                loading={isLoading}
-                disabled={isLoading}
-                icon={<X size={14} />}
-              >
-                Cancel Bid
-              </Button>
-            )}
-          </div>
-        )}
+              {/* Actions */}
+              {!canceled && !isMarketCleared && (
+                <div className="flex gap-2 mt-4 pt-3 border-t border-white/10" onClick={(e) => e.stopPropagation()}>
+                  {isMarketClearingAllowed && onClearMarket && (
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      onClick={onClearMarket}
+                      loading={isLoading}
+                      disabled={isLoading}
+                    >
+                      Clear Market
+                    </Button>
+                  )}
+                  {isBid && onCancel && (
+                    <Button
+                      size="sm"
+                      variant="danger"
+                      onClick={onCancel}
+                      loading={isLoading}
+                      disabled={isLoading}
+                      icon={<X size={14} />}
+                    >
+                      Cancel Bid
+                    </Button>
+                  )}
+                </div>
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
       {/* Canceled diagonal banner */}
@@ -272,6 +296,8 @@ const CombinedOrdersBox: React.FC = () => {
   const [selectedDay, setSelectedDay] = useState<Date>(new Date());
   const [activeOrderIndex, setActiveOrderIndex] = useState<string | null>(null);
   const [refundedBidKeys, setRefundedBidKeys] = useState<Set<string>>(new Set());
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+  const [sortMode, setSortMode] = useState<SortMode>("time");
 
   // Modal state
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -439,30 +465,113 @@ const CombinedOrdersBox: React.FC = () => {
 
         <DateNavigationBar selectedDay={selectedDay} onDayChange={setSelectedDay} />
 
+        {/* Filter / Sort Bar */}
+        {!needsConnection && (
+          <div className="flex flex-wrap items-center gap-3 mb-4 p-3 bg-white/5 rounded-xl">
+            <div className="flex items-center gap-1.5 text-xs text-gray-500">
+              <Filter size={14} />
+              <span>Status:</span>
+            </div>
+            <div className="flex gap-1">
+              {(["all", "active", "settled", "canceled"] as StatusFilter[]).map((filter) => (
+                <button
+                  key={filter}
+                  onClick={() => setStatusFilter(filter)}
+                  className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all ${
+                    statusFilter === filter
+                      ? "bg-blue-500/20 text-blue-400 border border-blue-500/30"
+                      : "bg-white/5 text-gray-400 hover:bg-white/10 hover:text-white border border-transparent"
+                  }`}
+                >
+                  {filter.charAt(0).toUpperCase() + filter.slice(1)}
+                </button>
+              ))}
+            </div>
+            <div className="h-4 w-px bg-white/10 mx-1 hidden sm:block" />
+            <button
+              onClick={() => setSortMode(sortMode === "time" ? "amount" : "time")}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-white/5 text-gray-400 hover:bg-white/10 hover:text-white transition-all border border-transparent"
+            >
+              <ArrowUpDown size={14} />
+              Sort: {sortMode === "time" ? "Time" : "Amount"}
+            </button>
+          </div>
+        )}
+
         {needsConnection ? (
           <div className="py-8">
             <ConnectAndSwitchNetworkButton />
           </div>
         ) : isLoading ? (
-          <div className="flex items-center justify-center py-12">
-            <Spinner size="lg" color="blue.400" />
+          <div className="grid md:grid-cols-2 gap-4 md:gap-6">
+            <div className="space-y-3">
+              <SkeletonBlock height="3rem" rounded="xl" />
+              <SkeletonBlock height="5rem" rounded="xl" />
+              <SkeletonBlock height="5rem" rounded="xl" />
+              <SkeletonBlock height="5rem" rounded="xl" />
+            </div>
+            <div className="space-y-3">
+              <SkeletonBlock height="3rem" rounded="xl" />
+              <SkeletonBlock height="5rem" rounded="xl" />
+              <SkeletonBlock height="5rem" rounded="xl" />
+            </div>
           </div>
         ) : (
           <div className="grid md:grid-cols-2 gap-4 md:gap-6">
             {/* Bids Column */}
             <div className="space-y-4">
-              <div className="flex items-center gap-3 pb-3 border-b border-blue-500/20">
-                <div className="w-8 h-8 rounded-lg bg-blue-500/20 flex items-center justify-center">
-                  <span className="text-blue-400 font-bold text-sm">B</span>
+              <div className="flex items-center justify-between pb-3 border-b border-blue-500/20">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-blue-500/20 flex items-center justify-center">
+                    <span className="text-blue-400 font-bold text-sm">B</span>
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-white">Buy Orders</h3>
+                    <p className="text-xs text-gray-500">{bidCount} {bidCount === 1 ? "order" : "orders"}</p>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="text-sm font-bold text-white">Buy Orders</h3>
-                  <p className="text-xs text-gray-500">{bidCount} {bidCount === 1 ? "order" : "orders"}</p>
-                </div>
+                {/* Batch Cancel Button */}
+                {bidCount > 0 && userBidsByHour.some((hourBids) =>
+                  hourBids.some((bid) => !bid.canceled && !bid.settled)
+                ) && (
+                  <Button
+                    size="sm"
+                    variant="danger"
+                    icon={<Trash2 size={14} />}
+                    disabled={isWritePending || isConfirming}
+                    onClick={() => {
+                      // Cancel the first active (non-canceled, non-settled) bid
+                      for (let i = 0; i < userBidsByHour.length; i++) {
+                        for (const bid of userBidsByHour[i]) {
+                          if (!bid.canceled && !bid.settled) {
+                            handleCancelBid(timestamps[i], bid.globalIndex);
+                            return;
+                          }
+                        }
+                      }
+                    }}
+                  >
+                    Cancel Active
+                  </Button>
+                )}
               </div>
               <div className="space-y-3 max-h-[350px] sm:max-h-[500px] overflow-y-auto">
-                {userBidsByHour.map((hourBids, i) =>
-                  hourBids.map((bid) => (
+                {userBidsByHour
+                  .flatMap((hourBids, i) =>
+                    hourBids.map((bid) => ({ bid, hourIndex: i }))
+                  )
+                  .filter(({ bid }) => {
+                    if (statusFilter === "all") return true;
+                    if (statusFilter === "canceled") return bid.canceled;
+                    if (statusFilter === "settled") return bid.settled && !bid.canceled;
+                    if (statusFilter === "active") return !bid.settled && !bid.canceled;
+                    return true;
+                  })
+                  .sort((a, b) => {
+                    if (sortMode === "amount") return Number(b.bid.amount) - Number(a.bid.amount);
+                    return timestamps[a.hourIndex] - timestamps[b.hourIndex];
+                  })
+                  .map(({ bid, hourIndex: i }) => (
                     <OrderItem
                       key={`bid-${timestamps[i]}-${bid.globalIndex}`}
                       type="bid"
@@ -485,7 +594,7 @@ const CombinedOrdersBox: React.FC = () => {
                       }
                     />
                   ))
-                )}
+                }
                 {bidCount === 0 && (
                   <EmptyState
                     icon={<ClipboardList size={20} className="text-blue-500/50" />}
@@ -509,8 +618,23 @@ const CombinedOrdersBox: React.FC = () => {
                 </div>
               </div>
               <div className="space-y-3 max-h-[350px] sm:max-h-[500px] overflow-y-auto">
-                {asks?.map((askResult, i) =>
-                  (askResult.result as any[])?.map((ask, j) => (
+                {asks
+                  ?.flatMap((askResult, i) =>
+                    ((askResult.result as any[]) || []).map((ask, j) => ({ ask, hourIndex: i, askIndex: j }))
+                  )
+                  .filter(({ ask }) => {
+                    if (statusFilter === "all") return true;
+                    const isSettled = ask.matchedAmount && ask.matchedAmount === ask.amount;
+                    if (statusFilter === "settled") return isSettled;
+                    if (statusFilter === "active") return !isSettled;
+                    if (statusFilter === "canceled") return false;
+                    return true;
+                  })
+                  .sort((a, b) => {
+                    if (sortMode === "amount") return Number(b.ask.amount) - Number(a.ask.amount);
+                    return timestamps[a.hourIndex] - timestamps[b.hourIndex];
+                  })
+                  .map(({ ask, hourIndex: i, askIndex: j }) => (
                     <OrderItem
                       key={`ask-${timestamps[i]}-${j}`}
                       type="ask"
@@ -528,7 +652,7 @@ const CombinedOrdersBox: React.FC = () => {
                       }
                     />
                   ))
-                )}
+                }
                 {askCount === 0 && (
                   <EmptyState
                     icon={<ClipboardList size={20} className="text-emerald-500/50" />}

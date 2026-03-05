@@ -10,6 +10,7 @@ import { createAppKit } from "@reown/appkit/react";
 import { Analytics } from "@vercel/analytics/react";
 import { Toaster } from "react-hot-toast";
 import type { AppKitNetwork } from "@reown/appkit/networks";
+import { ErrorBoundary } from "@/components/ui";
 
 // Create queryClient outside component to prevent recreation
 const queryClient = new QueryClient();
@@ -44,8 +45,20 @@ export default function App({ Component, pageProps }: AppProps) {
     <WagmiProvider config={wagmiConfig} initialState={initialState}>
       <QueryClientProvider client={queryClient}>
         <Analytics />
-        <Toaster position="top-right" />
-        <Component {...pageProps} />
+        <Toaster
+          position="top-right"
+          toastOptions={{
+            style: {
+              background: 'var(--color-bg-elevated)',
+              color: 'var(--color-text-primary)',
+              border: '1px solid var(--color-border)',
+              borderRadius: 'var(--radius-lg)',
+            },
+          }}
+        />
+        <ErrorBoundary>
+          <Component {...pageProps} />
+        </ErrorBoundary>
       </QueryClientProvider>
     </WagmiProvider>
   );

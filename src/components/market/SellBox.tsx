@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { useAccount, useReadContract, useWaitForTransactionReceipt, useWriteContract } from "wagmi";
-import { TrendingUp, Info, Clock, ShieldX } from "lucide-react";
+import { TrendingUp, Info, Clock, ShieldX, AlertTriangle } from "lucide-react";
 import { Spinner } from "@/components/ui/Spinner";
+import { motion } from "motion/react";
 import Image from "next/image";
 
 import EnergyBiddingMarketAbi from "@/../abi/EnergyBiddingMarket.json";
@@ -9,7 +10,7 @@ import { defaultChain, WATTS_PER_KWH } from "@/config";
 import { useAppContext } from "@/context/AppContext";
 import { useMarketToast } from "@/hooks/useMarketToast";
 import ConnectAndSwitchNetworkButton from "@/components/common/ConnectAndSwitchNetworkButton";
-import { Card, CardHeader, CardSection, Button } from "@/components/ui";
+import { Card, CardHeader, CardSection, Button, SkeletonRows, SkeletonBlock } from "@/components/ui";
 import { TransactionModal, TransactionStatus } from "@/components/ui/TransactionModal";
 
 const SellBox: React.FC = () => {
@@ -114,22 +115,30 @@ const SellBox: React.FC = () => {
 
   return (
     <div className="w-full max-w-md">
-      <Card padding="lg">
+      <Card padding="lg" loading={isWhitelistLoading}>
         <CardHeader
           title="Sell Energy"
           subtitle="List your available energy for sale"
           icon={<TrendingUp size={20} />}
         />
 
-        {/* Fix #4: Non-whitelisted seller message */}
+        {/* Whitelist Warning Banner */}
         {isConnected && !needsConnection && !isWhitelistLoading && isWhitelisted === false && (
-          <div className="flex items-start gap-3 p-4 bg-red-500/10 border border-red-500/20 rounded-xl mb-6">
-            <ShieldX size={20} className="text-red-400 flex-shrink-0 mt-0.5" />
-            <div>
-              <p className="text-sm font-medium text-red-400">Not Authorized</p>
-              <p className="text-xs text-red-400/70 mt-1">
-                Your wallet is not whitelisted as an energy seller. Contact the market operator to request access.
-              </p>
+          <div className="relative overflow-hidden p-4 bg-amber-500/10 border-2 border-amber-500/30 rounded-xl mb-6">
+            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-amber-500 to-amber-400" />
+            <div className="flex items-start gap-3">
+              <div className="p-2 rounded-lg bg-amber-500/20 mt-0.5">
+                <AlertTriangle size={20} className="text-amber-400" />
+              </div>
+              <div>
+                <p className="text-sm font-bold text-amber-300">Seller Not Whitelisted</p>
+                <p className="text-xs text-amber-400/80 mt-1.5 leading-relaxed">
+                  Your wallet address is not authorized to sell energy on this market. Please contact the market operator to request seller access.
+                </p>
+                <p className="text-xs text-amber-500/60 mt-2 font-mono truncate">
+                  {address}
+                </p>
+              </div>
             </div>
           </div>
         )}
@@ -164,22 +173,31 @@ const SellBox: React.FC = () => {
 
         {/* Quick Amount Buttons */}
         <div className="flex gap-2 mb-6">
-          {[10, 50, 100, 500].map((amount) => (
-            <button
-              key={amount}
-              onClick={() => setEnergy(amount)}
+          {[
+            { value: 0.1, label: "100W" },
+            { value: 0.5, label: "500W" },
+            { value: 1, label: "1 kWh" },
+            { value: 5, label: "5 kWh" },
+            { value: 10, label: "10 kWh" },
+          ].map(({ value, label }) => (
+            <motion.button
+              key={value}
+              whileTap={{ scale: 0.92 }}
+              whileHover={{ scale: 1.04 }}
+              transition={{ type: "spring", stiffness: 400, damping: 17 }}
+              onClick={() => setEnergy(value)}
               disabled={isWhitelisted === false}
               className={`
-                flex-1 py-3 text-sm min-h-[44px] font-medium rounded-lg transition-all
-                ${energy === amount
-                  ? "bg-emerald-500 text-white"
+                flex-1 py-3 text-sm min-h-[44px] font-medium rounded-lg transition-colors
+                ${energy === value
+                  ? "bg-emerald-500 text-white shadow-lg shadow-emerald-500/30"
                   : "bg-white/5 text-gray-400 hover:bg-white/10 hover:text-white"
                 }
                 disabled:opacity-50 disabled:cursor-not-allowed
               `}
             >
-              {amount}
-            </button>
+              {label}
+            </motion.button>
           ))}
         </div>
 

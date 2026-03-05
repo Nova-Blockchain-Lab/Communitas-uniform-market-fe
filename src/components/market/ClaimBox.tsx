@@ -5,7 +5,7 @@ import {
   useWaitForTransactionReceipt,
   useWriteContract,
 } from "wagmi";
-import { Wallet, Coins, ArrowDown, Info, RefreshCw } from "lucide-react";
+import { Wallet, Coins, ArrowDown, Info, RefreshCw, CheckCircle2, XCircle } from "lucide-react";
 import { Switch } from "@/components/ui/Switch";
 import { Spinner } from "@/components/ui/Spinner";
 import { motion } from "motion/react";
@@ -16,7 +16,7 @@ import { DECIMALS, defaultChain } from "@/config";
 import { useAppContext } from "@/context/AppContext";
 import { useMarketToast } from "@/hooks/useMarketToast";
 import ConnectAndSwitchNetworkButton from "@/components/common/ConnectAndSwitchNetworkButton";
-import { Card, CardHeader, Button, type TransactionStatus } from "@/components/ui";
+import { Card, CardHeader, Button, SkeletonBlock, SkeletonLine, type TransactionStatus } from "@/components/ui";
 
 const ClaimBox: React.FC = () => {
   const { isConnected, address, chainId } = useAccount();
@@ -166,8 +166,9 @@ const ClaimBox: React.FC = () => {
                 <p className="text-sm text-gray-400 mb-1">Available Balance</p>
 
                 {isBalanceLoading ? (
-                  <div className="flex items-center justify-center py-4">
-                    <Spinner size="lg" color="blue.400" />
+                  <div className="space-y-3 py-2">
+                    <SkeletonLine width="70%" height="2.5rem" />
+                    <SkeletonLine width="40%" height="1.25rem" />
                   </div>
                 ) : (
                   <>
@@ -214,15 +215,55 @@ const ClaimBox: React.FC = () => {
               </div>
               {claimToOther ? (
                 <div>
-                  <input
-                    type="text"
-                    value={customAddress}
-                    onChange={(e) => setCustomAddress(e.target.value)}
-                    placeholder="0x..."
-                    className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-blue-500/50 transition-colors"
-                  />
-                  {customAddress && !/^0x[a-fA-F0-9]{40}$/.test(customAddress) && (
-                    <p className="text-xs text-red-400 mt-1">Invalid Ethereum address</p>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      value={customAddress}
+                      onChange={(e) => setCustomAddress(e.target.value)}
+                      placeholder="0x..."
+                      className={`w-full px-3 py-2 pr-10 rounded-lg bg-white/5 border text-sm text-white placeholder-gray-500 focus:outline-none transition-colors ${
+                        customAddress.length === 0
+                          ? "border-white/10 focus:border-blue-500/50"
+                          : /^0x[a-fA-F0-9]{40}$/.test(customAddress)
+                            ? "border-emerald-500/50 focus:border-emerald-500/70"
+                            : "border-red-500/50 focus:border-red-500/70"
+                      }`}
+                    />
+                    {/* Inline validation icon */}
+                    {customAddress.length > 0 && (
+                      <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                        {/^0x[a-fA-F0-9]{40}$/.test(customAddress) ? (
+                          <CheckCircle2 size={16} className="text-emerald-400" />
+                        ) : (
+                          <XCircle size={16} className="text-red-400" />
+                        )}
+                      </div>
+                    )}
+                  </div>
+                  {/* Inline validation message */}
+                  {customAddress.length > 0 && (
+                    <div className="mt-1.5">
+                      {/^0x[a-fA-F0-9]{40}$/.test(customAddress) ? (
+                        <p className="text-xs text-emerald-400 flex items-center gap-1">
+                          <CheckCircle2 size={12} />
+                          Valid Ethereum address
+                        </p>
+                      ) : customAddress.length < 42 ? (
+                        <p className="text-xs text-amber-400 flex items-center gap-1">
+                          Address too short ({customAddress.length}/42 characters)
+                        </p>
+                      ) : customAddress.length > 42 ? (
+                        <p className="text-xs text-red-400 flex items-center gap-1">
+                          <XCircle size={12} />
+                          Address too long ({customAddress.length}/42 characters)
+                        </p>
+                      ) : (
+                        <p className="text-xs text-red-400 flex items-center gap-1">
+                          <XCircle size={12} />
+                          Invalid format - must start with 0x followed by 40 hex characters
+                        </p>
+                      )}
+                    </div>
                   )}
                 </div>
               ) : (

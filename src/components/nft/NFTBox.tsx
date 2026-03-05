@@ -10,7 +10,6 @@ import {
 } from "wagmi";
 import { Image as ImageIcon, RefreshCw, Plus, ArrowLeftRight, AlertCircle } from "lucide-react";
 import { motion } from "motion/react";
-import { Switch } from "@/components/ui/Switch";
 import { Spinner } from "@/components/ui/Spinner";
 
 import { contractAddresses, defaultChain } from "@/config";
@@ -19,7 +18,7 @@ import CommunitasNFTAbi from "@/../abi/CommunitasNFT.json";
 import ConnectAndSwitchNetworkButton from "@/components/common/ConnectAndSwitchNetworkButton";
 import NFTCard from "@/components/nft/NFTCard";
 import PendingNFTs from "@/components/nft/PendingNFTBox";
-import { Card, CardHeader, Button, TransactionModal } from "@/components/ui";
+import { Card, CardHeader, Button, TransactionModal, SkeletonBlock } from "@/components/ui";
 import type { TransactionStatus } from "@/components/ui";
 import { AbiFunction } from "viem";
 import { NFTData } from "@/utils/executeMessageL2ToL1Helper";
@@ -256,20 +255,44 @@ const NFTBox: React.FC = () => {
           </div>
         ) : (
           <>
-            {/* Chain Switcher */}
-            <div className="flex items-center justify-center gap-4 p-4 bg-white/5 rounded-xl mb-6">
-              <span className={`text-xs sm:text-sm font-medium ${!isL2 ? "text-white" : "text-gray-400"}`}>
+            {/* Chain Switcher — segmented control */}
+            <div className="flex items-center p-1 bg-white/5 rounded-xl mb-6">
+              <button
+                onClick={() => { if (isL2) handleSwitchChain(); }}
+                className={`
+                  flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg text-xs sm:text-sm font-medium transition-all duration-200
+                  ${!isL2
+                    ? "bg-[var(--color-primary-500)] text-white shadow-md"
+                    : "text-gray-400 hover:text-white"
+                  }
+                `}
+              >
                 L1 (Arbitrum)
-              </span>
-              <Switch
-                isChecked={isL2}
-                onChange={handleSwitchChain}
-                colorScheme="blue"
-                size="lg"
-              />
-              <span className={`text-xs sm:text-sm font-medium ${isL2 ? "text-white" : "text-gray-400"}`}>
+                <span className={`
+                  inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1.5 rounded-full text-[10px] font-bold
+                  ${!isL2 ? "bg-white/20 text-white" : "bg-white/10 text-gray-500"}
+                `}>
+                  {!isL2 ? nftCount : "—"}
+                </span>
+              </button>
+              <button
+                onClick={() => { if (!isL2) handleSwitchChain(); }}
+                className={`
+                  flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg text-xs sm:text-sm font-medium transition-all duration-200
+                  ${isL2
+                    ? "bg-[var(--color-primary-500)] text-white shadow-md"
+                    : "text-gray-400 hover:text-white"
+                  }
+                `}
+              >
                 L2 (Nova Cidade)
-              </span>
+                <span className={`
+                  inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1.5 rounded-full text-[10px] font-bold
+                  ${isL2 ? "bg-white/20 text-white" : "bg-white/10 text-gray-500"}
+                `}>
+                  {isL2 ? nftCount : "—"}
+                </span>
+              </button>
             </div>
 
             {/* Mint Button (L2 only) */}
@@ -289,9 +312,17 @@ const NFTBox: React.FC = () => {
 
             {/* NFT Grid */}
             {isLoading ? (
-              <div className="flex flex-col items-center justify-center py-12">
-                <Spinner size="xl" color="blue.400" />
-                <p className="mt-4 text-gray-400">Loading your NFTs...</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                {Array.from({ length: 4 }).map((_, i) => (
+                  <div key={i} className="rounded-xl border border-white/10 bg-white/[0.03] overflow-hidden">
+                    <SkeletonBlock height="0" className="!h-0 pt-[100%]" rounded="sm" />
+                    <div className="p-3 space-y-2">
+                      <SkeletonBlock height="0.875rem" width="60%" rounded="md" />
+                      <SkeletonBlock height="0.75rem" width="80%" rounded="md" />
+                      <SkeletonBlock height="2rem" rounded="lg" />
+                    </div>
+                  </div>
+                ))}
               </div>
             ) : nftCount === 0 ? (
               <div className="flex flex-col items-center justify-center py-12 text-center">

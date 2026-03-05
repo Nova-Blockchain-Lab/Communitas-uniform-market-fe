@@ -11,6 +11,7 @@ import { Slider, RegionDropdownList } from "@/components/common";
 import MobileDrawer from "@/components/common/MobileDrawer";
 import { BidBox, SellBox, CombinedOrdersBox, TradeHistoryBox, ClaimBox, EnergyDashboard } from "@/components/market";
 import { NFTBox } from "@/components/nft";
+import { ErrorBoundary } from "@/components/ui";
 
 export default function Home() {
   const [selected, setSelected] = useState(1);
@@ -34,6 +35,7 @@ export default function Home() {
       </Head>
 
       <AppProvider>
+        <ErrorBoundary>
         <div className="min-h-screen">
           {/* Header */}
           <header className={styles.header}>
@@ -107,7 +109,7 @@ export default function Home() {
           />
 
           {/* Main Content */}
-          <main className="pt-20 md:pt-24 pb-12 px-4">
+          <main className="pb-12 px-4" style={{ paddingTop: 'calc(var(--header-height) + 1.5rem)' }}>
             <div className="max-w-7xl mx-auto">
               <AnimatePresence mode="popLayout">
                 <motion.div
@@ -131,6 +133,7 @@ export default function Home() {
             </div>
           </main>
         </div>
+        </ErrorBoundary>
       </AppProvider>
     </>
   );

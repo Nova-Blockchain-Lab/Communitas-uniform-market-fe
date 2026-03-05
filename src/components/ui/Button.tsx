@@ -2,7 +2,7 @@ import React from "react";
 import { motion } from "motion/react";
 import { Spinner } from "./Spinner";
 
-type ButtonVariant = "primary" | "secondary" | "success" | "danger" | "ghost";
+type ButtonVariant = "primary" | "secondary" | "success" | "danger" | "ghost" | "outline";
 type ButtonSize = "sm" | "md" | "lg";
 
 interface ButtonProps {
@@ -21,32 +21,37 @@ interface ButtonProps {
 
 const variantClasses: Record<ButtonVariant, string> = {
   primary: `
-    bg-gradient-to-r from-blue-600 to-blue-500 text-white
-    hover:from-blue-500 hover:to-blue-400
-    shadow-lg hover:shadow-xl hover:shadow-blue-500/25
+    bg-gradient-to-r from-[#1b4ff5] to-[#3370ff] text-white
+    hover:from-[#3370ff] hover:to-[#5992ff]
+    shadow-lg hover:shadow-xl hover:shadow-blue-500/20
     border-0
   `,
   secondary: `
-    bg-white/10 text-white
-    hover:bg-white/20
-    border border-white/10 hover:border-white/20
+    bg-white/6 text-white
+    hover:bg-white/12
+    border border-[var(--color-border)] hover:border-[var(--color-border-hover)]
   `,
   success: `
     bg-gradient-to-r from-emerald-600 to-emerald-500 text-white
     hover:from-emerald-500 hover:to-emerald-400
-    shadow-lg hover:shadow-xl hover:shadow-emerald-500/25
+    shadow-lg hover:shadow-xl hover:shadow-emerald-500/20
     border-0
   `,
   danger: `
     bg-gradient-to-r from-red-600 to-red-500 text-white
     hover:from-red-500 hover:to-red-400
-    shadow-lg hover:shadow-xl hover:shadow-red-500/25
+    shadow-lg hover:shadow-xl hover:shadow-red-500/20
     border-0
   `,
   ghost: `
-    bg-transparent text-gray-400
+    bg-transparent text-[var(--color-text-secondary)]
     hover:bg-white/5 hover:text-white
     border border-transparent
+  `,
+  outline: `
+    bg-transparent text-[var(--color-primary-400)]
+    border border-[var(--color-primary-500)]/30
+    hover:bg-[var(--color-primary-500)]/10 hover:border-[var(--color-primary-500)]/50
   `,
 };
 
@@ -82,7 +87,7 @@ export const Button: React.FC<ButtonProps> = ({
         inline-flex items-center justify-center gap-2
         font-semibold
         transition-all duration-200
-        focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-transparent
+        focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary-500)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-bg-dark)]
         disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none
         ${variantClasses[variant]}
         ${sizeClasses[size]}
@@ -139,7 +144,7 @@ export const IconButton: React.FC<IconButtonProps> = ({
         inline-flex items-center justify-center
         rounded-xl
         transition-all duration-200
-        focus:outline-none focus:ring-2 focus:ring-blue-500
+        focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary-500)]
         disabled:opacity-50 disabled:cursor-not-allowed
         ${variantClasses[variant]}
         ${sizeMap[size]}

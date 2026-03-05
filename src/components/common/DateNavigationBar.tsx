@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Calendar, ChevronLeft, ChevronRight, X } from "lucide-react";
 import { DayPicker } from "react-day-picker";
 import { motion, AnimatePresence } from "motion/react";
@@ -15,27 +15,50 @@ const DateNavigationBar: React.FC<DateNavigationBarProps> = ({
 }) => {
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
 
-  const goToPreviousDay = () => {
+  const goToPreviousDay = useCallback(() => {
     const prev = new Date(selectedDay);
     prev.setDate(prev.getDate() - 1);
     onDayChange(prev);
-  };
+  }, [selectedDay, onDayChange]);
 
-  const goToNextDay = () => {
+  const goToNextDay = useCallback(() => {
     const next = new Date(selectedDay);
     next.setDate(next.getDate() + 1);
     onDayChange(next);
-  };
+  }, [selectedDay, onDayChange]);
 
   const goToToday = () => onDayChange(new Date());
 
+  // Keyboard navigation: left/right arrow keys
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Don't trigger if user is typing in an input
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+      if (isCalendarOpen) return;
+
+      if (e.key === "ArrowLeft") {
+        e.preventDefault();
+        goToPreviousDay();
+      } else if (e.key === "ArrowRight") {
+        e.preventDefault();
+        goToNextDay();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [goToPreviousDay, goToNextDay, isCalendarOpen]);
+
+  const weekday = selectedDay.toLocaleDateString("en-US", { weekday: "long" });
+  const dateStr = selectedDay.toLocaleDateString("en-US", { month: "long", day: "numeric" });
+
   return (
     <>
-      <div className="flex items-center justify-between p-4 bg-white/5 rounded-xl mb-6">
+      <div className="flex items-center justify-between p-4 bg-[var(--color-bg-elevated)] border border-[var(--color-border)] rounded-xl mb-6">
         <button
           onClick={goToPreviousDay}
           aria-label="Previous day"
-          className="p-2 rounded-lg bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white transition-colors"
+          className="p-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-[var(--color-text-secondary)] hover:text-white transition-all duration-[var(--transition-fast)] active:scale-95"
         >
           <ChevronLeft size={20} />
         </button>
@@ -44,21 +67,22 @@ const DateNavigationBar: React.FC<DateNavigationBarProps> = ({
           <button
             onClick={() => setIsCalendarOpen(true)}
             aria-label="Open calendar"
-            className="flex items-center gap-2 px-4 py-2 bg-white/5 hover:bg-white/10 rounded-lg transition-colors"
+            className="flex items-center gap-3 px-4 py-2 bg-white/5 hover:bg-white/10 rounded-xl transition-all duration-[var(--transition-fast)]"
           >
-            <Calendar size={18} className="text-gray-400" />
-            <span className="text-white font-medium">
-              {selectedDay.toLocaleDateString("en-US", {
-                weekday: "long",
-                month: "long",
-                day: "numeric",
-              })}
-            </span>
+            <Calendar size={18} className="text-[var(--color-primary-500)]" />
+            <div className="flex flex-col items-start sm:flex-row sm:items-baseline sm:gap-2">
+              <span className="text-base sm:text-lg font-bold text-white tracking-tight">
+                {weekday}
+              </span>
+              <span className="text-sm text-[var(--color-text-secondary)]">
+                {dateStr}
+              </span>
+            </div>
           </button>
           {selectedDay.toDateString() !== new Date().toDateString() && (
             <button
               onClick={goToToday}
-              className="px-3 py-1 text-xs bg-blue-500/20 text-blue-400 rounded-lg hover:bg-blue-500/30 transition-colors"
+              className="px-3 py-1.5 text-xs font-medium bg-[var(--color-primary-500)]/15 text-[var(--color-primary-500)] rounded-lg hover:bg-[var(--color-primary-500)]/25 transition-all duration-[var(--transition-fast)] border border-[var(--color-primary-500)]/20"
             >
               Today
             </button>
@@ -68,7 +92,7 @@ const DateNavigationBar: React.FC<DateNavigationBarProps> = ({
         <button
           onClick={goToNextDay}
           aria-label="Next day"
-          className="p-2 rounded-lg bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white transition-colors"
+          className="p-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-[var(--color-text-secondary)] hover:text-white transition-all duration-[var(--transition-fast)] active:scale-95"
         >
           <ChevronRight size={20} />
         </button>

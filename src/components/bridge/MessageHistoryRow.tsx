@@ -1,5 +1,6 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { ArrowUpRight, ArrowDownLeft, Clock, Check, AlertCircle, Loader2 } from "lucide-react";
+import { motion } from "motion/react";
 import {
   ETHDepositOrWithdrawalMessage,
   getOutgoingMessageState,
@@ -13,7 +14,7 @@ import { useAccount, useSwitchChain } from "wagmi";
 import { useEthersSigner } from "@/utils/ethersHelper";
 import { useAppContext } from "@/context/AppContext";
 import { formatTimestamp } from "@/utils/utils";
-import { TransactionModal, TransactionStatus } from "@/components/ui";
+import { Badge, TransactionModal, TransactionStatus } from "@/components/ui";
 
 interface MessageHistoryRowProps {
   message: ETHDepositOrWithdrawalMessage;
@@ -121,32 +122,28 @@ const MessageHistoryRow: React.FC<MessageHistoryRowProps> = ({ message, refetchM
     return () => clearInterval(interval);
   }, []);
 
-  const getStatusConfig = () => {
+  const getStatusBadge = (): { variant: "success" | "warning" | "info"; icon: React.ReactNode; pulse: boolean } => {
     if (isSuccess) {
-      return {
-        color: "emerald",
-        bgColor: "bg-emerald-500/10",
-        textColor: "text-emerald-400",
-        icon: <Check size={12} />,
-      };
+      return { variant: "success", icon: <Check size={12} />, pulse: false };
     }
     if (isWaitingForConfirmation) {
-      return {
-        color: "amber",
-        bgColor: "bg-amber-500/10",
-        textColor: "text-amber-400",
-        icon: <Clock size={12} />,
-      };
+      return { variant: "warning", icon: <Clock size={12} />, pulse: true };
     }
-    return {
-      color: "blue",
-      bgColor: "bg-blue-500/10",
-      textColor: "text-blue-400",
-      icon: <AlertCircle size={12} />,
-    };
+    return { variant: "info", icon: <AlertCircle size={12} />, pulse: false };
   };
 
-  const statusConfig = getStatusConfig();
+  const statusBadge = getStatusBadge();
+
+  /** Challenge period progress for pending withdrawals (7 days = 604800s) */
+  const CHALLENGE_PERIOD_SECONDS = 7 * 24 * 60 * 60;
+  const withdrawalProgress = useMemo(() => {
+    if (isDeposit || isSuccess || remainingTime === undefined) return null;
+    const now = Math.floor(Date.now() / 1000);
+    const remaining = Math.max(0, remainingTime - now);
+    const elapsed = CHALLENGE_PERIOD_SECONDS - remaining;
+    const pct = Math.min(100, Math.max(0, (elapsed / CHALLENGE_PERIOD_SECONDS) * 100));
+    return { pct, remaining };
+  }, [isDeposit, isSuccess, remainingTime]);
 
   return (
     <div className="p-4 rounded-xl bg-white/[0.03] border border-white/5 hover:border-white/10 transition-colors">
@@ -176,16 +173,15 @@ const MessageHistoryRow: React.FC<MessageHistoryRowProps> = ({ message, refetchM
           </div>
         </div>
 
-        {/* Status badge */}
-        <div
-          className={`
-            flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium
-            ${statusConfig.bgColor} ${statusConfig.textColor}
-          `}
+        {/* Status badge — using Badge component */}
+        <Badge
+          variant={statusBadge.variant}
+          size="sm"
+          icon={statusBadge.icon}
+          pulse={statusBadge.pulse}
         >
-          {statusConfig.icon}
           {message.status.status}
-        </div>
+        </Badge>
       </div>
 
       {/* Route */}
@@ -194,6 +190,27 @@ const MessageHistoryRow: React.FC<MessageHistoryRowProps> = ({ message, refetchM
         <span className="text-gray-600">→</span>
         <span className="text-gray-400">{message.to.name}</span>
       </div>
+
+      {/* Progress bar for pending withdrawals */}
+      {withdrawalProgress && !isSuccess && (
+        <div className="mb-3">
+          <div className="flex items-center justify-between text-[10px] text-gray-500 mb-1">
+            <span>Challenge period</span>
+            <span>{Math.round(withdrawalProgress.pct)}% complete</span>
+          </div>
+          <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
+            <motion.div
+              className="h-full bg-gradient-to-r from-amber-500 to-emerald-500 rounded-full"
+              initial={{ width: 0 }}
+              animate={{ width: `${withdrawalProgress.pct}%` }}
+              transition={{ duration: 0.8, ease: "easeOut" }}
+            />
+          </div>
+          <p className="text-[10px] text-gray-500 mt-1">
+            ~{formatTimestamp(withdrawalProgress.remaining)} remaining
+          </p>
+        </div>
+      )}
 
       {/* Amount */}
       <div className="flex items-center justify-between">

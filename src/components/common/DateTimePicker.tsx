@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useEffect } from "react";
 import { DayPicker, DateRange } from "react-day-picker";
 import "react-day-picker/dist/style.css";
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, Clock } from "lucide-react";
 
 import { getNextHour, computeHourTimestamps } from "@/utils/dateHelpers";
 
@@ -94,8 +94,43 @@ const DateTimePicker: React.FC<DateTimePickerProps> = ({
 
   const hasTodaySelected = isDayToday(getAllSelectedDays());
 
+  // Quick preset handlers
+  const setPresetToday = () => {
+    const today = new Date();
+    setMode("range");
+    setDateRange({ from: today, to: today });
+    const nextHour = Math.min(new Date().getHours() + 1, 23);
+    setStartHour(nextHour);
+    setEndHour(24);
+  };
+
+  const setPresetTomorrow = () => {
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    setMode("range");
+    setDateRange({ from: tomorrow, to: tomorrow });
+    setStartHour(0);
+    setEndHour(24);
+  };
+
   return (
     <div className="space-y-6">
+      {/* Quick Preset Buttons */}
+      <div className="flex items-center justify-center gap-2">
+        <button
+          onClick={setPresetToday}
+          className="px-3 py-1.5 text-xs font-medium rounded-lg bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 border border-blue-500/20 transition-all"
+        >
+          Today
+        </button>
+        <button
+          onClick={setPresetTomorrow}
+          className="px-3 py-1.5 text-xs font-medium rounded-lg bg-white/5 text-gray-400 hover:bg-white/10 hover:text-white border border-white/10 transition-all"
+        >
+          Tomorrow
+        </button>
+      </div>
+
       {/* Mode Toggle */}
       <div className="flex items-center justify-center">
         <div className="inline-flex items-center p-1 bg-white/5 rounded-xl border border-white/10">
@@ -138,6 +173,7 @@ const DateTimePicker: React.FC<DateTimePickerProps> = ({
             mode="range"
             selected={dateRange}
             onSelect={setDateRange}
+            disabled={{ before: new Date() }}
           />
         ) : (
           <DayPicker
@@ -145,6 +181,7 @@ const DateTimePicker: React.FC<DateTimePickerProps> = ({
             mode="multiple"
             selected={selectedDays}
             onSelect={(dates) => setSelectedDays(dates || [])}
+            disabled={{ before: new Date() }}
           />
         )}
       </div>
@@ -161,15 +198,52 @@ const DateTimePicker: React.FC<DateTimePickerProps> = ({
         </div>
       )}
 
+      {/* Visual Time Range Indicator */}
+      {startHour < endHour && (
+        <div className="px-1">
+          <div className="flex items-center gap-2 mb-2">
+            <Clock size={14} className="text-blue-400" />
+            <span className="text-xs text-gray-400">
+              Selected: {String(startHour).padStart(2, "0")}:00 &ndash; {String(endHour).padStart(2, "0")}:00 ({endHour - startHour}h)
+            </span>
+          </div>
+          <div className="relative h-3 bg-white/5 rounded-full overflow-hidden">
+            <div
+              className="absolute top-0 bottom-0 bg-gradient-to-r from-blue-600 to-blue-400 rounded-full transition-all duration-300"
+              style={{
+                left: `${(startHour / 24) * 100}%`,
+                width: `${((endHour - startHour) / 24) * 100}%`,
+              }}
+            />
+            {/* Hour markers */}
+            {[0, 6, 12, 18, 24].map((h) => (
+              <div
+                key={h}
+                className="absolute top-0 bottom-0 w-px bg-white/10"
+                style={{ left: `${(h / 24) * 100}%` }}
+              />
+            ))}
+          </div>
+          <div className="flex justify-between mt-1 text-[10px] text-gray-600">
+            <span>00</span>
+            <span>06</span>
+            <span>12</span>
+            <span>18</span>
+            <span>24</span>
+          </div>
+        </div>
+      )}
+
       {/* Hour Grid: Start */}
       <div>
         <label className="block text-sm font-semibold text-gray-300 mb-3 uppercase tracking-wide text-center">
           Start Hour
         </label>
-        <div className="grid grid-cols-6 sm:grid-cols-8 md:grid-cols-12 gap-1.5">
+        <div className="grid grid-cols-4 min-[400px]:grid-cols-6 sm:grid-cols-8 md:grid-cols-12 gap-1.5">
           {HOURS.map((h) => {
             const isPast = hasTodaySelected && h <= currentHour;
             const isSelected = h === startHour;
+            const isInRange = h >= startHour && h < endHour;
 
             return (
               <button
@@ -185,7 +259,9 @@ const DateTimePicker: React.FC<DateTimePickerProps> = ({
                     ? "bg-blue-600 text-white shadow-lg shadow-blue-500/30 ring-1 ring-blue-400"
                     : isPast
                       ? "bg-white/5 text-gray-600 opacity-30 cursor-not-allowed"
-                      : "bg-white/5 text-gray-300 hover:bg-white/10 hover:text-white"
+                      : isInRange
+                        ? "bg-blue-500/10 text-blue-300 hover:bg-blue-500/20"
+                        : "bg-white/5 text-gray-300 hover:bg-white/10 hover:text-white"
                   }
                 `}
               >
@@ -201,13 +277,14 @@ const DateTimePicker: React.FC<DateTimePickerProps> = ({
         <label className="block text-sm font-semibold text-gray-300 mb-3 uppercase tracking-wide text-center">
           End Hour
         </label>
-        <div className="grid grid-cols-6 sm:grid-cols-8 md:grid-cols-12 gap-1.5">
+        <div className="grid grid-cols-4 min-[400px]:grid-cols-6 sm:grid-cols-8 md:grid-cols-12 gap-1.5">
           {HOURS.map((h) => {
             // End hour is exclusive, so endHour = h+1 means "up to h:59"
             const hourValue = h + 1;
             const isPast = hasTodaySelected && h < currentHour;
             const isSelected = hourValue === endHour;
             const isBefore = hourValue <= startHour;
+            const isInRange = hourValue > startHour && hourValue <= endHour && !isSelected;
 
             return (
               <button
@@ -220,7 +297,9 @@ const DateTimePicker: React.FC<DateTimePickerProps> = ({
                     ? "bg-blue-600 text-white shadow-lg shadow-blue-500/30 ring-1 ring-blue-400"
                     : isPast || isBefore
                       ? "bg-white/5 text-gray-600 opacity-30 cursor-not-allowed"
-                      : "bg-white/5 text-gray-300 hover:bg-white/10 hover:text-white"
+                      : isInRange
+                        ? "bg-blue-500/10 text-blue-300 hover:bg-blue-500/20"
+                        : "bg-white/5 text-gray-300 hover:bg-white/10 hover:text-white"
                   }
                 `}
               >
