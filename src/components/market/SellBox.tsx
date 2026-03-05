@@ -155,9 +155,9 @@ const SellBox: React.FC = () => {
         {/* Energy Input */}
         <CardSection title="Energy Amount" className="mb-6">
           <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2 px-4 py-3 bg-amber-500/10 border border-amber-500/20 rounded-xl">
+            <div className="flex items-center gap-2 px-4 py-3 bg-amber-500/10 border border-amber-500/20 rounded-xl shrink-0">
               <Image src="/energy.png" alt="Energy" width={24} height={24} />
-              <span className="text-sm font-medium text-amber-400">kWh</span>
+              <span className="text-sm font-medium text-amber-400 whitespace-nowrap">kWh</span>
             </div>
             <input
               type="number"

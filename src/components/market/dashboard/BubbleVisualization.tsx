@@ -48,8 +48,8 @@ const SELLER_COLOR = "#10B981";
 const BUYER_COLOR_LIGHT = "rgba(59, 130, 246, 0.15)";
 const SELLER_COLOR_LIGHT = "rgba(16, 185, 129, 0.15)";
 const PRICE_COLOR = "#F59E0B";
-const MIN_RADIUS = 20;
-const MAX_RADIUS = 48;
+const MIN_RADIUS = 32;
+const MAX_RADIUS = 56;
 const TOOLTIP_WIDTH = 220;
 const TOOLTIP_HEIGHT_ESTIMATE = 180;
 
@@ -396,7 +396,7 @@ const BubbleVisualization: React.FC<BubbleVisualizationProps> = ({
             .attr("text-anchor", "middle")
             .attr("dy", "-0.3em")
             .attr("fill", "white")
-            .attr("font-size", (d) => (d.radius > 30 ? "10px" : "8px"))
+            .attr("font-size", (d) => (d.radius >= 44 ? "10px" : "8px"))
             .attr("font-family", "monospace")
             .attr("font-weight", "500")
             .attr("pointer-events", "none")
@@ -411,7 +411,7 @@ const BubbleVisualization: React.FC<BubbleVisualizationProps> = ({
             .attr("fill", (d) =>
               d.type === "buyer" ? BUYER_COLOR : SELLER_COLOR
             )
-            .attr("font-size", (d) => (d.radius > 30 ? "10px" : "8px"))
+            .attr("font-size", (d) => (d.radius >= 44 ? "10px" : "8px"))
             .attr("font-weight", "bold")
             .attr("pointer-events", "none")
             .text((d) => `${d.amount} kWh`);
