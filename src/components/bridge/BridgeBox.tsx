@@ -2,7 +2,7 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { ArrowDownUp, Wallet, AlertCircle } from "lucide-react";
 import { useAccount, useConfig } from "wagmi";
-import { motion } from "framer-motion";
+import { motion } from "motion/react";
 import Image from "next/image";
 
 import { useAppContext } from "@/context/AppContext";

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useAccount, useReadContract, useWaitForTransactionReceipt, useWriteContract } from "wagmi";
 import { TrendingUp, Info, Clock, ShieldX } from "lucide-react";
-import { Spinner } from "@chakra-ui/react";
+import { Spinner } from "@/components/ui/Spinner";
 import Image from "next/image";
 
 import EnergyBiddingMarketAbi from "@/../abi/EnergyBiddingMarket.json";

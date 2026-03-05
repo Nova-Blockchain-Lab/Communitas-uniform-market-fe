@@ -2,7 +2,7 @@
  * Wagmi and Reown AppKit configuration
  */
 
-import { http } from "wagmi";
+import { http, cookieStorage, createStorage } from "wagmi";
 import { WagmiAdapter } from "@reown/appkit-adapter-wagmi";
 import { novaCidadeMainnet, customArbitrumSepolia } from "./chains";
 import type { AppKitNetwork } from "@reown/appkit/networks";
@@ -24,10 +24,12 @@ const networks: [AppKitNetwork, ...AppKitNetwork[]] = [
   customArbitrumSepolia as AppKitNetwork,
 ];
 
-// Create WagmiAdapter
+// Create WagmiAdapter with SSR support
 export const wagmiAdapter = new WagmiAdapter({
   projectId,
   networks,
+  ssr: true,
+  storage: createStorage({ storage: cookieStorage }) as any,
   transports: {
     [novaCidadeMainnet.id]: http(),
     [customArbitrumSepolia.id]: http(),

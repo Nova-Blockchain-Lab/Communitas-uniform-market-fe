@@ -6,8 +6,9 @@ import {
   useWriteContract,
 } from "wagmi";
 import { Wallet, Coins, ArrowDown, Info, RefreshCw } from "lucide-react";
-import { Switch, Spinner } from "@chakra-ui/react";
-import { motion } from "framer-motion";
+import { Switch } from "@/components/ui/Switch";
+import { Spinner } from "@/components/ui/Spinner";
+import { motion } from "motion/react";
 import Image from "next/image";
 
 import EnergyBiddingMarketAbi from "@/../abi/EnergyBiddingMarket.json";
@@ -208,7 +209,7 @@ const ClaimBox: React.FC = () => {
                   size="sm"
                   colorScheme="blue"
                   isChecked={claimToOther}
-                  onChange={(e) => setClaimToOther(e.target.checked)}
+                  onChange={() => setClaimToOther(!claimToOther)}
                 />
               </div>
               {claimToOther ? (

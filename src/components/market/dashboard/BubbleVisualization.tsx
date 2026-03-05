@@ -1,6 +1,6 @@
 import React, { useRef, useEffect, useState, useCallback, useMemo } from "react";
 import * as d3 from "d3";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence } from "motion/react";
 import { Users, Zap, TrendingUp, Activity } from "lucide-react";
 import type { HourData, Participant } from "@/hooks/useDashboardData";
 import { truncateAddress } from "@/utils/dateHelpers";

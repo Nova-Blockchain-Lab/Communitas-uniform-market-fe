@@ -1,31 +1,22 @@
-import { useToast, UseToastOptions } from "@chakra-ui/react";
-import { useCallback, useMemo } from "react";
+import toast from "react-hot-toast";
+import { useMemo } from "react";
 
-type ToastStatus = "error" | "success" | "info" | "warning";
+function format(title: string, description?: string): string {
+  return description ? `${title}\n${description}` : title;
+}
 
 export function useMarketToast() {
-  const toast = useToast();
-
-  const show = useCallback(
-    (status: ToastStatus, title: string, description?: string) => {
-      toast({
-        title,
-        description,
-        status,
-        duration: 5000,
-        isClosable: true,
-      });
-    },
-    [toast]
-  );
-
   return useMemo(
     () => ({
-      error: (title: string, description?: string) => show("error", title, description),
-      success: (title: string, description?: string) => show("success", title, description),
-      info: (title: string, description?: string) => show("info", title, description),
-      warning: (title: string, description?: string) => show("warning", title, description),
+      error: (title: string, description?: string) =>
+        toast.error(format(title, description)),
+      success: (title: string, description?: string) =>
+        toast.success(format(title, description)),
+      info: (title: string, description?: string) =>
+        toast(format(title, description)),
+      warning: (title: string, description?: string) =>
+        toast(format(title, description), { icon: "\u26A0\uFE0F" }),
     }),
-    [show]
+    []
   );
 }

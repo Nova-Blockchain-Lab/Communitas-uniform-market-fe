@@ -2,7 +2,7 @@
 import React from "react";
 import { Wallet, ArrowRight, RefreshCw } from "lucide-react";
 import { useAccount, useSwitchChain } from "wagmi";
-import { motion } from "framer-motion";
+import { motion } from "motion/react";
 
 import { defaultChain } from "@/config";
 import { SubmitDepositButton } from "./SubmitDepositButton";

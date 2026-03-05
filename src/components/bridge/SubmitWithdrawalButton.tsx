@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { ArrowDown, Clock } from "lucide-react";
 import { BigNumber } from "ethers";
 import { EthBridger, getArbitrumNetwork } from "@arbitrum/sdk";
-import { motion } from "framer-motion";
+import { motion } from "motion/react";
 import { useAccount } from "wagmi";
 
 import { useEthersSigner } from "@/utils/ethersHelper";

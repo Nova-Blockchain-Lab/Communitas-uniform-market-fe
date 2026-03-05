@@ -1,5 +1,4 @@
-// Proxied through Next.js rewrite to avoid CORS (see next.config.js)
-const BLOCKSCOUT_PROXY = "/api/blockscout";
+const BLOCKSCOUT_PROXY = "https://testnet.explorer.novaims.unl.pt/api";
 
 interface BlockscoutLog {
   address: string;

@@ -19,7 +19,7 @@ export const Spinner: React.FC<SpinnerProps> = ({
   color = "currentColor",
   className = "",
 }) => {
-  // Handle Chakra-style color props like "blue.400"
+  // Handle dot-notation color props like "blue.400"
   const getColorClass = (colorProp: string) => {
     if (colorProp === "currentColor") return "text-current";
     if (colorProp.includes(".")) {

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Clock, Loader2, AlertTriangle } from "lucide-react";
-import { motion } from "framer-motion";
+import { motion } from "motion/react";
 import NFTCard from "@/components/nft/NFTCard";
 import { getPendingOutgoingNftsFromEventLogs, NFTDataWithStatus } from "@/utils/executeMessageL2ToL1Helper";
 import { useAppContext } from "@/context/AppContext";

@@ -2,7 +2,7 @@ import Head from "next/head";
 import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
-import { motion } from "framer-motion";
+import { motion } from "motion/react";
 import { ArrowLeft, ArrowLeftRight, Clock } from "lucide-react";
 
 import { AppProvider } from "@/context/AppContext";

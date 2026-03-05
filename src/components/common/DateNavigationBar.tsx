@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Calendar, ChevronLeft, ChevronRight, X } from "lucide-react";
 import { DayPicker } from "react-day-picker";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence } from "motion/react";
 import "react-day-picker/dist/style.css";
 
 interface DateNavigationBarProps {

@@ -1,6 +1,6 @@
 import React from "react";
 import { useAccount, useSwitchChain } from "wagmi";
-import { motion } from "framer-motion";
+import { motion } from "motion/react";
 import { Wallet, RefreshCw, AlertTriangle } from "lucide-react";
 
 import { defaultChain } from "@/config";

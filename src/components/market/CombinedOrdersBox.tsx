@@ -7,8 +7,8 @@ import {
   useWriteContract,
 } from "wagmi";
 import { ClipboardList, Check, AlertCircle, X } from "lucide-react";
-import { Spinner } from "@chakra-ui/react";
-import { motion } from "framer-motion";
+import { Spinner } from "@/components/ui/Spinner";
+import { motion } from "motion/react";
 
 import EnergyBiddingMarketAbi from "@/../abi/EnergyBiddingMarket.json";
 import { DECIMALS, defaultChain } from "@/config";

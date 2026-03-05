@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useAccount } from "wagmi";
 import { BarChart3 } from "lucide-react";
-import { Spinner } from "@chakra-ui/react";
+import { Spinner } from "@/components/ui/Spinner";
 
 import { defaultChain } from "@/config";
 import { useAppContext } from "@/context/AppContext";

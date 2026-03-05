@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from "react";
 import { MapPin, ChevronDown } from "lucide-react";
 import { useAccount } from "wagmi";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence } from "motion/react";
 
 import { contractAddresses } from "@/config";
 import { useAppContext } from "@/context/AppContext";

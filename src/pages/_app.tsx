@@ -1,14 +1,14 @@
 "use client";
 
 import "@/styles/globals.css";
-import { WagmiProvider } from "wagmi";
+import { WagmiProvider, cookieToInitialState } from "wagmi";
 import type { AppProps } from "next/app";
-import { useEffect, useState } from "react";
-import { wagmiAdapter, projectId, metadata, defaultChain, novaCidadeMainnet } from "@/config";
+import { wagmiAdapter, wagmiConfig, projectId, metadata, defaultChain, novaCidadeMainnet } from "@/config";
 import { customArbitrumSepolia } from "@/config/chains";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { createAppKit } from "@reown/appkit/react";
 import { Analytics } from "@vercel/analytics/react";
+import { Toaster } from "react-hot-toast";
 import type { AppKitNetwork } from "@reown/appkit/networks";
 
 // Create queryClient outside component to prevent recreation
@@ -38,22 +38,15 @@ if (projectId) {
 }
 
 export default function App({ Component, pageProps }: AppProps) {
-  const [ready, setReady] = useState(false);
-
-  useEffect(() => {
-    setReady(true);
-  }, []);
+  const initialState = cookieToInitialState(wagmiConfig);
 
   return (
-    <>
-      {ready ? (
-        <WagmiProvider config={wagmiAdapter.wagmiConfig}>
-          <QueryClientProvider client={queryClient}>
-            <Analytics />
-            <Component {...pageProps} />
-          </QueryClientProvider>
-        </WagmiProvider>
-      ) : null}
-    </>
+    <WagmiProvider config={wagmiConfig} initialState={initialState}>
+      <QueryClientProvider client={queryClient}>
+        <Analytics />
+        <Toaster position="top-right" />
+        <Component {...pageProps} />
+      </QueryClientProvider>
+    </WagmiProvider>
   );
 }

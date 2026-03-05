@@ -7,7 +7,7 @@ import {
   useReadContract,
 } from "wagmi";
 import { Zap, ArrowLeftRight, Calendar, Clock, Info } from "lucide-react";
-import { Spinner } from "@chakra-ui/react";
+import { Spinner } from "@/components/ui/Spinner";
 import Image from "next/image";
 
 import EnergyBiddingMarketAbi from "@/../abi/EnergyBiddingMarket.json";
