@@ -204,7 +204,7 @@ const DateTimePicker: React.FC<DateTimePickerProps> = ({
           <div className="flex items-center gap-2 mb-2">
             <Clock size={14} className="text-blue-400" />
             <span className="text-xs text-gray-400">
-              Selected: {String(startHour).padStart(2, "0")}:00 &ndash; {String(endHour).padStart(2, "0")}:00 ({endHour - startHour}h)
+              Hours {String(startHour).padStart(2, "0")} &ndash; {String(endHour - 1).padStart(2, "0")} ({endHour - startHour}h)
             </span>
           </div>
           <div className="relative h-3 bg-white/5 rounded-full overflow-hidden">
@@ -275,7 +275,7 @@ const DateTimePicker: React.FC<DateTimePickerProps> = ({
       {/* Hour Grid: End */}
       <div>
         <label className="block text-sm font-semibold text-gray-300 mb-3 uppercase tracking-wide text-center">
-          End Hour
+          Last Hour
         </label>
         <div className="grid grid-cols-4 min-[400px]:grid-cols-6 sm:grid-cols-8 md:grid-cols-12 gap-1.5">
           {HOURS.map((h) => {

@@ -25,7 +25,9 @@ const BidBox: React.FC = () => {
 
   // Form state
   const [energy, setEnergy] = useState<number>(0);
+  const [energyDisplay, setEnergyDisplay] = useState<string>("0");
   const [pricePerKwh, setPricePerKwh] = useState<number>(0.0000057);
+  const [priceDisplay, setPriceDisplay] = useState<string>("0.0000057");
   const [isPriceInEUR, setIsPriceInEUR] = useState<boolean>(true);
 
   // Single source of truth for selected hours
@@ -170,8 +172,14 @@ const BidBox: React.FC = () => {
             </div>
             <input
               type="number"
-              value={energy}
-              onChange={(e) => setEnergy(Math.max(0, parseFloat(e.target.value) || 0))}
+              value={energyDisplay}
+              onChange={(e) => {
+                const raw = e.target.value;
+                setEnergyDisplay(raw);
+                const parsed = parseFloat(raw);
+                setEnergy(isNaN(parsed) || parsed < 0 ? 0 : parsed);
+              }}
+              onBlur={() => setEnergyDisplay(String(energy))}
               min={0}
               className={`flex-1 px-4 py-3 bg-white/5 border rounded-xl text-white text-base sm:text-lg font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
                 energyError ? "border-red-500/60" : "border-white/10"
@@ -186,7 +194,11 @@ const BidBox: React.FC = () => {
               max={100}
               step={1}
               value={Math.min(energy, 100)}
-              onChange={(e) => setEnergy(parseFloat(e.target.value))}
+              onChange={(e) => {
+                const val = parseFloat(e.target.value);
+                setEnergy(val);
+                setEnergyDisplay(e.target.value);
+              }}
               className="w-full h-2 rounded-full appearance-none cursor-pointer bg-white/10
                 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-blue-500 [&::-webkit-slider-thumb]:shadow-lg [&::-webkit-slider-thumb]:shadow-blue-500/40 [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:transition-transform [&::-webkit-slider-thumb]:hover:scale-110
                 [&::-moz-range-thumb]:w-5 [&::-moz-range-thumb]:h-5 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-blue-500 [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:shadow-lg [&::-moz-range-thumb]:shadow-blue-500/40 [&::-moz-range-thumb]:cursor-pointer"
@@ -235,8 +247,14 @@ const BidBox: React.FC = () => {
             <div className="relative flex-1">
               <input
                 type="number"
-                value={pricePerKwh}
-                onChange={(e) => setPricePerKwh(Math.max(0, parseFloat(e.target.value) || 0))}
+                value={priceDisplay}
+                onChange={(e) => {
+                  const raw = e.target.value;
+                  setPriceDisplay(raw);
+                  const parsed = parseFloat(raw);
+                  setPricePerKwh(isNaN(parsed) || parsed < 0 ? 0 : parsed);
+                }}
+                onBlur={() => setPriceDisplay(String(pricePerKwh))}
                 min={0}
                 step={isPriceInEUR ? 0.01 : 0.000001}
                 className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white text-base sm:text-lg font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -267,7 +285,7 @@ const BidBox: React.FC = () => {
           <div className="flex items-center justify-between">
             <span className="text-sm text-gray-400">Total Cost</span>
             <div className="text-right">
-              <div className="text-2xl sm:text-3xl font-bold text-white glow-energy">
+              <div className="text-2xl sm:text-3xl font-bold text-white">
                 {getTotalCost().toFixed(6)} <span className="text-lg text-amber-400">ETH</span>
               </div>
               {ethPrice && (

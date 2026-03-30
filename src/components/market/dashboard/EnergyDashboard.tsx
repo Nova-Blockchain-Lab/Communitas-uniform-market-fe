@@ -1,5 +1,4 @@
 import React, { useState, useMemo } from "react";
-import { useAccount } from "wagmi";
 import {
   BarChart3,
   Users,
@@ -9,11 +8,9 @@ import {
   LayoutGrid,
 } from "lucide-react";
 
-import { defaultChain } from "@/config";
 import { useAppContext } from "@/context/AppContext";
 import { useDashboardData } from "@/hooks/useDashboardData";
 import { useTradeData } from "@/hooks/useTradeData";
-import ConnectAndSwitchNetworkButton from "@/components/common/ConnectAndSwitchNetworkButton";
 import DateNavigationBar from "@/components/common/DateNavigationBar";
 import {
   Card,
@@ -26,7 +23,6 @@ import HourSelector from "./HourSelector";
 import BubbleVisualization from "./BubbleVisualization";
 
 const EnergyDashboard: React.FC = () => {
-  const { isConnected, chainId } = useAccount();
   const { ethPrice, energyMarketAddress } = useAppContext();
   const [selectedDay, setSelectedDay] = useState<Date>(new Date());
   const [selectedHour, setSelectedHour] = useState<number>(
@@ -36,8 +32,6 @@ const EnergyDashboard: React.FC = () => {
   const { hourData, isPending } = useDashboardData(selectedDay);
   const { trades } = useTradeData(selectedDay, energyMarketAddress);
 
-  const needsConnection =
-    !isConnected || (chainId !== undefined && defaultChain.id !== chainId);
   const currentHourData = hourData.find((h) => h.hour === selectedHour);
 
   const currentHourTrades = useMemo(() => {
@@ -83,7 +77,7 @@ const EnergyDashboard: React.FC = () => {
           subtitle="Real-time market participant visualization"
           icon={<BarChart3 size={20} />}
           action={
-            !needsConnection && !isPending ? (
+            !isPending ? (
               <div className="flex items-center gap-1 p-1 rounded-lg bg-white/5 border border-[var(--color-border)]">
                 <button
                   onClick={() => setViewMode("chart")}
@@ -119,11 +113,7 @@ const EnergyDashboard: React.FC = () => {
           onDayChange={setSelectedDay}
         />
 
-        {needsConnection ? (
-          <div className="py-8">
-            <ConnectAndSwitchNetworkButton />
-          </div>
-        ) : isPending ? (
+        {isPending ? (
           /* Skeleton loading state */
           <div className="space-y-6 mt-4">
             {/* Market summary skeleton */}

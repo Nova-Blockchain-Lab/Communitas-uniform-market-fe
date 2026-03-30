@@ -16,7 +16,7 @@ import { useAppContext } from "@/context/AppContext";
 import { useMarketToast } from "@/hooks/useMarketToast";
 import ConnectAndSwitchNetworkButton from "@/components/common/ConnectAndSwitchNetworkButton";
 import DateNavigationBar from "@/components/common/DateNavigationBar";
-import { Card, CardHeader, Button, Badge, EmptyState, SkeletonBlock, type TransactionStatus } from "@/components/ui";
+import { Card, CardHeader, Button, Badge, EmptyState, SkeletonBlock } from "@/components/ui";
 import { getTimestampsForDay, formatTime } from "@/utils/dateHelpers";
 import { wattsToKWh, pricePerWattToPerKWh } from "@/utils/units";
 import { AbiFunction } from "viem";
@@ -299,12 +299,6 @@ const CombinedOrdersBox: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [sortMode, setSortMode] = useState<SortMode>("time");
 
-  // Modal state
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [txStatus, setTxStatus] = useState<TransactionStatus>("idle");
-  const [txError, setTxError] = useState<string | undefined>();
-  const [txType, setTxType] = useState<"cancel" | "clear">("cancel");
-
   const timestamps = getTimestampsForDay(selectedDay);
 
   // Contract read configs
@@ -394,29 +388,33 @@ const CombinedOrdersBox: React.FC = () => {
     if (isConnected) refetchAll();
   }, [isConnected, selectedDay, refetchAll]);
 
-  // Update modal status based on transaction state
+  // Success effect
   useEffect(() => {
     if (isConfirmed) {
       toast.success("Transaction Successful");
       setActiveOrderIndex(null);
       refetchAll();
-    } else if (writeError || confirmError) {
-      setTxStatus("error");
-      const err = writeError || confirmError;
-      if (err) {
-        let message = err.message;
-        if (message.includes("User rejected") || message.includes("user rejected")) {
-          message = "Transaction was rejected in your wallet";
-        } else if (message.includes("insufficient funds")) {
-          message = "Insufficient funds for this transaction";
-        } else if (message.length > 150) {
-          message = message.substring(0, 150) + "...";
-        }
-        setTxError(message);
-      }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isConfirmed, refetchAll]);
+
+  // Error effect
+  useEffect(() => {
+    const err = writeError || confirmError;
+    if (!err) return;
+
+    let message = err.message;
+    if (message.includes("User rejected") || message.includes("user rejected")) {
+      message = "Transaction was rejected in your wallet";
+    } else if (message.includes("insufficient funds")) {
+      message = "Insufficient funds for this transaction";
+    } else if (message.length > 150) {
+      message = message.substring(0, 150) + "...";
+    }
+    toast.error("Transaction Failed", message);
+    setActiveOrderIndex(null);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [writeError, confirmError]);
 
   // Fix #1: Pass global index to cancelBid
   const handleCancelBid = (timestamp: number, globalIndex: number) => {
@@ -433,10 +431,6 @@ const CombinedOrdersBox: React.FC = () => {
   const handleClearMarket = (timestamp: number) => {
     if (!energyMarketAddress) return;
     setActiveOrderIndex(`clear-${timestamp}`);
-    setTxType("clear");
-    setIsModalOpen(true);
-    setTxStatus("idle");
-    setTxError(undefined);
     resetWrite();
 
     writeContract({

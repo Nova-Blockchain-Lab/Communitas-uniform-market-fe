@@ -1,7 +1,6 @@
 import { fetchEthPrice } from "@/utils/fetchEthPrice";
 import React, { createContext, ReactNode, useCallback, useContext, useEffect, useRef, useState } from "react";
 import { StaticJsonRpcProvider } from "@ethersproject/providers";
-import { useAccount } from "wagmi";
 import { wagmiConfig, defaultChain } from "@/config";
 import { mapOrbitConfigToOrbitChain } from "@/utils/mapOrbitConfigToOrbitChain";
 import { registerCustomArbitrumNetwork } from "@arbitrum/sdk";
@@ -25,8 +24,6 @@ type AppContextType = {
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const { chain } = useAccount();
-
   const [ethPrice, setEthPrice] = useState<number | undefined>(undefined);
   const [energyMarketAddress, setEnergyMarketAddress] = useState<`0x${string}` | undefined>(undefined);
   const [l1Provider, setL1Provider] = useState<StaticJsonRpcProvider | undefined>(undefined);
@@ -37,42 +34,24 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const isInitializingProviders = useRef(false);
   const isOrbitRegistered = useRef(false);
 
-  const setProvidersWhenConnectedToParentChain = useCallback(() => {
-    if (isInitializingProviders.current) return;
-    isInitializingProviders.current = true;
-
-    try {
-      const newL1Provider = getProviderForChainId(chain!.id, process.env.NEXT_PUBLIC_INFURA_RPC!);
-      const newL2Provider = getProviderForChainId(defaultChain.id, defaultChain.rpcUrls.default.http[0]);
-      setL1Provider(newL1Provider);
-      setL2Provider(newL2Provider);
-      setIsProvidersReady(true);
-    } catch (error) {
-      console.error("Failed to set providers for parent chain:", error);
-      setIsProvidersReady(false);
-    } finally {
-      isInitializingProviders.current = false;
-    }
-  }, [chain]);
-
-  const setProvidersWhenConnectedToChildChain = useCallback(() => {
+  const initializeProviders = useCallback(() => {
     if (isInitializingProviders.current) return;
     isInitializingProviders.current = true;
 
     try {
       const l1chain = wagmiConfig.chains.filter((c: { id: number }) => c.id !== defaultChain.id)[0];
       const newL1Provider = getProviderForChainId(l1chain.id, process.env.NEXT_PUBLIC_INFURA_RPC!);
-      const newL2Provider = getProviderForChainId(chain!.id, chain!.rpcUrls.default.http[0]);
+      const newL2Provider = getProviderForChainId(defaultChain.id, defaultChain.rpcUrls.default.http[0]);
       setL1Provider(newL1Provider);
       setL2Provider(newL2Provider);
       setIsProvidersReady(true);
     } catch (error) {
-      console.error("Failed to set providers for child chain:", error);
+      console.error("Failed to initialize providers:", error);
       setIsProvidersReady(false);
     } finally {
       isInitializingProviders.current = false;
     }
-  }, [chain]);
+  }, []);
 
   const registerCustomOrbitChainOnSDK = useCallback(async () => {
     if (isOrbitRegistered.current) return;
@@ -123,30 +102,10 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     };
   }, [registerCustomOrbitChainOnSDK]);
 
-  // Setup providers based on chain
+  // Initialize read-only providers on mount using known RPC URLs
   useEffect(() => {
-    if (!chain) {
-      setL1Provider(undefined);
-      setL2Provider(undefined);
-      setIsProvidersReady(false);
-      return;
-    }
-
-    if (chain.id === defaultChain.id) {
-      setProvidersWhenConnectedToChildChain();
-    } else if (wagmiConfig.chains.some((c: { id: number }) => c.id === chain.id)) {
-      setProvidersWhenConnectedToParentChain();
-    } else {
-      setL1Provider(undefined);
-      setL2Provider(undefined);
-      setIsProvidersReady(false);
-    }
-
-    // Cleanup on chain change
-    return () => {
-      isInitializingProviders.current = false;
-    };
-  }, [chain, setProvidersWhenConnectedToChildChain, setProvidersWhenConnectedToParentChain]);
+    initializeProviders();
+  }, [initializeProviders]);
 
   return (
     <AppContext.Provider

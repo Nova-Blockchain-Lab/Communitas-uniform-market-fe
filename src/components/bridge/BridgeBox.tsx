@@ -81,7 +81,7 @@ export const BridgeBox: React.FC = () => {
     if (originBalance) {
       const formatted = formatBalance(originBalance);
       if (formatted) {
-        setInputDisplayValue(formatted);
+        setInputDisplayValue(formatted.replace(/\s*ETH$/, ""));
         setDepositAmount(originBalance);
       }
     }
@@ -212,7 +212,7 @@ export const BridgeBox: React.FC = () => {
             </span>
             <div className="flex items-center gap-2">
               <span className="text-gray-500">
-                Balance: {formatBalance(originBalance) || "0"} ETH
+                Balance: {formatBalance(originBalance) || "0 ETH"}
               </span>
               {originBalance && originBalance > BigInt(0) && (
                 <button
@@ -298,7 +298,7 @@ export const BridgeBox: React.FC = () => {
           <div className="flex items-center justify-between text-sm">
             <span className="text-gray-500">You will receive</span>
             <span className="text-gray-500">
-              Balance: {formatBalance(destinationBalance) || "0"} ETH
+              Balance: {formatBalance(destinationBalance) || "0 ETH"}
             </span>
           </div>
         </div>

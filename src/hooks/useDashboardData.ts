@@ -3,7 +3,6 @@ import { useCallback, useMemo } from "react";
 import EnergyBiddingMarketAbi from "@/../abi/EnergyBiddingMarket.json";
 import { defaultChain, DECIMALS, WATTS_PER_KWH } from "@/config";
 import { useAppContext } from "@/context/AppContext";
-import { useAccount } from "wagmi";
 import { getTimestampsForDay } from "@/utils/dateHelpers";
 import { AbiFunction } from "viem";
 
@@ -24,7 +23,6 @@ export interface HourData {
 }
 
 export function useDashboardData(selectedDay: Date) {
-  const { chainId } = useAccount();
   const { energyMarketAddress } = useAppContext();
 
   const timestamps = useMemo(() => getTimestampsForDay(selectedDay), [selectedDay]);
@@ -35,13 +33,14 @@ export function useDashboardData(selectedDay: Date) {
       address: energyMarketAddress,
       functionName,
       args,
+      chainId: defaultChain.id,
     }),
     [energyMarketAddress]
   );
 
   // Batch all 24 hours x 5 calls = 120 multicalls
   const contracts = useMemo(() => {
-    if (!energyMarketAddress || chainId !== defaultChain.id) return [];
+    if (!energyMarketAddress) return [];
     return timestamps.flatMap((ts) => [
       createConfig("getBidsByHour", [ts]),
       createConfig("getAsksByHour", [ts]),
@@ -49,7 +48,7 @@ export function useDashboardData(selectedDay: Date) {
       createConfig("isMarketCleared", [ts]),
       createConfig("getTotalAvailableEnergy", [ts]),
     ]);
-  }, [timestamps, energyMarketAddress, chainId, createConfig]);
+  }, [timestamps, energyMarketAddress, createConfig]);
 
   const { data, isPending, refetch } = useReadContracts({
     contracts: contracts.length > 0 ? contracts : [],

@@ -19,6 +19,7 @@ const SellBox: React.FC = () => {
   const toast = useMarketToast();
 
   const [energy, setEnergy] = useState<number>(0);
+  const [energyDisplay, setEnergyDisplay] = useState<string>("0");
 
   // Modal state
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -103,6 +104,7 @@ const SellBox: React.FC = () => {
     if (isConfirmed) {
       toast.success("Energy Listed Successfully!", `You've listed ${energy} kWh for sale.`);
       setEnergy(0);
+      setEnergyDisplay("0");
     } else {
       toast.error("Transaction Failed", "Something went wrong. Please try again.");
     }
@@ -161,8 +163,14 @@ const SellBox: React.FC = () => {
             </div>
             <input
               type="number"
-              value={energy}
-              onChange={(e) => setEnergy(Math.max(0, parseInt(e.target.value) || 0))}
+              value={energyDisplay}
+              onChange={(e) => {
+                const raw = e.target.value;
+                setEnergyDisplay(raw);
+                const parsed = parseInt(raw, 10);
+                setEnergy(isNaN(parsed) || parsed < 0 ? 0 : parsed);
+              }}
+              onBlur={() => setEnergyDisplay(String(energy))}
               min={0}
               placeholder="0"
               disabled={isWhitelisted === false}
@@ -185,7 +193,7 @@ const SellBox: React.FC = () => {
               whileTap={{ scale: 0.92 }}
               whileHover={{ scale: 1.04 }}
               transition={{ type: "spring", stiffness: 400, damping: 17 }}
-              onClick={() => setEnergy(value)}
+              onClick={() => { setEnergy(value); setEnergyDisplay(String(value)); }}
               disabled={isWhitelisted === false}
               className={`
                 flex-1 py-3 text-sm min-h-[44px] font-medium rounded-lg transition-colors
