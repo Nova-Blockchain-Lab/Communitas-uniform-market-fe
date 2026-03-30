@@ -33,7 +33,7 @@ export function useDashboardData(selectedDay: Date) {
       address: energyMarketAddress,
       functionName,
       args,
-      chainId: defaultChain.id,
+      chainId: defaultChain.id as number,
     }),
     [energyMarketAddress]
   );
