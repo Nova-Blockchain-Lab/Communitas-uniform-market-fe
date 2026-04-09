@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useCallback } from "react";
 import { ArrowUp } from "lucide-react";
 import { BigNumber } from "ethers";
 import { EthBridger, EthDepositMessageStatus, getArbitrumNetwork } from "@arbitrum/sdk";
@@ -14,7 +14,7 @@ interface SubmitDepositButtonProps {
   hasEnoughBalance: boolean;
 }
 
-export const SubmitDepositButton: React.FC<SubmitDepositButtonProps> = ({
+const SubmitDepositButtonInner: React.FC<SubmitDepositButtonProps> = ({
   amount,
   hasEnoughBalance,
 }) => {
@@ -27,7 +27,7 @@ export const SubmitDepositButton: React.FC<SubmitDepositButtonProps> = ({
   const [txError, setTxError] = useState<string | undefined>();
   const [txHash, setTxHash] = useState<string | undefined>();
 
-  const handleDeposit = async () => {
+  const handleDeposit = useCallback(async () => {
     if (!signer || !l2Provider || !amount) return;
 
     setIsModalOpen(true);
@@ -72,16 +72,16 @@ export const SubmitDepositButton: React.FC<SubmitDepositButtonProps> = ({
       }
       setTxError(message);
     }
-  };
+  }, [signer, l2Provider, amount]);
 
-  const closeModal = () => {
+  const closeModal = useCallback(() => {
     setIsModalOpen(false);
     setTimeout(() => {
       setTxStatus("idle");
       setTxError(undefined);
       setTxHash(undefined);
     }, 300);
-  };
+  }, []);
 
   const isDisabled = txStatus === "pending" || txStatus === "confirming" || txStatus === "bridging" || !hasEnoughBalance || amount === BigInt(0);
   const isLoading = txStatus === "pending" || txStatus === "confirming" || txStatus === "bridging";
@@ -98,10 +98,11 @@ export const SubmitDepositButton: React.FC<SubmitDepositButtonProps> = ({
         disabled={isDisabled}
         className={`
           w-full flex items-center justify-center gap-2
-          px-6 py-4
-          text-white font-semibold
+          min-h-[48px] px-5 sm:px-6 py-3 sm:py-4
+          text-white font-semibold text-sm sm:text-base
           rounded-xl
           transition-all duration-200
+          focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/60
           ${isDisabled
             ? "bg-gray-600 cursor-not-allowed opacity-50"
             : "bg-gradient-to-r from-emerald-600 to-emerald-500 shadow-lg hover:shadow-xl hover:shadow-emerald-500/25"
@@ -110,13 +111,15 @@ export const SubmitDepositButton: React.FC<SubmitDepositButtonProps> = ({
       >
         {isLoading ? (
           <>
-            <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-            {txStatus === "pending" ? "Confirm in Wallet..." : txStatus === "bridging" ? "Bridging..." : "Processing..."}
+            <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin shrink-0" />
+            <span className="truncate">
+              {txStatus === "pending" ? "Confirm in Wallet..." : txStatus === "bridging" ? "Bridging..." : "Processing..."}
+            </span>
           </>
         ) : (
           <>
-            <ArrowUp size={18} />
-            Deposit to Nova Cidade
+            <ArrowUp size={18} className="shrink-0" />
+            <span className="truncate">Deposit to Nova Cidade</span>
           </>
         )}
       </motion.button>
@@ -138,3 +141,5 @@ export const SubmitDepositButton: React.FC<SubmitDepositButtonProps> = ({
     </>
   );
 };
+
+export const SubmitDepositButton = React.memo(SubmitDepositButtonInner);

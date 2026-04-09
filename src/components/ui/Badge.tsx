@@ -1,4 +1,4 @@
-import React from "react";
+import React, { memo } from "react";
 
 type BadgeVariant = "success" | "warning" | "error" | "info" | "neutral" | "energy";
 type BadgeSize = "sm" | "md";
@@ -31,11 +31,11 @@ const pulseColors: Record<BadgeVariant, string> = {
 };
 
 const sizeClasses: Record<BadgeSize, string> = {
-  sm: "px-2 py-0.5 text-xs",
-  md: "px-2.5 py-1 text-sm",
+  sm: "px-2 py-0.5 text-xs min-h-[22px]",
+  md: "px-2.5 py-1 text-sm min-h-[26px]",
 };
 
-export const Badge: React.FC<BadgeProps> = ({
+export const Badge: React.FC<BadgeProps> = memo(({
   children,
   variant = "neutral",
   size = "md",
@@ -48,29 +48,33 @@ export const Badge: React.FC<BadgeProps> = ({
       className={`
         inline-flex items-center gap-1.5
         font-medium rounded-full border
+        whitespace-nowrap max-w-full
+        leading-tight
         ${variantClasses[variant]}
         ${sizeClasses[size]}
         ${className}
       `}
     >
       {pulse && (
-        <span className="relative flex h-2 w-2">
+        <span className="relative flex h-2 w-2 shrink-0">
           <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${pulseColors[variant]}`} />
           <span className={`relative inline-flex rounded-full h-2 w-2 ${pulseColors[variant]}`} />
         </span>
       )}
-      {icon}
-      {children}
+      {icon && <span className="shrink-0">{icon}</span>}
+      <span className="truncate">{children}</span>
     </span>
   );
-};
+});
+
+Badge.displayName = "Badge";
 
 interface StatusDotProps {
   status: "online" | "offline" | "pending" | "error";
   pulse?: boolean;
 }
 
-export const StatusDot: React.FC<StatusDotProps> = ({
+export const StatusDot: React.FC<StatusDotProps> = memo(({
   status,
   pulse = false,
 }) => {
@@ -99,6 +103,8 @@ export const StatusDot: React.FC<StatusDotProps> = ({
       />
     </span>
   );
-};
+});
+
+StatusDot.displayName = "StatusDot";
 
 export default Badge;

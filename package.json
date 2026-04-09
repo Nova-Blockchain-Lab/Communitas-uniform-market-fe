@@ -6,7 +6,10 @@
 		"dev": "next dev",
 		"build": "next build --webpack",
 		"start": "next start",
-		"lint": "eslint ."
+		"lint": "eslint .",
+		"remotion:studio": "npx remotion studio remotion/index.ts",
+		"remotion:render": "npx remotion render remotion/index.ts",
+		"remotion:still": "npx remotion still remotion/index.ts"
 	},
 	"dependencies": {
 		"@arbitrum/sdk": "^4.0.4",
@@ -30,12 +33,18 @@
 		"wagmi": "^2.19.5"
 	},
 	"devDependencies": {
+		"@remotion/cli": "4.0.436",
+		"@remotion/player": "4.0.436",
+		"@remotion/studio": "4.0.436",
+		"@remotion/tailwind-v4": "4.0.436",
+		"@remotion/transitions": "4.0.436",
 		"@types/node": "^22.15.21",
 		"@types/react": "^19.0.0",
 		"@types/react-dom": "^19.0.0",
 		"eslint": "^9.0.0",
 		"eslint-config-next": "^16.0.0",
 		"postcss": "^8.5.3",
+		"remotion": "4.0.436",
 		"typescript": "^5.7.3"
 	}
 }

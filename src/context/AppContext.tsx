@@ -1,5 +1,5 @@
 import { fetchEthPrice } from "@/utils/fetchEthPrice";
-import React, { createContext, ReactNode, useCallback, useContext, useEffect, useRef, useState } from "react";
+import React, { createContext, ReactNode, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { StaticJsonRpcProvider } from "@ethersproject/providers";
 import { wagmiConfig, defaultChain } from "@/config";
 import { mapOrbitConfigToOrbitChain } from "@/utils/mapOrbitConfigToOrbitChain";
@@ -33,6 +33,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   // Ref to track initialization state and prevent race conditions
   const isInitializingProviders = useRef(false);
   const isOrbitRegistered = useRef(false);
+  const retryTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const initializeProviders = useCallback(() => {
     if (isInitializingProviders.current) return;
@@ -80,12 +81,12 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
           retryCount = 0; // Reset retry count on success
         } else if (isMounted && retryCount < MAX_ETH_PRICE_RETRIES) {
           retryCount++;
-          setTimeout(fetchPriceWithRetry, ETH_PRICE_RETRY_DELAY);
+          retryTimeoutRef.current = setTimeout(fetchPriceWithRetry, ETH_PRICE_RETRY_DELAY);
         }
       } catch (error) {
         if (isMounted && retryCount < MAX_ETH_PRICE_RETRIES) {
           retryCount++;
-          setTimeout(fetchPriceWithRetry, ETH_PRICE_RETRY_DELAY);
+          retryTimeoutRef.current = setTimeout(fetchPriceWithRetry, ETH_PRICE_RETRY_DELAY);
         }
       }
     };
@@ -99,6 +100,10 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     return () => {
       isMounted = false;
       clearInterval(priceInterval);
+      if (retryTimeoutRef.current) {
+        clearTimeout(retryTimeoutRef.current);
+        retryTimeoutRef.current = null;
+      }
     };
   }, [registerCustomOrbitChainOnSDK]);
 
@@ -107,17 +112,26 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     initializeProviders();
   }, [initializeProviders]);
 
+  // Stable callback reference for setEnergyMarketAddress
+  const handleSetEnergyMarketAddress = useCallback((address: `0x${string}`) => {
+    setEnergyMarketAddress(address);
+  }, []);
+
+  // Memoize context value to prevent unnecessary re-renders of consumers
+  const contextValue = useMemo<AppContextType>(
+    () => ({
+      ethPrice,
+      energyMarketAddress,
+      setEnergyMarketAddress: handleSetEnergyMarketAddress,
+      l1Provider,
+      l2Provider,
+      isProvidersReady,
+    }),
+    [ethPrice, energyMarketAddress, handleSetEnergyMarketAddress, l1Provider, l2Provider, isProvidersReady]
+  );
+
   return (
-    <AppContext.Provider
-      value={{
-        ethPrice,
-        energyMarketAddress,
-        setEnergyMarketAddress,
-        l1Provider,
-        l2Provider,
-        isProvidersReady,
-      }}
-    >
+    <AppContext.Provider value={contextValue}>
       {children}
     </AppContext.Provider>
   );

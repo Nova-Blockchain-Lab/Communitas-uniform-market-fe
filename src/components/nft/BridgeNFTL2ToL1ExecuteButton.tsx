@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { useAccount, useConfig, useSwitchChain } from "wagmi";
-import { contractAddresses, defaultChain, OPENSEA_URL_CREATOR } from "@/config";
+import { defaultChain } from "@/config";
 import {
   getOutgoingMessageState,
   getTxExpectedDeadlineTimestamp,
@@ -11,7 +11,7 @@ import { ChildToParentMessageStatus, ChildTransactionReceipt } from "@arbitrum/s
 import { useEthersProvider, useEthersSigner } from "@/utils/ethersHelper";
 import { formatTimestamp } from "@/utils/utils";
 import { Button, TransactionModal, TransactionStatus } from "@/components/ui";
-import { Loader2, Clock } from "lucide-react";
+import { Clock, ArrowRight, RefreshCw } from "lucide-react";
 
 // Constants
 const STATUS_POLL_INTERVAL = 60 * 1000; // 1 minute
@@ -45,14 +45,14 @@ const BridgeNFTL2ToL1ExecuteButton: React.FC<BridgeNFTL2ToL1ExecuteButtonProps> 
     switchChain({ chainId: targetChain });
   }, [chains, chainId, switchChain]);
 
-  const closeModal = () => {
+  const closeModal = useCallback(() => {
     setIsModalOpen(false);
     setTimeout(() => {
       setTxStatus("idle");
       setTxError(undefined);
       setTxHash(undefined);
     }, 300);
-  };
+  }, []);
 
   // Poll withdrawal status
   useEffect(() => {
@@ -188,7 +188,8 @@ const BridgeNFTL2ToL1ExecuteButton: React.FC<BridgeNFTL2ToL1ExecuteButtonProps> 
             fullWidth
             loading={isWaitingForConfirmation || isLoading}
             disabled={!isConnected || isLoading || isWaitingForConfirmation}
-            icon={<Clock size={14} />}
+            icon={<Clock size={16} />}
+            className="min-h-[44px]"
           >
             {isWaitingForConfirmation ? "Waiting" : "Processing"}
           </Button>
@@ -217,6 +218,8 @@ const BridgeNFTL2ToL1ExecuteButton: React.FC<BridgeNFTL2ToL1ExecuteButtonProps> 
         size="sm"
         fullWidth
         onClick={handleChangeChain}
+        icon={<RefreshCw size={16} />}
+        className="min-h-[44px]"
       >
         Switch Chain
       </Button>
@@ -231,6 +234,8 @@ const BridgeNFTL2ToL1ExecuteButton: React.FC<BridgeNFTL2ToL1ExecuteButtonProps> 
         fullWidth
         onClick={handleBridge}
         disabled={!isConnected}
+        icon={<ArrowRight size={16} />}
+        className="min-h-[44px]"
       >
         Execute
       </Button>

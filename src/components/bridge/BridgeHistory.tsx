@@ -1,7 +1,7 @@
 "use client";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useAccount } from "wagmi";
-import { Clock, Loader2, History } from "lucide-react";
+import { Clock, Loader2, History, RefreshCw } from "lucide-react";
 import { isToday, isYesterday } from "date-fns";
 import {
   ETHDepositOrWithdrawalMessage,
@@ -9,7 +9,7 @@ import {
   getETHWithdrawalsInfo,
 } from "@/utils/executeMessageL2ToL1Helper";
 import { useAppContext } from "@/context/AppContext";
-import { SkeletonBlock, SkeletonLine } from "@/components/ui";
+import { EmptyState, SkeletonBlock, SkeletonLine } from "@/components/ui";
 import MessageHistoryRow from "./MessageHistoryRow";
 
 /** Group messages by "Today", "Yesterday", "Earlier" */
@@ -43,7 +43,7 @@ function groupByDate(messages: ETHDepositOrWithdrawalMessage[]) {
 
 /** Skeleton placeholder for the loading state */
 const HistorySkeleton: React.FC = () => (
-  <div className="space-y-3">
+  <div className="space-y-3 animate-in fade-in duration-300">
     <div className="flex items-center justify-between px-1 mb-4">
       <SkeletonLine width="6rem" height="0.75rem" />
       <SkeletonLine width="3rem" height="0.75rem" />
@@ -102,19 +102,15 @@ const BridgeHistory: React.FC = () => {
   // Not connected state
   if (!isConnected) {
     return (
-      <div className="flex flex-col items-center justify-center py-12 text-center">
-        <div className="w-14 h-14 rounded-full bg-white/5 flex items-center justify-center mb-4">
-          <History size={24} className="text-gray-500" />
-        </div>
-        <p className="text-sm text-gray-400 mb-1">Connect Your Wallet</p>
-        <p className="text-xs text-gray-600">
-          View your bridge transaction history
-        </p>
-      </div>
+      <EmptyState
+        icon={<History size={22} className="text-gray-500" />}
+        title="Connect Your Wallet"
+        subtitle="View your bridge transaction history"
+      />
     );
   }
 
-  // Loading state — skeleton
+  // Loading state -- skeleton
   if (isLoading && messages.length === 0) {
     return <HistorySkeleton />;
   }
@@ -122,21 +118,17 @@ const BridgeHistory: React.FC = () => {
   // Empty state
   if (messages.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-12 text-center">
-        <div className="w-14 h-14 rounded-full bg-white/5 flex items-center justify-center mb-4">
-          <Clock size={24} className="text-gray-500" />
-        </div>
-        <p className="text-sm text-gray-400 mb-1">No Transactions Yet</p>
-        <p className="text-xs text-gray-600">
-          Your bridge history will appear here
-        </p>
-      </div>
+      <EmptyState
+        icon={<Clock size={22} className="text-gray-500" />}
+        title="No Transactions Yet"
+        subtitle="Your bridge history will appear here"
+      />
     );
   }
 
   return (
     <div className="space-y-3">
-      {/* Summary */}
+      {/* Summary bar */}
       <div className="flex items-center justify-between px-1 mb-4">
         <span className="text-xs text-gray-500">
           {messages.length} transaction{messages.length !== 1 ? "s" : ""}
@@ -144,10 +136,17 @@ const BridgeHistory: React.FC = () => {
         <button
           onClick={getMessages}
           disabled={isLoading}
-          className="text-xs text-emerald-500 hover:text-emerald-400 transition-colors disabled:opacity-50 flex items-center gap-1"
+          className="text-xs text-emerald-500 hover:text-emerald-400 active:scale-95
+                     transition-all disabled:opacity-50 flex items-center gap-1.5
+                     min-h-[28px] min-w-[28px] justify-center"
+          aria-label="Refresh history"
         >
-          {isLoading && <Loader2 size={10} className="animate-spin" />}
-          Refresh
+          {isLoading ? (
+            <Loader2 size={12} className="animate-spin" />
+          ) : (
+            <RefreshCw size={12} />
+          )}
+          <span className="hidden sm:inline">Refresh</span>
         </button>
       </div>
 
@@ -158,8 +157,12 @@ const BridgeHistory: React.FC = () => {
             {group.label}
           </p>
           <div className="space-y-2 mb-4">
-            {group.items.map((msg, idx) => (
-              <MessageHistoryRow key={idx} message={msg} refetchMessages={getMessages} />
+            {group.items.map((msg) => (
+              <MessageHistoryRow
+                key={msg.hash}
+                message={msg}
+                refetchMessages={getMessages}
+              />
             ))}
           </div>
         </div>

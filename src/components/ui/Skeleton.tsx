@@ -6,16 +6,20 @@ interface SkeletonLineProps {
   className?: string;
 }
 
-export const SkeletonLine: React.FC<SkeletonLineProps> = ({
+export const SkeletonLine: React.FC<SkeletonLineProps> = React.memo(({
   width = "100%",
   height = "1rem",
   className = "",
 }) => (
   <div
     className={`rounded-md skeleton-pulse ${className}`}
-    style={{ width, height }}
+    style={{ width, height, maxWidth: "100%" }}
+    role="status"
+    aria-label="Loading"
   />
-);
+));
+
+SkeletonLine.displayName = "SkeletonLine";
 
 interface SkeletonBlockProps {
   width?: string;
@@ -24,7 +28,7 @@ interface SkeletonBlockProps {
   className?: string;
 }
 
-const roundedClasses = {
+const roundedClasses: Record<string, string> = {
   sm: "rounded-sm",
   md: "rounded-md",
   lg: "rounded-lg",
@@ -33,7 +37,7 @@ const roundedClasses = {
   full: "rounded-full",
 };
 
-export const SkeletonBlock: React.FC<SkeletonBlockProps> = ({
+export const SkeletonBlock: React.FC<SkeletonBlockProps> = React.memo(({
   width = "100%",
   height = "8rem",
   rounded = "xl",
@@ -41,24 +45,32 @@ export const SkeletonBlock: React.FC<SkeletonBlockProps> = ({
 }) => (
   <div
     className={`skeleton-pulse ${roundedClasses[rounded]} ${className}`}
-    style={{ width, height }}
+    style={{ width, height, maxWidth: "100%" }}
+    role="status"
+    aria-label="Loading"
   />
-);
+));
+
+SkeletonBlock.displayName = "SkeletonBlock";
 
 interface SkeletonCircleProps {
   size?: string;
   className?: string;
 }
 
-export const SkeletonCircle: React.FC<SkeletonCircleProps> = ({
+export const SkeletonCircle: React.FC<SkeletonCircleProps> = React.memo(({
   size = "3rem",
   className = "",
 }) => (
   <div
-    className={`rounded-full skeleton-pulse ${className}`}
+    className={`rounded-full skeleton-pulse shrink-0 ${className}`}
     style={{ width: size, height: size }}
+    role="status"
+    aria-label="Loading"
   />
-);
+));
+
+SkeletonCircle.displayName = "SkeletonCircle";
 
 interface SkeletonRowsProps {
   count?: number;
@@ -66,12 +78,17 @@ interface SkeletonRowsProps {
   className?: string;
 }
 
-export const SkeletonRows: React.FC<SkeletonRowsProps> = ({
+export const SkeletonRows: React.FC<SkeletonRowsProps> = React.memo(({
   count = 3,
   gap = "0.75rem",
   className = "",
 }) => (
-  <div className={className} style={{ display: "flex", flexDirection: "column", gap }}>
+  <div
+    className={`w-full ${className}`}
+    style={{ display: "flex", flexDirection: "column", gap }}
+    role="status"
+    aria-label="Loading"
+  >
     {Array.from({ length: count }).map((_, i) => (
       <SkeletonLine
         key={i}
@@ -79,4 +96,6 @@ export const SkeletonRows: React.FC<SkeletonRowsProps> = ({
       />
     ))}
   </div>
-);
+));
+
+SkeletonRows.displayName = "SkeletonRows";

@@ -48,10 +48,32 @@ const SELLER_COLOR = "#10B981";
 const BUYER_COLOR_LIGHT = "rgba(59, 130, 246, 0.15)";
 const SELLER_COLOR_LIGHT = "rgba(16, 185, 129, 0.15)";
 const PRICE_COLOR = "#F59E0B";
-const MIN_RADIUS = 32;
-const MAX_RADIUS = 56;
 const TOOLTIP_WIDTH = 220;
 const TOOLTIP_HEIGHT_ESTIMATE = 180;
+
+/** Scale bubble radii based on container width to prevent overflow on tablets */
+function getRadiusBounds(containerWidth: number): {
+  minRadius: number;
+  maxRadius: number;
+} {
+  if (containerWidth < 480) {
+    return { minRadius: 22, maxRadius: 38 };
+  }
+  if (containerWidth < 640) {
+    return { minRadius: 26, maxRadius: 44 };
+  }
+  if (containerWidth < 800) {
+    return { minRadius: 28, maxRadius: 48 };
+  }
+  return { minRadius: 32, maxRadius: 56 };
+}
+
+/** Scale font sizes inside bubbles based on radius */
+function getBubbleFontSize(radius: number): string {
+  if (radius >= 44) return "10px";
+  if (radius >= 34) return "9px";
+  return "8px";
+}
 
 /** Inline SVG illustration for the empty state */
 const EmptyChartIllustration: React.FC = () => (
@@ -101,7 +123,7 @@ const EmptyChartIllustration: React.FC = () => (
   </svg>
 );
 
-/** Mobile card fallback — renders participants as a list of cards */
+/** Mobile card fallback -- renders participants as a list of cards */
 const MobileCardList: React.FC<{
   data: HourData;
   ethPrice?: number;
@@ -183,6 +205,15 @@ const BubbleVisualization: React.FC<BubbleVisualizationProps> = ({
   const [tradeTooltip, setTradeTooltip] = useState<TradeTooltipData | null>(null);
   const [isMobile, setIsMobile] = useState(false);
 
+  // Track mounted state to avoid state updates during Framer Motion exit animation
+  const mountedRef = useRef(true);
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
+
   // Handle resize and detect mobile
   useEffect(() => {
     const container = containerRef.current;
@@ -206,28 +237,25 @@ const BubbleVisualization: React.FC<BubbleVisualizationProps> = ({
     return () => observer.disconnect();
   }, []);
 
+  // Responsive radius bounds derived from current width
+  const radiusBounds = useMemo(
+    () => getRadiusBounds(dimensions.width),
+    [dimensions.width]
+  );
+
   // Compute radius scale
   const getRadius = useCallback(
     (amount: number, allAmounts: number[]): number => {
-      if (allAmounts.length === 0) return MIN_RADIUS;
+      if (allAmounts.length === 0) return radiusBounds.minRadius;
       const maxAmount = Math.max(...allAmounts, 1);
       const scale = d3
         .scaleSqrt()
         .domain([0, maxAmount])
-        .range([MIN_RADIUS, MAX_RADIUS]);
+        .range([radiusBounds.minRadius, radiusBounds.maxRadius]);
       return scale(amount);
     },
-    []
+    [radiusBounds]
   );
-
-  // Track mounted state to avoid state updates during Framer Motion exit animation
-  const mountedRef = useRef(true);
-  useEffect(() => {
-    mountedRef.current = true;
-    return () => {
-      mountedRef.current = false;
-    };
-  }, []);
 
   // Build nodes from data
   const nodes: BubbleNode[] = useMemo(() => {
@@ -295,6 +323,12 @@ const BubbleVisualization: React.FC<BubbleVisualizationProps> = ({
 
     return links;
   }, [data?.isCleared, trades, nodes]);
+
+  // Dismiss tooltips when tapping outside on touch devices
+  const handleBackgroundTap = useCallback(() => {
+    setTooltip(null);
+    setTradeTooltip(null);
+  }, []);
 
   // D3 force simulation
   useEffect(() => {
@@ -396,7 +430,7 @@ const BubbleVisualization: React.FC<BubbleVisualizationProps> = ({
             .attr("text-anchor", "middle")
             .attr("dy", "-0.3em")
             .attr("fill", "white")
-            .attr("font-size", (d) => (d.radius >= 44 ? "10px" : "8px"))
+            .attr("font-size", (d) => getBubbleFontSize(d.radius))
             .attr("font-family", "monospace")
             .attr("font-weight", "500")
             .attr("pointer-events", "none")
@@ -411,7 +445,7 @@ const BubbleVisualization: React.FC<BubbleVisualizationProps> = ({
             .attr("fill", (d) =>
               d.type === "buyer" ? BUYER_COLOR : SELLER_COLOR
             )
-            .attr("font-size", (d) => (d.radius >= 44 ? "10px" : "8px"))
+            .attr("font-size", (d) => getBubbleFontSize(d.radius))
             .attr("font-weight", "bold")
             .attr("pointer-events", "none")
             .text((d) => `${d.amount} kWh`);
@@ -469,114 +503,173 @@ const BubbleVisualization: React.FC<BubbleVisualizationProps> = ({
         .duration(500)
         .style("opacity", 0.4);
 
-      // Trade line hover interactions
+      // Trade line hover / touch interactions
       const ws = tradeWidthScale;
-      tradePaths
-        .on("mouseenter", function (event: MouseEvent, d: TradeLink) {
-          if (!mountedRef.current) return;
-          const svgRect = svgRef.current?.getBoundingClientRect();
-          if (!svgRect) return;
 
-          // Thicken and brighten this line
-          d3.select(this)
-            .transition().duration(200)
-            .attr("stroke-width", ws(d.amount) + 2)
-            .style("opacity", 0.9);
+      const handleTradeLineEnter = function (
+        this: SVGPathElement,
+        event: MouseEvent | TouchEvent,
+        d: TradeLink
+      ) {
+        if (!mountedRef.current) return;
+        const svgRect = svgRef.current?.getBoundingClientRect();
+        if (!svgRect) return;
 
-          // Dim other lines
-          tradeLineGroup.selectAll<SVGPathElement, TradeLink>(".trade-line")
-            .filter(function (l) { return l !== d; })
-            .transition().duration(200)
-            .style("opacity", 0.1);
+        // Thicken and brighten this line
+        d3.select(this)
+          .transition().duration(200)
+          .attr("stroke-width", ws(d.amount) + 2)
+          .style("opacity", 0.9);
 
-          // Highlight connected bubbles, dim others
-          const sourceAddr = d.seller.toLowerCase();
-          const targetAddr = d.buyer.toLowerCase();
-          bubbleGroups
-            .transition().duration(200)
-            .style("opacity", (n: BubbleNode) =>
-              n.address.toLowerCase() === sourceAddr || n.address.toLowerCase() === targetAddr ? 1 : 0.15
-            );
+        // Dim other lines
+        tradeLineGroup.selectAll<SVGPathElement, TradeLink>(".trade-line")
+          .filter(function (l) { return l !== d; })
+          .transition().duration(200)
+          .style("opacity", 0.1);
 
-          setTooltip(null);
-          setTradeTooltip({
-            x: event.clientX - svgRect.left,
-            y: event.clientY - svgRect.top,
-            link: d,
-          });
-        })
-        .on("mousemove", function (event: MouseEvent, d: TradeLink) {
-          if (!mountedRef.current) return;
-          const svgRect = svgRef.current?.getBoundingClientRect();
-          if (!svgRect) return;
+        // Highlight connected bubbles, dim others
+        const sourceAddr = d.seller.toLowerCase();
+        const targetAddr = d.buyer.toLowerCase();
+        bubbleGroups
+          .transition().duration(200)
+          .style("opacity", (n: BubbleNode) =>
+            n.address.toLowerCase() === sourceAddr || n.address.toLowerCase() === targetAddr ? 1 : 0.15
+          );
 
-          setTradeTooltip({
-            x: event.clientX - svgRect.left,
-            y: event.clientY - svgRect.top,
-            link: d,
-          });
-        })
-        .on("mouseleave", function () {
-          if (!mountedRef.current) return;
+        const clientX = "touches" in event ? event.touches[0].clientX : event.clientX;
+        const clientY = "touches" in event ? event.touches[0].clientY : event.clientY;
 
-          // Restore all trade lines
-          tradeLineGroup.selectAll<SVGPathElement, TradeLink>(".trade-line")
-            .transition().duration(200)
-            .attr("stroke-width", (l: TradeLink) => ws(l.amount))
-            .style("opacity", 0.4);
-
-          // Restore all bubbles
-          bubbleGroups
-            .transition().duration(200)
-            .style("opacity", 1);
-
-          setTradeTooltip(null);
+        setTooltip(null);
+        setTradeTooltip({
+          x: clientX - svgRect.left,
+          y: clientY - svgRect.top,
+          link: d,
         });
+      };
+
+      const handleTradeLineMove = function (
+        this: SVGPathElement,
+        event: MouseEvent | TouchEvent,
+        d: TradeLink
+      ) {
+        if (!mountedRef.current) return;
+        const svgRect = svgRef.current?.getBoundingClientRect();
+        if (!svgRect) return;
+
+        const clientX = "touches" in event ? event.touches[0].clientX : event.clientX;
+        const clientY = "touches" in event ? event.touches[0].clientY : event.clientY;
+
+        setTradeTooltip({
+          x: clientX - svgRect.left,
+          y: clientY - svgRect.top,
+          link: d,
+        });
+      };
+
+      const handleTradeLineLeave = function () {
+        if (!mountedRef.current) return;
+
+        // Restore all trade lines
+        tradeLineGroup.selectAll<SVGPathElement, TradeLink>(".trade-line")
+          .transition().duration(200)
+          .attr("stroke-width", (l: TradeLink) => ws(l.amount))
+          .style("opacity", 0.4);
+
+        // Restore all bubbles
+        bubbleGroups
+          .transition().duration(200)
+          .style("opacity", 1);
+
+        setTradeTooltip(null);
+      };
+
+      tradePaths
+        .on("mouseenter", handleTradeLineEnter)
+        .on("mousemove", handleTradeLineMove)
+        .on("mouseleave", handleTradeLineLeave)
+        .on("touchstart", handleTradeLineEnter, { passive: true })
+        .on("touchmove", handleTradeLineMove, { passive: true })
+        .on("touchend", handleTradeLineLeave);
     }
 
-    // Mouse events for tooltip — guarded against unmounted state updates
+    // Shared helpers for bubble hover / touch
+    const showBubbleHighlight = function (
+      el: SVGGElement,
+      d: BubbleNode,
+    ) {
+      d3.select(el)
+        .select(".bubble-main")
+        .transition()
+        .duration(200)
+        .attr("stroke-width", 2.5)
+        .attr("stroke-opacity", 1);
+
+      d3.select(el)
+        .select(".bubble-glow")
+        .transition()
+        .duration(200)
+        .attr("stroke-opacity", 0.5)
+        .attr("stroke-width", 2);
+
+      // Highlight connected trade lines and dim unconnected elements
+      if (tradeLinks.length > 0) {
+        const addr = d.address.toLowerCase();
+        const connectedAddresses = new Set<string>([addr]);
+
+        for (const link of tradeLinks) {
+          if (link.seller.toLowerCase() === addr) connectedAddresses.add(link.buyer.toLowerCase());
+          if (link.buyer.toLowerCase() === addr) connectedAddresses.add(link.seller.toLowerCase());
+        }
+
+        tradeLineGroup.selectAll<SVGPathElement, TradeLink>(".trade-line")
+          .transition().duration(200)
+          .style("opacity", (l) =>
+            l.seller.toLowerCase() === addr || l.buyer.toLowerCase() === addr ? 0.7 : 0.1
+          );
+
+        bubbleGroups
+          .transition().duration(200)
+          .style("opacity", (n: BubbleNode) =>
+            connectedAddresses.has(n.address.toLowerCase()) ? 1 : 0.15
+          );
+      }
+    };
+
+    const hideBubbleHighlight = function (el: SVGGElement) {
+      d3.select(el)
+        .select(".bubble-main")
+        .transition()
+        .duration(200)
+        .attr("stroke-width", 1.5)
+        .attr("stroke-opacity", 0.6);
+
+      d3.select(el)
+        .select(".bubble-glow")
+        .transition()
+        .duration(200)
+        .attr("stroke-opacity", 0.2)
+        .attr("stroke-width", 1);
+
+      // Restore trade lines and bubbles
+      if (tradeLinks.length > 0) {
+        tradeLineGroup.selectAll(".trade-line")
+          .transition().duration(200)
+          .style("opacity", 0.4);
+
+        bubbleGroups
+          .transition().duration(200)
+          .style("opacity", 1);
+      }
+    };
+
+    // Mouse events for tooltip -- guarded against unmounted state updates
     bubbleGroups
       .on("mouseenter", function (event: MouseEvent, d: BubbleNode) {
         if (!mountedRef.current) return;
         const svgRect = svgRef.current?.getBoundingClientRect();
         if (!svgRect) return;
 
-        d3.select(this)
-          .select(".bubble-main")
-          .transition()
-          .duration(200)
-          .attr("stroke-width", 2.5)
-          .attr("stroke-opacity", 1);
-
-        d3.select(this)
-          .select(".bubble-glow")
-          .transition()
-          .duration(200)
-          .attr("stroke-opacity", 0.5)
-          .attr("stroke-width", 2);
-
-        // Highlight connected trade lines and dim unconnected elements
-        if (tradeLinks.length > 0) {
-          const addr = d.address.toLowerCase();
-          const connectedAddresses = new Set<string>([addr]);
-
-          for (const link of tradeLinks) {
-            if (link.seller.toLowerCase() === addr) connectedAddresses.add(link.buyer.toLowerCase());
-            if (link.buyer.toLowerCase() === addr) connectedAddresses.add(link.seller.toLowerCase());
-          }
-
-          tradeLineGroup.selectAll<SVGPathElement, TradeLink>(".trade-line")
-            .transition().duration(200)
-            .style("opacity", (l) =>
-              l.seller.toLowerCase() === addr || l.buyer.toLowerCase() === addr ? 0.7 : 0.1
-            );
-
-          bubbleGroups
-            .transition().duration(200)
-            .style("opacity", (n: BubbleNode) =>
-              connectedAddresses.has(n.address.toLowerCase()) ? 1 : 0.15
-            );
-        }
+        showBubbleHighlight(this, d);
 
         setTradeTooltip(null);
         setTooltip({
@@ -598,32 +691,7 @@ const BubbleVisualization: React.FC<BubbleVisualizationProps> = ({
       })
       .on("mouseleave", function () {
         if (!mountedRef.current) return;
-
-        d3.select(this)
-          .select(".bubble-main")
-          .transition()
-          .duration(200)
-          .attr("stroke-width", 1.5)
-          .attr("stroke-opacity", 0.6);
-
-        d3.select(this)
-          .select(".bubble-glow")
-          .transition()
-          .duration(200)
-          .attr("stroke-opacity", 0.2)
-          .attr("stroke-width", 1);
-
-        // Restore trade lines and bubbles
-        if (tradeLinks.length > 0) {
-          tradeLineGroup.selectAll(".trade-line")
-            .transition().duration(200)
-            .style("opacity", 0.4);
-
-          bubbleGroups
-            .transition().duration(200)
-            .style("opacity", 1);
-        }
-
+        hideBubbleHighlight(this);
         setTooltip(null);
       })
       .on("click", function (event: MouseEvent, d: BubbleNode) {
@@ -641,6 +709,29 @@ const BubbleVisualization: React.FC<BubbleVisualizationProps> = ({
               }
         );
       });
+
+    // Touch events for bubbles -- tap toggles tooltip
+    bubbleGroups
+      .on("touchstart", function (event: TouchEvent, d: BubbleNode) {
+        if (!mountedRef.current) return;
+        const svgRect = svgRef.current?.getBoundingClientRect();
+        if (!svgRect) return;
+
+        const touch = event.touches[0];
+        const x = touch.clientX - svgRect.left;
+        const y = touch.clientY - svgRect.top;
+
+        // Toggle: if same bubble is already shown, dismiss it
+        setTooltip((prev) => {
+          if (prev?.node.id === d.id) {
+            hideBubbleHighlight(this);
+            return null;
+          }
+          showBubbleHighlight(this, d);
+          return { x, y, node: d };
+        });
+        setTradeTooltip(null);
+      }, { passive: true });
 
     // Update positions on tick
     const linkGen = d3.linkHorizontal<{ source: [number, number]; target: [number, number] }, [number, number]>();
@@ -690,7 +781,6 @@ const BubbleVisualization: React.FC<BubbleVisualizationProps> = ({
     if (!tooltip) return {};
     const { x, y } = tooltip;
     const containerW = dimensions.width;
-    const containerH = dimensions.height;
 
     // Determine horizontal placement
     const flipLeft = x + TOOLTIP_WIDTH > containerW;
@@ -719,6 +809,12 @@ const BubbleVisualization: React.FC<BubbleVisualizationProps> = ({
       transform: flipDown ? "translateY(0%)" : "translateY(-100%)",
     };
   }, [tradeTooltip, dimensions]);
+
+  // Clearing price label width -- scales down on smaller viewports
+  const clearingLabelWidth = useMemo(
+    () => (dimensions.width < 500 ? 130 : 160),
+    [dimensions.width]
+  );
 
   // Empty state
   if (!data || (buyerCount === 0 && sellerCount === 0)) {
@@ -808,22 +904,29 @@ const BubbleVisualization: React.FC<BubbleVisualizationProps> = ({
           <>
             {/* Side labels */}
             <div className="absolute top-3 left-4 z-10 flex items-center gap-1.5">
-              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 shrink-0" />
               <span className="text-xs font-medium text-emerald-400/80">
                 Sellers
               </span>
             </div>
             <div className="absolute top-3 right-4 z-10 flex items-center gap-1.5">
               <span className="text-xs font-medium text-blue-400/80">Buyers</span>
-              <span className="w-2.5 h-2.5 rounded-full bg-blue-500" />
+              <span className="w-2.5 h-2.5 rounded-full bg-blue-500 shrink-0" />
             </div>
 
+            {/* SVG with viewBox for responsive scaling */}
             <svg
               ref={svgRef}
               viewBox={`0 0 ${dimensions.width} ${dimensions.height}`}
-              className="w-full"
+              className="w-full touch-none"
               style={{ minHeight: "250px" }}
               preserveAspectRatio="xMidYMid meet"
+              onTouchStart={(e) => {
+                // If touch lands on the SVG background (not a bubble), dismiss tooltips
+                if ((e.target as SVGElement).tagName === "svg" || (e.target as SVGElement).tagName === "rect") {
+                  handleBackgroundTap();
+                }
+              }}
             >
               {/* Center divider */}
               <line
@@ -851,19 +954,19 @@ const BubbleVisualization: React.FC<BubbleVisualizationProps> = ({
                     strokeDasharray="6 4"
                   />
                   <rect
-                    x={dimensions.width - 180}
+                    x={dimensions.width - clearingLabelWidth - 20}
                     y={dimensions.height * 0.2 - 12}
-                    width={160}
+                    width={clearingLabelWidth}
                     height={20}
                     rx={4}
                     fill="rgba(0,0,0,0.6)"
                   />
                   <text
-                    x={dimensions.width - 100}
+                    x={dimensions.width - clearingLabelWidth / 2 - 20}
                     y={dimensions.height * 0.2 + 1}
                     textAnchor="middle"
                     fill={PRICE_COLOR}
-                    fontSize="10"
+                    fontSize={dimensions.width < 500 ? "8" : "10"}
                     fontWeight="600"
                     fontFamily="monospace"
                   >
@@ -920,10 +1023,10 @@ const BubbleVisualization: React.FC<BubbleVisualizationProps> = ({
                   className="absolute z-20 pointer-events-none"
                   style={tooltipStyle}
                 >
-                  <div className="bg-[var(--color-bg-card)]/95 backdrop-blur-xl border border-white/15 rounded-xl p-3 shadow-2xl min-w-[200px]">
+                  <div className="bg-[var(--color-bg-card)]/95 backdrop-blur-xl border border-white/15 rounded-xl p-3 shadow-2xl min-w-[200px] max-w-[240px]">
                     <div className="flex items-center gap-2 mb-2 pb-2 border-b border-[var(--color-border)]">
                       <span
-                        className={`w-2.5 h-2.5 rounded-full ${
+                        className={`w-2.5 h-2.5 rounded-full shrink-0 ${
                           tooltip.node.type === "buyer"
                             ? "bg-blue-500"
                             : "bg-emerald-500"
@@ -937,7 +1040,7 @@ const BubbleVisualization: React.FC<BubbleVisualizationProps> = ({
                     <div className="space-y-1.5">
                       <div>
                         <span className="text-xs text-[var(--color-text-muted)]">Address</span>
-                        <p className="text-xs text-[var(--color-text-primary)] font-mono">
+                        <p className="text-xs text-[var(--color-text-primary)] font-mono break-all">
                           {tooltip.node.address}
                         </p>
                       </div>
@@ -1015,9 +1118,9 @@ const BubbleVisualization: React.FC<BubbleVisualizationProps> = ({
                   className="absolute z-20 pointer-events-none"
                   style={tradeTooltipStyle}
                 >
-                  <div className="bg-[var(--color-bg-card)]/95 backdrop-blur-xl border border-violet-500/30 rounded-xl p-3 shadow-2xl min-w-[200px]">
+                  <div className="bg-[var(--color-bg-card)]/95 backdrop-blur-xl border border-violet-500/30 rounded-xl p-3 shadow-2xl min-w-[200px] max-w-[240px]">
                     <div className="flex items-center gap-2 mb-2 pb-2 border-b border-violet-500/20">
-                      <span className="w-2.5 h-2.5 rounded-full bg-violet-500" />
+                      <span className="w-2.5 h-2.5 rounded-full bg-violet-500 shrink-0" />
                       <span className="text-xs font-bold uppercase tracking-wider text-violet-400">
                         Trade
                       </span>
@@ -1026,13 +1129,13 @@ const BubbleVisualization: React.FC<BubbleVisualizationProps> = ({
                     <div className="space-y-1.5">
                       <div>
                         <span className="text-xs text-[var(--color-text-muted)]">Seller</span>
-                        <p className="text-xs text-emerald-400 font-mono">
+                        <p className="text-xs text-emerald-400 font-mono break-all">
                           {tradeTooltip.link.seller}
                         </p>
                       </div>
                       <div>
                         <span className="text-xs text-[var(--color-text-muted)]">Buyer</span>
-                        <p className="text-xs text-blue-400 font-mono">
+                        <p className="text-xs text-blue-400 font-mono break-all">
                           {tradeTooltip.link.buyer}
                         </p>
                       </div>

@@ -166,7 +166,8 @@ const BridgeNFTL1ToL2Button: React.FC<BridgeNFTL1ToL2ButtonProps> = ({ tokenId, 
         onClick={handleBridge}
         loading={isLoading}
         disabled={isLoading || !isConnected || !nftContractAddress}
-        icon={<ArrowUpDown size={14} />}
+        icon={<ArrowUpDown size={16} />}
+        className="min-h-[44px]"
       >
         Bridge to L2
       </Button>

@@ -1,5 +1,11 @@
-import React, { useRef, useState, useEffect, useCallback } from "react";
-import { motion } from "motion/react";
+import React, {
+  useRef,
+  useState,
+  useEffect,
+  useCallback,
+  useMemo,
+} from "react";
+import { motion, type Transition } from "motion/react";
 import {
   ShoppingCart,
   TrendingUp,
@@ -31,10 +37,19 @@ interface SliderProps {
   setSelected: (id: number) => void;
 }
 
+/** Spring transition for the active-tab indicator */
+const springTransition: Transition = {
+  type: "spring",
+  stiffness: 400,
+  damping: 30,
+};
+
 const Slider: React.FC<SliderProps> = ({ selected, setSelected }) => {
   const scrollRef = useRef<HTMLDivElement>(null);
+  const tabRefs = useRef<Map<number, HTMLButtonElement>>(new Map());
   const [hasOverflow, setHasOverflow] = useState(false);
 
+  /* ---------- overflow detection (drives edge-fade masks) ---------- */
   const checkOverflow = useCallback(() => {
     const el = scrollRef.current;
     if (el) {
@@ -48,21 +63,94 @@ const Slider: React.FC<SliderProps> = ({ selected, setSelected }) => {
     return () => window.removeEventListener("resize", checkOverflow);
   }, [checkOverflow]);
 
+  /* ---------- auto-scroll selected tab into view ---------- */
+  useEffect(() => {
+    const btn = tabRefs.current.get(selected);
+    if (btn) {
+      btn.scrollIntoView({
+        behavior: "smooth",
+        block: "nearest",
+        inline: "nearest",
+      });
+    }
+  }, [selected]);
+
+  /* ---------- keyboard navigation (arrow keys) ---------- */
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      const currentIdx = tabs.findIndex((t) => t.id === selected);
+      let nextIdx = currentIdx;
+
+      if (e.key === "ArrowRight" || e.key === "ArrowDown") {
+        e.preventDefault();
+        nextIdx = (currentIdx + 1) % tabs.length;
+      } else if (e.key === "ArrowLeft" || e.key === "ArrowUp") {
+        e.preventDefault();
+        nextIdx = (currentIdx - 1 + tabs.length) % tabs.length;
+      } else if (e.key === "Home") {
+        e.preventDefault();
+        nextIdx = 0;
+      } else if (e.key === "End") {
+        e.preventDefault();
+        nextIdx = tabs.length - 1;
+      }
+
+      if (nextIdx !== currentIdx) {
+        const nextTab = tabs[nextIdx];
+        setSelected(nextTab.id);
+        tabRefs.current.get(nextTab.id)?.focus();
+      }
+    },
+    [selected, setSelected],
+  );
+
+  /* ---------- memoised click handlers (one per tab) ---------- */
+  const handleClick = useCallback(
+    (id: number) => {
+      setSelected(id);
+    },
+    [setSelected],
+  );
+
+  /* ---------- ref callback for individual tab buttons ---------- */
+  const setTabRef = useCallback(
+    (id: number) => (node: HTMLButtonElement | null) => {
+      if (node) {
+        tabRefs.current.set(id, node);
+      } else {
+        tabRefs.current.delete(id);
+      }
+    },
+    [],
+  );
+
   return (
     <nav
       className="relative hidden md:flex flex-1 justify-center overflow-hidden"
       aria-label="Main navigation"
+      role="tablist"
     >
       <div
         ref={scrollRef}
-        className="flex items-center gap-0.5 overflow-x-auto scrollbar-hide"
+        onKeyDown={handleKeyDown}
+        className={[
+          "flex items-center gap-0.5",
+          // Horizontal scroll
+          "overflow-x-auto",
+          // CSS scroll-snap for touch
+          "snap-x snap-mandatory",
+          // Hide scrollbar cross-browser
+          "scrollbar-none",
+          // Mobile: full width, some horizontal padding
+          "max-md:w-full max-md:px-2",
+        ].join(" ")}
         style={
           hasOverflow
             ? {
                 maskImage:
-                  "linear-gradient(to right, transparent, black 2rem, black calc(100% - 2rem), transparent)",
+                  "linear-gradient(to right, transparent, black 1.5rem, black calc(100% - 1.5rem), transparent)",
                 WebkitMaskImage:
-                  "linear-gradient(to right, transparent, black 2rem, black calc(100% - 2rem), transparent)",
+                  "linear-gradient(to right, transparent, black 1.5rem, black calc(100% - 1.5rem), transparent)",
               }
             : undefined
         }
@@ -70,9 +158,10 @@ const Slider: React.FC<SliderProps> = ({ selected, setSelected }) => {
         {tabs.map((tab) => (
           <TabButton
             key={tab.id}
+            ref={setTabRef(tab.id)}
             tab={tab}
             isSelected={selected === tab.id}
-            onClick={() => setSelected(tab.id)}
+            onClick={handleClick}
           />
         ))}
       </div>
@@ -80,53 +169,84 @@ const Slider: React.FC<SliderProps> = ({ selected, setSelected }) => {
   );
 };
 
+/* ================================================================
+   TabButton — memoised so only the active / previously-active
+   tabs re-render when selection changes.
+   ================================================================ */
+
 interface TabButtonProps {
   tab: TabItem;
   isSelected: boolean;
-  onClick: () => void;
+  onClick: (id: number) => void;
 }
 
-const TabButton: React.FC<TabButtonProps> = ({ tab, isSelected, onClick }) => {
-  return (
-    <button
-      onClick={onClick}
-      title={tab.label}
-      aria-label={tab.label}
-      aria-current={isSelected ? "page" : undefined}
-      className={`
-        relative flex items-center gap-2 px-2.5 lg:px-3.5 py-2.5
-        text-[13px] font-medium tracking-[0.02em]
-        rounded-lg transition-all duration-200 shrink-0
-        ${
-          isSelected
-            ? "text-white"
-            : "text-gray-500 hover:text-gray-300 hover:bg-white/[0.04]"
-        }
-      `}
-    >
-      {isSelected && (
-        <motion.div
-          layoutId="activeTab"
-          className="absolute inset-0 rounded-lg"
-          style={{
-            background:
-              "linear-gradient(180deg, rgba(59, 130, 246, 0.12) 0%, rgba(6, 182, 212, 0.05) 100%)",
-            boxShadow:
-              "inset 0 -2px 0 rgba(59, 130, 246, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.04), 0 0 12px rgba(59, 130, 246, 0.06)",
-          }}
-          transition={{ type: "spring", stiffness: 400, damping: 30 }}
-        />
-      )}
-      <span
-        className={`relative z-10 transition-colors duration-200 ${
-          isSelected ? "text-cyan-400" : ""
-        }`}
-      >
-        {tab.icon}
-      </span>
-      <span className="relative z-10 hidden lg:inline">{tab.label}</span>
-    </button>
-  );
-};
+const TabButton = React.memo(
+  React.forwardRef<HTMLButtonElement, TabButtonProps>(
+    ({ tab, isSelected, onClick }, ref) => {
+      const handleClick = useCallback(() => {
+        onClick(tab.id);
+      }, [onClick, tab.id]);
+
+      return (
+        <button
+          ref={ref}
+          onClick={handleClick}
+          role="tab"
+          tabIndex={isSelected ? 0 : -1}
+          aria-selected={isSelected}
+          aria-label={tab.label}
+          title={tab.label}
+          className={[
+            // Layout
+            "relative flex items-center justify-center gap-2 shrink-0 snap-start",
+            // Touch-friendly sizing: 44px min height
+            "min-h-[44px] px-3 sm:px-3.5 lg:px-4 py-2.5",
+            // Text
+            "text-[13px] font-medium tracking-[0.02em]",
+            // Shape + transition
+            "rounded-lg transition-colors duration-200",
+            // Colour states
+            isSelected
+              ? "text-white"
+              : "text-gray-500 hover:text-gray-300 hover:bg-white/[0.04]",
+            // Focus ring (keyboard-only)
+            "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500",
+            "outline-none",
+          ].join(" ")}
+        >
+          {/* Animated active indicator (shared layoutId) */}
+          {isSelected && (
+            <motion.div
+              layoutId="activeTab"
+              className="absolute inset-0 rounded-lg"
+              style={{
+                background:
+                  "linear-gradient(180deg, rgba(59, 130, 246, 0.12) 0%, rgba(6, 182, 212, 0.05) 100%)",
+                boxShadow:
+                  "inset 0 -2px 0 rgba(59, 130, 246, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.04), 0 0 12px rgba(59, 130, 246, 0.06)",
+              }}
+              transition={springTransition}
+            />
+          )}
+
+          {/* Icon */}
+          <span
+            className={[
+              "relative z-10 transition-colors duration-200",
+              isSelected ? "text-cyan-400" : "",
+            ].join(" ")}
+          >
+            {tab.icon}
+          </span>
+
+          {/* Label: hidden on very small screens, visible sm+ */}
+          <span className="relative z-10 hidden sm:inline">{tab.label}</span>
+        </button>
+      );
+    },
+  ),
+);
+
+TabButton.displayName = "TabButton";
 
 export default Slider;

@@ -17,6 +17,7 @@ interface InputProps {
   min?: number;
   max?: number;
   step?: number;
+  ref?: React.Ref<HTMLInputElement>;
 }
 
 export const Input: React.FC<InputProps> = ({
@@ -35,8 +36,10 @@ export const Input: React.FC<InputProps> = ({
   min,
   max,
   step,
+  ref,
 }) => {
-  const inputRef = useRef<HTMLInputElement>(null);
+  const internalRef = useRef<HTMLInputElement>(null);
+  const inputRef = (ref as React.RefObject<HTMLInputElement>) ?? internalRef;
 
   return (
     <div className={`space-y-2 ${className}`}>
@@ -70,18 +73,18 @@ export const Input: React.FC<InputProps> = ({
           max={max}
           step={step}
           className={`
-            w-full px-4 py-3
+            w-full px-4 py-3 min-h-[44px]
             bg-white/4
             border rounded-xl
-            text-white placeholder-[var(--color-text-muted)]
+            text-base text-white placeholder-[var(--color-text-muted)]
             transition-all duration-200
-            focus:outline-none focus:ring-2 focus:ring-[var(--color-primary-500)]
-            disabled:opacity-50 disabled:cursor-not-allowed
+            focus:outline-none focus:ring-2 focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)]
+            disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-white/2
             ${icon || prefix ? "pl-11" : ""}
             ${suffix ? "pr-16" : ""}
             ${error
-              ? "border-red-500/60 focus:ring-red-500/40"
-              : "border-[var(--color-border)] focus:border-[var(--color-primary-500)]"
+              ? "border-red-500/60 focus:ring-red-500/40 focus:border-red-500/60"
+              : "border-[var(--color-border)] hover:border-[var(--color-border-hover)]"
             }
           `}
         />
@@ -160,7 +163,7 @@ export const NumberInput: React.FC<NumberInputProps> = ({
       )}
       <div className="flex items-center gap-3">
         {(unit || unitIcon) && (
-          <div className="flex items-center gap-2 px-4 py-3 bg-[var(--color-primary-500)]/10 border border-[var(--color-primary-500)]/20 rounded-xl">
+          <div className="flex items-center gap-2 px-4 py-3 min-h-[44px] bg-[var(--color-primary-500)]/10 border border-[var(--color-primary-500)]/20 rounded-xl">
             {unitIcon}
             {unit && (
               <span className="text-sm font-medium text-[var(--color-primary-400)] uppercase">
@@ -179,13 +182,14 @@ export const NumberInput: React.FC<NumberInputProps> = ({
             step={step}
             disabled={disabled}
             className={`
-              w-full px-4 py-3
+              w-full px-4 py-3 min-h-[44px]
               bg-white/4
               border border-[var(--color-border)] rounded-xl
-              text-white text-lg font-medium
+              text-base text-white sm:text-lg font-medium
               transition-all duration-200
               focus:outline-none focus:ring-2 focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)]
-              disabled:opacity-50 disabled:cursor-not-allowed
+              hover:border-[var(--color-border-hover)]
+              disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-white/2
               ${showStepper ? "pr-20" : ""}
               [appearance:textfield]
               [&::-webkit-outer-spin-button]:appearance-none
@@ -198,7 +202,7 @@ export const NumberInput: React.FC<NumberInputProps> = ({
                 type="button"
                 onClick={handleIncrement}
                 disabled={disabled || (max !== undefined && value >= max)}
-                className="px-2 py-0.5 text-[var(--color-text-muted)] hover:text-white transition-colors disabled:opacity-30"
+                className="px-2 py-1 min-h-[22px] text-[var(--color-text-muted)] hover:text-white transition-colors disabled:opacity-30"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
@@ -208,7 +212,7 @@ export const NumberInput: React.FC<NumberInputProps> = ({
                 type="button"
                 onClick={handleDecrement}
                 disabled={disabled || value <= min}
-                className="px-2 py-0.5 text-[var(--color-text-muted)] hover:text-white transition-colors disabled:opacity-30"
+                className="px-2 py-1 min-h-[22px] text-[var(--color-text-muted)] hover:text-white transition-colors disabled:opacity-30"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />

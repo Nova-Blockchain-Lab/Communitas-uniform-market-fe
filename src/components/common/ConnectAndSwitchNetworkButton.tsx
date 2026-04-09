@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useCallback, useMemo } from "react";
 import { useAccount, useSwitchChain } from "wagmi";
 import { motion } from "motion/react";
 import { Wallet, RefreshCw, AlertTriangle } from "lucide-react";
@@ -9,13 +9,23 @@ import { Button } from "@/components/ui";
 const ConnectAndSwitchNetworkButton: React.FC = () => {
   const { isConnected, chain } = useAccount();
   const { switchChain, isPending: isSwitching } = useSwitchChain();
+
   const { id: defaultChainId, name: defaultChainName } = defaultChain;
+
+  const isWrongNetwork = useMemo(
+    () => isConnected && chain?.id !== defaultChainId,
+    [isConnected, chain?.id, defaultChainId],
+  );
+
+  const handleSwitchNetwork = useCallback(() => {
+    switchChain({ chainId: defaultChainId });
+  }, [switchChain, defaultChainId]);
 
   if (!isConnected) {
     return (
-      <div className="flex flex-col items-center gap-4 py-4">
+      <div className="flex flex-col items-center gap-3 sm:gap-4 py-3 sm:py-4 px-2">
         <motion.div
-          className="relative p-4 rounded-full bg-blue-500/10"
+          className="relative p-3 sm:p-4 rounded-full bg-blue-500/10"
           animate={{
             boxShadow: [
               "0 0 0 0 rgba(59, 130, 246, 0)",
@@ -29,11 +39,14 @@ const ConnectAndSwitchNetworkButton: React.FC = () => {
             ease: "easeInOut",
           }}
         >
-          <Wallet size={32} className="text-blue-400" />
+          <Wallet size={28} className="text-blue-400 sm:hidden" />
+          <Wallet size={32} className="text-blue-400 hidden sm:block" />
         </motion.div>
-        <div className="text-center">
-          <p className="font-medium mb-1" style={{ color: 'var(--color-text-primary)' }}>Connect Your Wallet</p>
-          <p className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>
+        <div className="text-center px-2">
+          <p className="font-medium mb-1 text-sm sm:text-base" style={{ color: 'var(--color-text-primary)' }}>
+            Connect Your Wallet
+          </p>
+          <p className="text-xs sm:text-sm" style={{ color: 'var(--color-text-secondary)' }}>
             Connect to interact with the energy market
           </p>
         </div>
@@ -42,15 +55,15 @@ const ConnectAndSwitchNetworkButton: React.FC = () => {
     );
   }
 
-  if (chain?.id !== defaultChainId) {
+  if (isWrongNetwork) {
     return (
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
-        className="flex flex-col items-center gap-4 py-4"
+        className="flex flex-col items-center gap-3 sm:gap-4 py-3 sm:py-4 px-2"
       >
         <motion.div
-          className="p-4 rounded-full bg-amber-500/10"
+          className="p-3 sm:p-4 rounded-full bg-amber-500/10"
           style={{
             border: '2px solid var(--color-energy-400, #fbbf24)',
           }}
@@ -72,20 +85,25 @@ const ConnectAndSwitchNetworkButton: React.FC = () => {
             ease: "easeInOut",
           }}
         >
-          <AlertTriangle size={32} className="text-amber-400" />
+          <AlertTriangle size={28} className="text-amber-400 sm:hidden" />
+          <AlertTriangle size={32} className="text-amber-400 hidden sm:block" />
         </motion.div>
-        <div className="text-center">
-          <p className="font-medium mb-1" style={{ color: 'var(--color-text-primary)' }}>Wrong Network</p>
-          <p className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>
+        <div className="text-center px-2">
+          <p className="font-medium mb-1 text-sm sm:text-base" style={{ color: 'var(--color-text-primary)' }}>
+            Wrong Network
+          </p>
+          <p className="text-xs sm:text-sm max-w-[240px]" style={{ color: 'var(--color-text-secondary)' }}>
             Please switch to {defaultChainName}
           </p>
         </div>
         <Button
           variant="primary"
-          onClick={() => switchChain({ chainId: defaultChainId })}
+          size="sm"
+          onClick={handleSwitchNetwork}
           loading={isSwitching}
           disabled={isSwitching}
-          icon={<RefreshCw size={16} />}
+          icon={<RefreshCw size={16} className={isSwitching ? "animate-spin" : ""} />}
+          className="w-full sm:w-auto max-w-[280px]"
         >
           {isSwitching ? "Switching..." : "Switch Network"}
         </Button>

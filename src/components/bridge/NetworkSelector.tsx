@@ -1,10 +1,16 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { ChevronDown } from "lucide-react";
 import { useConfig } from "wagmi";
 import { motion, AnimatePresence } from "motion/react";
 import Image from "next/image";
 
 import { defaultChain } from "@/config";
+
+interface NetworkOption {
+  id: number;
+  name: string;
+  icon: string;
+}
 
 interface NetworkSelectorProps {
   selectedNetwork: number;
@@ -19,17 +25,42 @@ const NetworkSelector: React.FC<NetworkSelectorProps> = ({
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  const networkOptions = chains.map((chain) => ({
-    id: chain.id,
-    name: chain.name,
-    icon: chain.id === defaultChain.id ? "/Logo-NovaCidade.svg" : "/arbitrum-arb-logo.svg",
-  }));
+  const networkOptions: NetworkOption[] = useMemo(
+    () =>
+      chains.map((chain) => ({
+        id: chain.id,
+        name: chain.name,
+        icon:
+          chain.id === defaultChain.id
+            ? "/Logo-NovaCidade.svg"
+            : "/arbitrum-arb-logo.svg",
+      })),
+    [chains],
+  );
 
-  const selectedOption = networkOptions.find((opt) => opt.id === selectedNetwork);
+  const selectedOption = useMemo(
+    () => networkOptions.find((opt) => opt.id === selectedNetwork),
+    [networkOptions, selectedNetwork],
+  );
+
+  const handleToggle = useCallback(() => {
+    setIsOpen((prev) => !prev);
+  }, []);
+
+  const handleSelect = useCallback(
+    (id: number) => {
+      onSelectNetwork(id);
+      setIsOpen(false);
+    },
+    [onSelectNetwork],
+  );
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(e.target as Node)
+      ) {
         setIsOpen(false);
       }
     };
@@ -37,31 +68,51 @@ const NetworkSelector: React.FC<NetworkSelectorProps> = ({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  // Close dropdown on Escape key
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setIsOpen(false);
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen]);
+
   return (
     <div ref={dropdownRef} className="relative">
+      {/* Trigger button */}
       <button
-        onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2 px-3 py-2 bg-white/10 hover:bg-white/15 border border-white/10 rounded-xl transition-colors"
-        aria-label={`Select network: ${selectedOption?.name}`}
+        onClick={handleToggle}
+        className="
+          flex items-center gap-2 px-3 py-2 min-h-[44px]
+          bg-white/10 hover:bg-white/15 active:bg-white/20
+          border border-white/10 rounded-xl
+          transition-colors
+          max-sm:px-2.5 max-sm:gap-1.5
+        "
+        aria-haspopup="listbox"
+        aria-expanded={isOpen}
+        aria-label={`Select network: ${selectedOption?.name || "Select Network"}`}
       >
         {selectedOption && (
           <Image
             src={selectedOption.icon}
-            alt={selectedOption.name}
+            alt=""
             width={20}
             height={20}
-            className="rounded-full"
+            className="rounded-full shrink-0"
           />
         )}
-        <span className="text-sm font-medium text-white">
+        <span className="text-sm font-medium text-white whitespace-nowrap max-sm:text-xs">
           {selectedOption?.name || "Select Network"}
         </span>
         <ChevronDown
           size={16}
-          className={`text-gray-400 transition-transform ${isOpen ? "rotate-180" : ""}`}
+          className={`text-gray-400 transition-transform shrink-0 ${isOpen ? "rotate-180" : ""}`}
         />
       </button>
 
+      {/* Dropdown */}
       <AnimatePresence>
         {isOpen && (
           <motion.div
@@ -69,35 +120,44 @@ const NetworkSelector: React.FC<NetworkSelectorProps> = ({
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
             transition={{ duration: 0.15 }}
-            className="absolute top-full left-0 mt-2 min-w-full bg-gray-900 border border-white/10 rounded-xl shadow-xl overflow-hidden z-50"
+            role="listbox"
+            aria-label="Network options"
+            className="
+              absolute top-full mt-2 min-w-full w-max
+              bg-gray-900 border border-white/10 rounded-xl
+              shadow-xl overflow-hidden z-50
+              right-0 sm:left-0 sm:right-auto
+            "
           >
             <div className="p-1">
               {networkOptions.map((opt) => (
                 <button
                   key={opt.id}
-                  onClick={() => {
-                    onSelectNetwork(opt.id);
-                    setIsOpen(false);
-                  }}
+                  role="option"
+                  aria-selected={opt.id === selectedNetwork}
+                  onClick={() => handleSelect(opt.id)}
                   className={`
-                    w-full flex items-center gap-2 px-3 py-2 rounded-lg text-left
-                    transition-colors whitespace-nowrap
-                    ${opt.id === selectedNetwork
-                      ? "bg-emerald-500/20 text-white"
-                      : "text-gray-300 hover:bg-white/5"
+                    w-full flex items-center gap-2.5 px-3 py-2.5 min-h-[44px]
+                    rounded-lg text-left transition-colors whitespace-nowrap
+                    ${
+                      opt.id === selectedNetwork
+                        ? "bg-emerald-500/20 text-white"
+                        : "text-gray-300 hover:bg-white/5 active:bg-white/10"
                     }
                   `}
                 >
                   <Image
                     src={opt.icon}
-                    alt={opt.name}
-                    width={20}
-                    height={20}
-                    className="rounded-full"
+                    alt=""
+                    width={22}
+                    height={22}
+                    className="rounded-full shrink-0"
                   />
                   <span className="text-sm font-medium">{opt.name}</span>
                   {opt.id === selectedNetwork && (
-                    <span className="ml-auto text-emerald-400">✓</span>
+                    <span className="ml-auto text-emerald-400 shrink-0" aria-hidden="true">
+                      &#10003;
+                    </span>
                   )}
                 </button>
               ))}

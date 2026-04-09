@@ -1,9 +1,9 @@
 import Head from "next/head";
 import Image from "next/image";
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { ArrowRight, Menu } from "lucide-react";
+import { ArrowRight, Droplets, Menu } from "lucide-react";
 
 import styles from "@/styles/Home.module.css";
 import { AppProvider } from "@/context/AppContext";
@@ -13,15 +13,36 @@ import { BidBox, SellBox, CombinedOrdersBox, TradeHistoryBox, ClaimBox, EnergyDa
 import { NFTBox } from "@/components/nft";
 import { ErrorBoundary } from "@/components/ui";
 
+const PAGE_VARIANTS = {
+  initial: { opacity: 0, y: 12 },
+  animate: { opacity: 1, y: 0 },
+  exit: { opacity: 0, y: -8 },
+} as const;
+
+const PAGE_TRANSITION = { duration: 0.25, ease: "easeOut" } as const;
+
+const MAIN_STYLE = { paddingTop: "calc(var(--header-height) + 1.5rem)" } as const;
+
+/** Map of tab id to its component. Only the active tab is rendered. */
+const TAB_COMPONENTS: Record<number, React.FC> = {
+  1: BidBox,
+  2: SellBox,
+  3: CombinedOrdersBox,
+  4: TradeHistoryBox,
+  5: ClaimBox,
+  6: NFTBox,
+  7: EnergyDashboard,
+};
+
 export default function Home() {
   const [selected, setSelected] = useState(1);
   const [drawerOpen, setDrawerOpen] = useState(false);
 
-  const pageVariants = {
-    initial: { opacity: 0, y: 12 },
-    animate: { opacity: 1, y: 0 },
-    exit: { opacity: 0, y: -8 },
-  };
+  const openDrawer = useCallback(() => setDrawerOpen(true), []);
+  const closeDrawer = useCallback(() => setDrawerOpen(false), []);
+
+  /** Resolve the active tab component once per selection change */
+  const ActiveTabComponent = useMemo(() => TAB_COMPONENTS[selected] ?? null, [selected]);
 
   return (
     <>
@@ -37,17 +58,17 @@ export default function Home() {
       <AppProvider>
         <ErrorBoundary>
         <div className="min-h-screen">
-          {/* Header */}
+          {/* ── Header ─────────────────────────────────────────── */}
           <header className={styles.header}>
             {/* Left: Logo + Region */}
-            <div className="flex items-center gap-3 md:gap-5">
+            <div className="flex items-center gap-2 sm:gap-3 md:gap-5 min-w-0">
               <Link href="/" className={styles.logo}>
                 <Image
                   src="/communitas.png"
                   alt="COMMUNITAS"
                   height={32}
                   width={180}
-                  className="w-[120px] sm:w-[140px] md:w-[160px]"
+                  className="w-[100px] xs:w-[120px] sm:w-[140px] md:w-[160px] shrink-0"
                   priority
                 />
               </Link>
@@ -58,11 +79,11 @@ export default function Home() {
               </div>
             </div>
 
-            {/* Center: Desktop tabs (Slider handles flex-1 + centering + md visibility) */}
+            {/* Center: Desktop tabs */}
             <Slider selected={selected} setSelected={setSelected} />
 
             {/* Right: Bridge + Wallet + Hamburger */}
-            <div className="flex items-center gap-2.5">
+            <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
               {/* Bridge Link (lg+ desktop) */}
               <Link
                 href="/bridge"
@@ -79,6 +100,22 @@ export default function Home() {
                 <ArrowRight size={14} />
               </Link>
 
+              {/* Faucet Link (lg+ desktop) */}
+              <Link
+                href="/faucet"
+                className="
+                  hidden lg:flex items-center gap-1.5
+                  px-3 py-2
+                  text-cyan-400/80 text-xs font-medium tracking-wide
+                  rounded-lg
+                  hover:text-cyan-300 hover:bg-cyan-500/10
+                  transition-all duration-200
+                "
+              >
+                <Droplets size={13} />
+                Faucet
+              </Link>
+
               {/* Wallet Buttons */}
               <div className={styles.buttons}>
                 <div className={`${styles.highlight} hidden md:block`}>
@@ -91,8 +128,8 @@ export default function Home() {
 
               {/* Hamburger (mobile only) */}
               <button
-                onClick={() => setDrawerOpen(true)}
-                className="md:hidden p-2 rounded-lg text-gray-500 hover:text-white hover:bg-white/[0.06] transition-all duration-200"
+                onClick={openDrawer}
+                className="md:hidden p-1.5 sm:p-2 rounded-lg text-gray-500 hover:text-white hover:bg-white/[0.06] transition-all duration-200"
                 aria-label="Open menu"
               >
                 <Menu size={20} />
@@ -100,34 +137,31 @@ export default function Home() {
             </div>
           </header>
 
-          {/* Mobile Drawer */}
+          {/* ── Mobile Drawer ──────────────────────────────────── */}
           <MobileDrawer
             isOpen={drawerOpen}
-            onClose={() => setDrawerOpen(false)}
+            onClose={closeDrawer}
             selected={selected}
             setSelected={setSelected}
           />
 
-          {/* Main Content */}
-          <main className="pb-12 px-4" style={{ paddingTop: 'calc(var(--header-height) + 1.5rem)' }}>
-            <div className="max-w-7xl mx-auto">
+          {/* ── Main Content ───────────────────────────────────── */}
+          <main
+            className="pb-8 sm:pb-12 px-2 sm:px-4 md:px-6 lg:px-8 overflow-x-hidden"
+            style={MAIN_STYLE}
+          >
+            <div className="w-full max-w-7xl mx-auto">
               <AnimatePresence mode="popLayout">
                 <motion.div
                   key={selected}
-                  variants={pageVariants}
+                  variants={PAGE_VARIANTS}
                   initial="initial"
                   animate="animate"
                   exit="exit"
-                  transition={{ duration: 0.25, ease: "easeOut" }}
-                  className="flex justify-center"
+                  transition={PAGE_TRANSITION}
+                  className="flex justify-center w-full"
                 >
-                  {selected === 1 && <BidBox />}
-                  {selected === 2 && <SellBox />}
-                  {selected === 3 && <CombinedOrdersBox />}
-                  {selected === 4 && <TradeHistoryBox />}
-                  {selected === 5 && <ClaimBox />}
-                  {selected === 6 && <NFTBox />}
-                  {selected === 7 && <EnergyDashboard />}
+                  {ActiveTabComponent && <ActiveTabComponent />}
                 </motion.div>
               </AnimatePresence>
             </div>

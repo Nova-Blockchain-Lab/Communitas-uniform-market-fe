@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
+import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "motion/react";
 import {
   CheckCircle2,
@@ -14,7 +15,8 @@ import {
   Image,
   ArrowUpDown,
   ArrowUp,
-  ArrowDown
+  ArrowDown,
+  X,
 } from "lucide-react";
 import { Button } from "./Button";
 
@@ -177,6 +179,38 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
   explorerUrl = "https://sepolia.arbiscan.io",
 }) => {
   const [copied, setCopied] = useState(false);
+  const [portalTarget, setPortalTarget] = useState<HTMLElement | null>(null);
+
+  // Resolve portal target on mount (client-side only)
+  useEffect(() => {
+    setPortalTarget(document.body);
+  }, []);
+
+  // Body scroll lock when modal is open
+  useEffect(() => {
+    if (isOpen && status !== "idle") {
+      const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
+      document.body.style.overflow = "hidden";
+      document.body.style.paddingRight = `${scrollbarWidth}px`;
+      return () => {
+        document.body.style.overflow = "";
+        document.body.style.paddingRight = "";
+      };
+    }
+  }, [isOpen, status]);
+
+  // Escape key handler
+  useEffect(() => {
+    if (!isOpen || status === "idle") return;
+    const canDismiss = status === "success" || status === "error";
+    if (!canDismiss) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen, status, onClose]);
 
   useEffect(() => {
     if (copied) {
@@ -185,42 +219,58 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
     }
   }, [copied]);
 
-  const copyHash = () => {
+  const copyHash = useCallback(() => {
     if (hash) {
       navigator.clipboard.writeText(hash);
       setCopied(true);
     }
-  };
+  }, [hash]);
 
   const config = statusConfig[status];
   const typeInfo = details?.type ? typeConfig[details.type] : null;
+  const canDismiss = status === "success" || status === "error";
 
-  if (status === "idle") return null;
+  if (status === "idle" || !portalTarget) return null;
 
-  return (
+  const modalContent = (
     <AnimatePresence>
       {isOpen && (
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm"
+          transition={{ duration: 0.2 }}
+          className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/70 backdrop-blur-sm"
           onClick={(e) => {
-            if (e.target === e.currentTarget && (status === "success" || status === "error")) {
+            if (e.target === e.currentTarget && canDismiss) {
               onClose();
             }
           }}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="tx-modal-title"
         >
           <motion.div
             initial={{ scale: 0.9, opacity: 0, y: 20 }}
             animate={{ scale: 1, opacity: 1, y: 0 }}
             exit={{ scale: 0.9, opacity: 0, y: 20 }}
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            className="w-full max-w-md overflow-hidden rounded-2xl bg-[var(--color-bg-card)] border border-[var(--color-border)] shadow-2xl"
+            className="w-full max-w-md max-h-[calc(100dvh-1.5rem)] sm:max-h-[calc(100dvh-2rem)] overflow-y-auto rounded-2xl bg-[var(--color-bg-card)] border border-[var(--color-border)] shadow-2xl"
           >
             {/* Header with gradient */}
-            <div className={`relative p-6 bg-gradient-to-br ${config.bgGradient}`}>
-              {/* Background decoration — explicit classes, no template interpolation */}
+            <div className={`relative p-5 sm:p-6 bg-gradient-to-br ${config.bgGradient}`}>
+              {/* Close button -- touch-friendly 44x44 tap target */}
+              {canDismiss && (
+                <button
+                  onClick={onClose}
+                  className="absolute top-3 right-3 z-10 w-11 h-11 flex items-center justify-center rounded-full bg-white/5 hover:bg-white/10 active:bg-white/15 text-[var(--color-text-muted)] hover:text-white transition-colors"
+                  aria-label="Close"
+                >
+                  <X size={18} />
+                </button>
+              )}
+
+              {/* Background decoration */}
               <div className="absolute inset-0 overflow-hidden">
                 <div className={`absolute -top-12 -right-12 w-32 h-32 rounded-full ${config.decorBg} blur-3xl`} />
                 <div className={`absolute -bottom-8 -left-8 w-24 h-24 rounded-full ${config.decorBg} blur-2xl`} />
@@ -233,27 +283,27 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
                     <motion.div
                       animate={{ rotate: 360 }}
                       transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-                      className={`w-16 h-16 rounded-full ${config.iconBg} flex items-center justify-center`}
+                      className={`w-14 h-14 sm:w-16 sm:h-16 rounded-full ${config.iconBg} flex items-center justify-center`}
                     >
-                      <Loader2 size={32} className={config.iconColor} />
+                      <Loader2 size={28} className={`${config.iconColor} sm:[&]:w-8 sm:[&]:h-8`} />
                     </motion.div>
                   )}
                   {status === "confirming" && (
                     <motion.div
                       animate={{ scale: [1, 1.1, 1] }}
                       transition={{ duration: 1.5, repeat: Infinity }}
-                      className={`w-16 h-16 rounded-full ${config.iconBg} flex items-center justify-center`}
+                      className={`w-14 h-14 sm:w-16 sm:h-16 rounded-full ${config.iconBg} flex items-center justify-center`}
                     >
-                      <Loader2 size={32} className={`${config.iconColor} animate-spin`} />
+                      <Loader2 size={28} className={`${config.iconColor} animate-spin sm:[&]:w-8 sm:[&]:h-8`} />
                     </motion.div>
                   )}
                   {status === "bridging" && (
                     <motion.div
                       animate={{ y: [0, -5, 0] }}
                       transition={{ duration: 1.5, repeat: Infinity }}
-                      className={`w-16 h-16 rounded-full ${config.iconBg} flex items-center justify-center`}
+                      className={`w-14 h-14 sm:w-16 sm:h-16 rounded-full ${config.iconBg} flex items-center justify-center`}
                     >
-                      <ArrowUpDown size={32} className={config.iconColor} />
+                      <ArrowUpDown size={28} className={`${config.iconColor} sm:[&]:w-8 sm:[&]:h-8`} />
                     </motion.div>
                   )}
                   {status === "success" && (
@@ -261,9 +311,9 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
                       initial={{ scale: 0 }}
                       animate={{ scale: 1 }}
                       transition={{ type: "spring", damping: 15 }}
-                      className={`w-16 h-16 rounded-full ${config.iconBg} flex items-center justify-center`}
+                      className={`w-14 h-14 sm:w-16 sm:h-16 rounded-full ${config.iconBg} flex items-center justify-center`}
                     >
-                      <CheckCircle2 size={32} className={config.iconColor} />
+                      <CheckCircle2 size={28} className={`${config.iconColor} sm:[&]:w-8 sm:[&]:h-8`} />
                     </motion.div>
                   )}
                   {status === "error" && (
@@ -271,9 +321,9 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
                       initial={{ scale: 0 }}
                       animate={{ scale: 1 }}
                       transition={{ type: "spring", damping: 15 }}
-                      className={`w-16 h-16 rounded-full ${config.iconBg} flex items-center justify-center`}
+                      className={`w-14 h-14 sm:w-16 sm:h-16 rounded-full ${config.iconBg} flex items-center justify-center`}
                     >
-                      <XCircle size={32} className={config.iconColor} />
+                      <XCircle size={28} className={`${config.iconColor} sm:[&]:w-8 sm:[&]:h-8`} />
                     </motion.div>
                   )}
                 </div>
@@ -287,8 +337,8 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
                 )}
 
                 {/* Title */}
-                <h3 className="text-xl font-bold text-white mb-1">{config.title}</h3>
-                <p className="text-sm text-[var(--color-text-secondary)]">
+                <h3 id="tx-modal-title" className="text-lg sm:text-xl font-bold text-white mb-1">{config.title}</h3>
+                <p className="text-xs sm:text-sm text-[var(--color-text-secondary)] px-2">
                   {status === "success" && typeInfo
                     ? typeInfo.successMessage
                     : config.subtitle}
@@ -297,20 +347,20 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
             </div>
 
             {/* Content */}
-            <div className="p-6 space-y-4">
+            <div className="p-4 sm:p-6 space-y-4">
               {/* Transaction details */}
               {details && status !== "error" && (
-                <div className="p-4 rounded-xl bg-white/4 space-y-3">
+                <div className="p-3 sm:p-4 rounded-xl bg-white/4 space-y-3">
                   {details.amount !== undefined && (
                     <div className="flex items-center justify-between">
-                      <span className="text-sm text-[var(--color-text-secondary)]">Amount</span>
-                      <span className="text-sm font-semibold text-white">{details.amount} kWh</span>
+                      <span className="text-xs sm:text-sm text-[var(--color-text-secondary)]">Amount</span>
+                      <span className="text-xs sm:text-sm font-semibold text-white">{details.amount} kWh</span>
                     </div>
                   )}
                   {details.hours !== undefined && (
                     <div className="flex items-center justify-between">
-                      <span className="text-sm text-[var(--color-text-secondary)]">Duration</span>
-                      <span className="text-sm font-semibold text-white">
+                      <span className="text-xs sm:text-sm text-[var(--color-text-secondary)]">Duration</span>
+                      <span className="text-xs sm:text-sm font-semibold text-white">
                         {details.hours} {details.hours === 1 ? "hour" : "hours"}
                       </span>
                     </div>
@@ -319,8 +369,8 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
                     <>
                       <div className="h-px bg-white/8" />
                       <div className="flex items-center justify-between">
-                        <span className="text-sm text-[var(--color-text-secondary)]">Total Cost</span>
-                        <span className="text-sm font-bold text-white">
+                        <span className="text-xs sm:text-sm text-[var(--color-text-secondary)]">Total Cost</span>
+                        <span className="text-xs sm:text-sm font-bold text-white">
                           {details.totalCost} {details.currency || "ETH"}
                         </span>
                       </div>
@@ -331,10 +381,10 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
 
               {/* Error message */}
               {status === "error" && error && (
-                <div className="p-4 rounded-xl bg-red-500/8 border border-red-500/20">
+                <div className="p-3 sm:p-4 rounded-xl bg-red-500/8 border border-red-500/20">
                   <div className="flex items-start gap-3">
                     <AlertTriangle size={20} className="text-red-400 shrink-0 mt-0.5" />
-                    <div>
+                    <div className="min-w-0">
                       <p className="text-sm font-medium text-red-400 mb-1">Error Details</p>
                       <p className="text-xs text-red-300/80 break-words">{error}</p>
                     </div>
@@ -344,15 +394,15 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
 
               {/* Transaction hash */}
               {hash && (
-                <div className="p-4 rounded-xl bg-white/4">
+                <div className="p-3 sm:p-4 rounded-xl bg-white/4">
                   <p className="text-xs text-[var(--color-text-muted)] mb-2">Transaction Hash</p>
                   <div className="flex items-center gap-2">
-                    <code className="flex-1 text-xs text-gray-300 font-mono truncate">
+                    <code className="flex-1 text-xs text-gray-300 font-mono truncate min-w-0">
                       {hash}
                     </code>
                     <button
                       onClick={copyHash}
-                      className="p-2 rounded-lg bg-white/5 hover:bg-white/10 text-[var(--color-text-muted)] hover:text-white transition-colors"
+                      className="p-2.5 rounded-lg bg-white/5 hover:bg-white/10 active:bg-white/15 text-[var(--color-text-muted)] hover:text-white transition-colors shrink-0"
                       title="Copy hash"
                     >
                       {copied ? <Check size={14} /> : <Copy size={14} />}
@@ -361,7 +411,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
                       href={`${explorerUrl}/tx/${hash}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="p-2 rounded-lg bg-white/5 hover:bg-white/10 text-[var(--color-text-muted)] hover:text-white transition-colors"
+                      className="p-2.5 rounded-lg bg-white/5 hover:bg-white/10 active:bg-white/15 text-[var(--color-text-muted)] hover:text-white transition-colors shrink-0"
                       title="View on explorer"
                     >
                       <ExternalLink size={14} />
@@ -420,6 +470,8 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
       )}
     </AnimatePresence>
   );
+
+  return createPortal(modalContent, portalTarget);
 };
 
 export default TransactionModal;

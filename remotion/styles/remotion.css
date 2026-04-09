@@ -1,0 +1,69 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap");
+@import "tailwindcss";
+
+/* Design tokens matching the app's globals.css */
+:root {
+  --font-base: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono", "Fira Code", monospace;
+
+  /* Primary Blue */
+  --color-primary-50: #eef4ff;
+  --color-primary-100: #d9e5ff;
+  --color-primary-200: #bcd2ff;
+  --color-primary-300: #8eb8ff;
+  --color-primary-400: #5992ff;
+  --color-primary-500: #3370ff;
+  --color-primary-600: #1b4ff5;
+  --color-primary-700: #143ce1;
+  --color-primary-800: #1732b6;
+  --color-primary-900: #192f8f;
+
+  /* Energy Warm Accents */
+  --color-energy-300: #fcd34d;
+  --color-energy-400: #fbbf24;
+  --color-energy-500: #f59e0b;
+  --color-energy-600: #d97706;
+
+  /* Accent Colors */
+  --color-accent-green: #10b981;
+  --color-accent-emerald: #059669;
+  --color-accent-teal: #14b8a6;
+  --color-accent-orange: #ea580c;
+  --color-accent-red: #ef4444;
+  --color-accent-violet: #8b5cf6;
+
+  /* Backgrounds */
+  --color-bg-dark: #060609;
+  --color-bg-base: #0a0a12;
+  --color-bg-card: #10101a;
+  --color-bg-elevated: #181824;
+  --color-bg-surface: #1e1e2e;
+  --color-border: rgba(255, 255, 255, 0.07);
+  --color-border-hover: rgba(255, 255, 255, 0.14);
+  --color-border-active: rgba(255, 255, 255, 0.22);
+
+  /* Text */
+  --color-text-primary: #f0f0f5;
+  --color-text-secondary: #9898a8;
+  --color-text-muted: #606070;
+
+  /* Gradients */
+  --gradient-primary: linear-gradient(135deg, #3370ff 0%, #8b5cf6 100%);
+  --gradient-success: linear-gradient(135deg, #10b981 0%, #14b8a6 100%);
+  --gradient-energy: linear-gradient(135deg, #fbbf24 0%, #ea580c 100%);
+  --gradient-glass: linear-gradient(135deg, rgba(255, 255, 255, 0.06) 0%, rgba(255, 255, 255, 0.02) 100%);
+
+  /* Shadows */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.35);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.4);
+  --shadow-xl: 0 16px 40px rgba(0, 0, 0, 0.45);
+  --shadow-glow: 0 0 32px rgba(51, 112, 255, 0.25);
+
+  /* Radii */
+  --radius-sm: 0.5rem;
+  --radius-md: 0.75rem;
+  --radius-lg: 1rem;
+  --radius-xl: 1.5rem;
+  --radius-2xl: 2rem;
+}

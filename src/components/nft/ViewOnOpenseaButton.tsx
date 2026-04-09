@@ -1,6 +1,8 @@
-import React from "react";
+import React, { useCallback, useMemo } from "react";
 import { contractAddresses, OPENSEA_URL_CREATOR } from "@/config";
 import { useAccount } from "wagmi";
+import { ExternalLink } from "lucide-react";
+import { Button } from "@/components/ui";
 
 interface ViewOnOpenseaButtonProps {
   tokenId: string;
@@ -9,26 +11,32 @@ interface ViewOnOpenseaButtonProps {
 const ViewOnOpenseaButton: React.FC<ViewOnOpenseaButtonProps> = ({ tokenId }) => {
   const { chainId } = useAccount();
 
-  const contractAddress = contractAddresses[chainId!]["CommunitasNFT"]["General"];
-  const openseaLink = OPENSEA_URL_CREATOR(contractAddress, tokenId);
+  const openseaLink = useMemo(() => {
+    if (!chainId) return undefined;
+    const contractAddress = contractAddresses[chainId]?.["CommunitasNFT"]?.["General"];
+    if (!contractAddress) return undefined;
+    return OPENSEA_URL_CREATOR(contractAddress, tokenId);
+  }, [chainId, tokenId]);
+
+  const handleClick = useCallback(() => {
+    if (openseaLink) {
+      window.open(openseaLink, "_blank", "noopener,noreferrer");
+    }
+  }, [openseaLink]);
 
   return (
-    <a
-      href={openseaLink}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="
-        w-full inline-flex items-center justify-center
-        px-4 py-2 text-xs font-medium
-        bg-transparent text-white/80
-        border border-white/40
-        rounded-lg
-        hover:bg-white/20 hover:border-white/60
-        transition-all duration-200
-      "
+    <Button
+      variant="outline"
+      size="sm"
+      fullWidth
+      onClick={handleClick}
+      disabled={!openseaLink}
+      icon={<ExternalLink size={16} />}
+      iconPosition="right"
+      className="min-h-[44px]"
     >
       OpenSea
-    </a>
+    </Button>
   );
 };
 

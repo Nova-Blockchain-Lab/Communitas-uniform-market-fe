@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useCallback } from "react";
 import { ArrowDown, Clock } from "lucide-react";
 import { BigNumber } from "ethers";
 import { EthBridger, getArbitrumNetwork } from "@arbitrum/sdk";
@@ -14,7 +14,7 @@ interface SubmitWithdrawalButtonProps {
   hasEnoughBalance: boolean;
 }
 
-export const SubmitWithdrawalButton: React.FC<SubmitWithdrawalButtonProps> = ({
+const SubmitWithdrawalButtonInner: React.FC<SubmitWithdrawalButtonProps> = ({
   amount,
   hasEnoughBalance,
 }) => {
@@ -28,7 +28,7 @@ export const SubmitWithdrawalButton: React.FC<SubmitWithdrawalButtonProps> = ({
   const [txError, setTxError] = useState<string | undefined>();
   const [txHash, setTxHash] = useState<string | undefined>();
 
-  const handleWithdrawal = async () => {
+  const handleWithdrawal = useCallback(async () => {
     if (!signer || !l2Provider || !address || !amount) return;
 
     setIsModalOpen(true);
@@ -69,16 +69,16 @@ export const SubmitWithdrawalButton: React.FC<SubmitWithdrawalButtonProps> = ({
       }
       setTxError(message);
     }
-  };
+  }, [signer, l2Provider, address, amount]);
 
-  const closeModal = () => {
+  const closeModal = useCallback(() => {
     setIsModalOpen(false);
     setTimeout(() => {
       setTxStatus("idle");
       setTxError(undefined);
       setTxHash(undefined);
     }, 300);
-  };
+  }, []);
 
   const isDisabled = txStatus === "pending" || txStatus === "confirming" || !hasEnoughBalance || amount === BigInt(0);
   const isLoading = txStatus === "pending" || txStatus === "confirming";
@@ -96,10 +96,11 @@ export const SubmitWithdrawalButton: React.FC<SubmitWithdrawalButtonProps> = ({
           disabled={isDisabled}
           className={`
             w-full flex items-center justify-center gap-2
-            px-6 py-4
-            text-white font-semibold
+            min-h-[48px] px-5 sm:px-6 py-3 sm:py-4
+            text-white font-semibold text-sm sm:text-base
             rounded-xl
             transition-all duration-200
+            focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/60
             ${isDisabled
               ? "bg-gray-600 cursor-not-allowed opacity-50"
               : "bg-gradient-to-r from-blue-600 to-blue-500 shadow-lg hover:shadow-xl hover:shadow-blue-500/25"
@@ -108,20 +109,22 @@ export const SubmitWithdrawalButton: React.FC<SubmitWithdrawalButtonProps> = ({
         >
           {isLoading ? (
             <>
-              <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-              {txStatus === "pending" ? "Confirm in Wallet..." : "Processing..."}
+              <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin shrink-0" />
+              <span className="truncate">
+                {txStatus === "pending" ? "Confirm in Wallet..." : "Processing..."}
+              </span>
             </>
           ) : (
             <>
-              <ArrowDown size={18} />
-              Withdraw to Arbitrum
+              <ArrowDown size={18} className="shrink-0" />
+              <span className="truncate">Withdraw to Arbitrum</span>
             </>
           )}
         </motion.button>
 
         {/* Warning about withdrawal time */}
         <div className="flex items-center gap-2 px-3 py-2 bg-amber-500/10 border border-amber-500/20 rounded-lg text-xs text-amber-400">
-          <Clock size={14} />
+          <Clock size={14} className="shrink-0" />
           <span>Withdrawals take ~7 days due to the challenge period</span>
         </div>
       </div>
@@ -143,3 +146,5 @@ export const SubmitWithdrawalButton: React.FC<SubmitWithdrawalButtonProps> = ({
     </>
   );
 };
+
+export const SubmitWithdrawalButton = React.memo(SubmitWithdrawalButtonInner);

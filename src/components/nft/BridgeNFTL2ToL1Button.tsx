@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { useAccount, useWaitForTransactionReceipt, useWriteContract } from "wagmi";
 import CommunitasNFTL2 from "@/../abi/CommunitasNFTL2.json";
 import { contractAddresses } from "@/config";
@@ -57,7 +57,7 @@ const BridgeNFTL2ToL1Button: React.FC<BridgeNFTL2ToL1ButtonProps> = ({ nft, refe
     }
   }, [isWritePending, isConfirming, isConfirmed, writeError, confirmError, refetchNFTs]);
 
-  const handleBridge = async () => {
+  const handleBridge = useCallback(async () => {
     if (!isConnected || !chain || !address || !nftContractAddress) return;
 
     setIsModalOpen(true);
@@ -71,15 +71,15 @@ const BridgeNFTL2ToL1Button: React.FC<BridgeNFTL2ToL1ButtonProps> = ({ nft, refe
       functionName: "bridgeToL1",
       args: [nft.tokenId],
     });
-  };
+  }, [isConnected, chain, address, nftContractAddress, nft.tokenId, writeContract, resetWrite]);
 
-  const closeModal = () => {
+  const closeModal = useCallback(() => {
     setIsModalOpen(false);
     setTimeout(() => {
       setTxStatus("idle");
       setTxError(undefined);
     }, 300);
-  };
+  }, []);
 
   const isLoading = isWritePending || isConfirming;
 
@@ -92,7 +92,8 @@ const BridgeNFTL2ToL1Button: React.FC<BridgeNFTL2ToL1ButtonProps> = ({ nft, refe
         onClick={handleBridge}
         loading={isLoading}
         disabled={isLoading || !isConnected}
-        icon={<ArrowUpDown size={14} />}
+        icon={<ArrowUpDown size={16} />}
+        className="min-h-[44px]"
       >
         Bridge to L1
       </Button>

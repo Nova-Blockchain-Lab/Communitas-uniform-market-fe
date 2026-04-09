@@ -15,11 +15,11 @@
    CSS Custom Properties (Design Tokens)
    ============================================ */
 :root {
-	/* Typography */
+	/* ---- Typography ---- */
 	--font-base: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 	--font-mono: "JetBrains Mono", "Fira Code", monospace;
 
-	/* Primary Blue */
+	/* ---- Color: Primary Blue ---- */
 	--color-primary-50: #eef4ff;
 	--color-primary-100: #d9e5ff;
 	--color-primary-200: #bcd2ff;
@@ -31,13 +31,13 @@
 	--color-primary-800: #1732b6;
 	--color-primary-900: #192f8f;
 
-	/* Energy Warm Accents */
+	/* ---- Color: Energy Warm Accents ---- */
 	--color-energy-300: #fcd34d;
 	--color-energy-400: #fbbf24;
 	--color-energy-500: #f59e0b;
 	--color-energy-600: #d97706;
 
-	/* Accent Colors */
+	/* ---- Color: Semantic Accents ---- */
 	--color-accent-green: #10b981;
 	--color-accent-emerald: #059669;
 	--color-accent-teal: #14b8a6;
@@ -45,56 +45,79 @@
 	--color-accent-red: #ef4444;
 	--color-accent-violet: #8b5cf6;
 
-	/* Backgrounds — deeper, richer darks */
+	/* ---- Color: Backgrounds ---- */
 	--color-bg-dark: #060609;
 	--color-bg-base: #0a0a12;
 	--color-bg-card: #10101a;
 	--color-bg-elevated: #181824;
 	--color-bg-surface: #1e1e2e;
+
+	/* ---- Color: Borders ---- */
 	--color-border: rgba(255, 255, 255, 0.07);
 	--color-border-hover: rgba(255, 255, 255, 0.14);
 	--color-border-active: rgba(255, 255, 255, 0.22);
 
-	/* Text */
+	/* ---- Color: Text ---- */
 	--color-text-primary: #f0f0f5;
 	--color-text-secondary: #9898a8;
 	--color-text-muted: #606070;
 
-	/* Gradients */
+	/* ---- Gradients ---- */
 	--gradient-primary: linear-gradient(135deg, #3370ff 0%, #8b5cf6 100%);
 	--gradient-success: linear-gradient(135deg, #10b981 0%, #14b8a6 100%);
 	--gradient-energy: linear-gradient(135deg, #fbbf24 0%, #ea580c 100%);
 	--gradient-glass: linear-gradient(135deg, rgba(255, 255, 255, 0.06) 0%, rgba(255, 255, 255, 0.02) 100%);
 	--gradient-glow: radial-gradient(ellipse 50% 35% at 50% 0%, rgba(51, 112, 255, 0.1) 0%, transparent 100%);
 
-	/* Shadows */
+	/* ---- Shadows ---- */
 	--shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
 	--shadow-md: 0 4px 12px rgba(0, 0, 0, 0.35);
 	--shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.4);
 	--shadow-xl: 0 16px 40px rgba(0, 0, 0, 0.45);
+	--shadow-2xl: 0 24px 56px rgba(0, 0, 0, 0.55);
 	--shadow-glow: 0 0 32px rgba(51, 112, 255, 0.25);
 	--shadow-glow-success: 0 0 32px rgba(16, 185, 129, 0.25);
 	--shadow-glow-energy: 0 0 32px rgba(245, 158, 11, 0.2);
+	--shadow-inset: inset 0 1px 2px rgba(0, 0, 0, 0.3);
 
-	/* Radii */
+	/* ---- Radii ---- */
 	--radius-sm: 0.5rem;
 	--radius-md: 0.75rem;
 	--radius-lg: 1rem;
 	--radius-xl: 1.5rem;
 	--radius-2xl: 2rem;
 
-	/* Transitions */
+	/* ---- Transitions ---- */
 	--transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
 	--transition-base: 200ms cubic-bezier(0.4, 0, 0.2, 1);
 	--transition-slow: 300ms cubic-bezier(0.4, 0, 0.2, 1);
 
-	/* Layout */
+	/* ---- Glassmorphism ---- */
+	--glass-blur: 16px;
+	--glass-card-blur: 24px;
+	--glass-bg: rgba(255, 255, 255, 0.04);
+	--glass-card-bg-start: rgba(255, 255, 255, 0.06);
+	--glass-card-bg-end: rgba(255, 255, 255, 0.02);
+
+	/* ---- Layout ---- */
 	--header-height: 3.5rem;
+	--safe-area-top: env(safe-area-inset-top, 0px);
+	--safe-area-bottom: env(safe-area-inset-bottom, 0px);
+	--safe-area-left: env(safe-area-inset-left, 0px);
+	--safe-area-right: env(safe-area-inset-right, 0px);
 }
 
 @media (min-width: 768px) {
 	:root {
 		--header-height: 4rem;
+	}
+}
+
+/* Reduce glass blur on low-power / mobile devices */
+@media (max-width: 768px) {
+	:root {
+		--glass-blur: 12px;
+		--glass-card-blur: 16px;
 	}
 }
 
@@ -105,6 +128,9 @@
 	html {
 		height: 100%;
 		scroll-behavior: smooth;
+		font-size: 16px;
+		-webkit-text-size-adjust: 100%;
+		text-size-adjust: 100%;
 	}
 
 	html,
@@ -117,6 +143,8 @@
 	body {
 		min-height: 100%;
 		font-family: var(--font-base);
+		font-size: 1rem;
+		line-height: 1.5;
 		background-color: var(--color-bg-dark);
 		color: var(--color-text-primary);
 		background-image:
@@ -127,6 +155,17 @@
 		background-attachment: fixed;
 		-webkit-font-smoothing: antialiased;
 		-moz-osx-font-smoothing: grayscale;
+		-webkit-tap-highlight-color: transparent;
+		/* Safe-area padding for notched devices */
+		padding-left: var(--safe-area-left);
+		padding-right: var(--safe-area-right);
+	}
+
+	/* Prevent iOS zoom on input focus (font-size < 16px triggers zoom) */
+	@media (max-width: 768px) {
+		input, select, textarea {
+			font-size: 1rem;
+		}
 	}
 
 	pre, code {
@@ -149,6 +188,12 @@
 		position: fixed;
 		width: 100%;
 		z-index: 50;
+		padding-top: var(--safe-area-top);
+	}
+
+	/* Touch targets: ensure minimum 44x44 tap area */
+	button, [role="button"], a {
+		touch-action: manipulation;
 	}
 
 	/* Scrollbar */
@@ -164,16 +209,27 @@
 	::-webkit-scrollbar-thumb {
 		background: var(--color-border-hover);
 		border-radius: 3px;
+		transition: background var(--transition-fast);
 	}
 
 	::-webkit-scrollbar-thumb:hover {
 		background: var(--color-text-muted);
 	}
 
-	/* Focus */
+	/* Firefox scrollbar */
+	* {
+		scrollbar-width: thin;
+		scrollbar-color: var(--color-border-hover) transparent;
+	}
+
+	/* Focus — keyboard only, never on tap */
 	*:focus-visible {
 		outline: 2px solid var(--color-primary-500);
 		outline-offset: 2px;
+	}
+
+	*:focus:not(:focus-visible) {
+		outline: none;
 	}
 
 	/* Selection */
@@ -199,20 +255,20 @@
    Utility Classes (Tailwind v4 @utility)
    ============================================ */
 @utility glass {
-	background: rgba(255, 255, 255, 0.04);
-	backdrop-filter: blur(16px);
-	-webkit-backdrop-filter: blur(16px);
+	background: var(--glass-bg);
+	backdrop-filter: blur(var(--glass-blur));
+	-webkit-backdrop-filter: blur(var(--glass-blur));
 	border: 1px solid var(--color-border);
 }
 
 @utility glass-card {
 	background: linear-gradient(
 		135deg,
-		rgba(255, 255, 255, 0.06) 0%,
-		rgba(255, 255, 255, 0.02) 100%
+		var(--glass-card-bg-start) 0%,
+		var(--glass-card-bg-end) 100%
 	);
-	backdrop-filter: blur(24px);
-	-webkit-backdrop-filter: blur(24px);
+	backdrop-filter: blur(var(--glass-card-blur));
+	-webkit-backdrop-filter: blur(var(--glass-card-blur));
 	border: 1px solid var(--color-border);
 	box-shadow: var(--shadow-lg);
 }
@@ -260,6 +316,32 @@
 	animation: gradient 8s ease infinite;
 }
 
+/* ---- Transition shorthand utilities ---- */
+@utility transition-colors-fast {
+	transition: color var(--transition-fast), background-color var(--transition-fast), border-color var(--transition-fast);
+}
+
+@utility transition-all-base {
+	transition: all var(--transition-base);
+}
+
+@utility transition-transform-base {
+	transition: transform var(--transition-base);
+}
+
+@utility transition-opacity-base {
+	transition: opacity var(--transition-base);
+}
+
+/* Hide scrollbar but keep scroll functionality */
+@utility scrollbar-none {
+	-ms-overflow-style: none;
+	scrollbar-width: none;
+	&::-webkit-scrollbar {
+		display: none;
+	}
+}
+
 /* ============================================
    Keyframe Animations
    ============================================ */
@@ -285,6 +367,33 @@
 	40% { transform: translateX(4px); }
 	60% { transform: translateX(-3px); }
 	80% { transform: translateX(2px); }
+}
+
+@keyframes fade-in {
+	from { opacity: 0; }
+	to { opacity: 1; }
+}
+
+@keyframes fade-in-up {
+	from {
+		opacity: 0;
+		transform: translateY(8px);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
+
+@keyframes scale-in {
+	from {
+		opacity: 0;
+		transform: scale(0.95);
+	}
+	to {
+		opacity: 1;
+		transform: scale(1);
+	}
 }
 
 /* ============================================
@@ -347,9 +456,9 @@
 	}
 
 	.card {
-		background-color: rgba(255, 255, 255, 0.04);
-		backdrop-filter: blur(24px);
-		-webkit-backdrop-filter: blur(24px);
+		background-color: var(--glass-bg);
+		backdrop-filter: blur(var(--glass-card-blur));
+		-webkit-backdrop-filter: blur(var(--glass-card-blur));
 		border-radius: var(--radius-lg);
 		border: 1px solid var(--color-border);
 		box-shadow: var(--shadow-xl);
@@ -359,7 +468,8 @@
 	.card-hover:hover {
 		background-color: rgba(255, 255, 255, 0.07);
 		border-color: var(--color-border-hover);
-		box-shadow: 0 20px 40px -8px rgba(0, 0, 0, 0.5);
+		box-shadow: var(--shadow-2xl);
+		transform: translateY(-1px);
 	}
 
 	.input-field {
@@ -379,7 +489,7 @@
 	.input-field:focus {
 		border-color: var(--color-primary-500);
 		outline: none;
-		box-shadow: 0 0 0 1px var(--color-primary-500);
+		box-shadow: 0 0 0 1px var(--color-primary-500), 0 0 12px -2px rgba(51, 112, 255, 0.15);
 	}
 
 	.label-text {
@@ -464,10 +574,10 @@
 	.rdp-root {
 		--rdp-accent-color: var(--color-primary-500);
 		--rdp-accent-background-color: rgba(51, 112, 255, 0.2);
-		--rdp-day-height: 40px;
-		--rdp-day-width: 40px;
-		--rdp-day_button-height: 36px;
-		--rdp-day_button-width: 36px;
+		--rdp-day-height: 44px;
+		--rdp-day-width: 44px;
+		--rdp-day_button-height: 40px;
+		--rdp-day_button-width: 40px;
 		--rdp-selected-border: 0;
 		--rdp-selected-font: inherit;
 		--rdp-range_start-color: #fff;
@@ -487,10 +597,11 @@
 
 	@media (max-width: 400px) {
 		.rdp-root {
-			--rdp-day-height: 36px;
-			--rdp-day-width: 36px;
-			--rdp-day_button-height: 32px;
-			--rdp-day_button-width: 32px;
+			--rdp-day-height: 44px;
+			--rdp-day-width: 44px;
+			--rdp-day_button-height: 40px;
+			--rdp-day_button-width: 40px;
+			font-size: 0.9375rem;
 		}
 	}
 
@@ -539,7 +650,9 @@
 		background: rgba(255, 255, 255, 0.06) !important;
 		border: 1px solid var(--color-border) !important;
 		border-radius: var(--radius-sm) !important;
-		transition: background var(--transition-fast) !important;
+		transition: background var(--transition-fast), border-color var(--transition-fast) !important;
+		min-width: 44px !important;
+		min-height: 44px !important;
 	}
 
 	.rdp-button_previous:hover,
@@ -548,10 +661,22 @@
 		border-color: rgba(51, 112, 255, 0.4) !important;
 	}
 
+	.rdp-button_previous:active,
+	.rdp-button_next:active {
+		transform: scale(0.95);
+	}
+
 	.rdp-selected .rdp-day_button {
 		background: var(--color-primary-500) !important;
 		color: #fff !important;
 		font-weight: 600 !important;
+		box-shadow: 0 0 12px rgba(51, 112, 255, 0.35);
+	}
+
+	.rdp-disabled .rdp-day_button {
+		color: var(--color-text-muted) !important;
+		opacity: 0.25;
+		cursor: not-allowed;
 	}
 
 	.rdp-today .rdp-day_button {

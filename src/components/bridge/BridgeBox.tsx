@@ -1,6 +1,6 @@
 "use client";
-import React, { useEffect, useState, useCallback } from "react";
-import { ArrowDownUp, Wallet, AlertCircle, Check } from "lucide-react";
+import React, { useEffect, useState, useCallback, useMemo } from "react";
+import { ArrowDownUp, Wallet, AlertCircle, Check, ArrowRight, Clock } from "lucide-react";
 import { useAccount, useConfig } from "wagmi";
 import { motion, AnimatePresence } from "motion/react";
 import Image from "next/image";
@@ -12,16 +12,50 @@ import { SkeletonBlock, SkeletonLine } from "@/components/ui";
 import NetworkSelector from "./NetworkSelector";
 import { SubmitButton } from "./SubmitButton";
 
+/* ------------------------------------------------------------------ */
+/*  Types                                                              */
+/* ------------------------------------------------------------------ */
+
+type QuickAmount = (typeof QUICK_AMOUNTS)[number];
+
+interface BridgeStep {
+  readonly id: number;
+  readonly label: string;
+}
+
+/* ------------------------------------------------------------------ */
+/*  Constants                                                          */
+/* ------------------------------------------------------------------ */
+
 /** Quick-pick preset amounts in ETH */
 const QUICK_AMOUNTS = ["0.001", "0.01", "0.05", "0.1"] as const;
 
 /** Bridge step indicator */
-const BRIDGE_STEPS = [
+const BRIDGE_STEPS: readonly BridgeStep[] = [
   { id: 1, label: "Enter Amount" },
   { id: 2, label: "Confirm" },
   { id: 3, label: "Bridge" },
   { id: 4, label: "Complete" },
 ] as const;
+
+const ZERO = BigInt(0);
+
+/* ------------------------------------------------------------------ */
+/*  Styles (extracted to avoid inline object re-creation)             */
+/* ------------------------------------------------------------------ */
+
+const ethBadgeClasses =
+  "flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1.5 sm:py-2 bg-white/5 rounded-lg shrink-0";
+
+const sectionCardClasses =
+  "p-3 sm:p-4 bg-white/5 rounded-xl border border-white/10 transition-colors duration-200";
+
+const fromSectionCardClasses =
+  "p-3 sm:p-4 bg-white/5 rounded-xl border border-white/10 transition-colors duration-200 focus-within:border-emerald-500/40 focus-within:bg-white/[0.07]";
+
+/* ------------------------------------------------------------------ */
+/*  Component                                                          */
+/* ------------------------------------------------------------------ */
 
 export const BridgeBox: React.FC = () => {
   const { chains } = useConfig();
@@ -31,7 +65,7 @@ export const BridgeBox: React.FC = () => {
   const [selectedOriginNetwork, setSelectedOriginNetwork] = useState<number>(baseChain.id);
   const [selectedDestinationNetwork, setSelectedDestinationNetwork] = useState<number>(defaultChain.id);
 
-  const [depositAmount, setDepositAmount] = useState<bigint>(BigInt(0));
+  const [depositAmount, setDepositAmount] = useState<bigint>(ZERO);
   const [inputDisplayValue, setInputDisplayValue] = useState<string>("");
 
   const [originBalance, setOriginBalance] = useState<bigint | undefined>();
@@ -40,20 +74,34 @@ export const BridgeBox: React.FC = () => {
   const [swapRotation, setSwapRotation] = useState(0);
   const [initialLoading, setInitialLoading] = useState(true);
 
-  const handleOriginNetworkChange = (id: number) => {
-    setSelectedOriginNetwork(id);
-    setSelectedDestinationNetwork(chains.find((c) => c.id !== id)?.id || defaultChain.id);
-  };
+  /* ----- Network handlers ----------------------------------------- */
 
-  const handleDestinationNetworkChange = (id: number) => {
-    setSelectedDestinationNetwork(id);
-    setSelectedOriginNetwork(chains.find((c) => c.id !== id)?.id || baseChain.id);
-  };
+  const handleOriginNetworkChange = useCallback(
+    (id: number) => {
+      setSelectedOriginNetwork(id);
+      setSelectedDestinationNetwork(
+        chains.find((c) => c.id !== id)?.id || defaultChain.id
+      );
+    },
+    [chains]
+  );
 
-  const switchNetworks = () => {
+  const handleDestinationNetworkChange = useCallback(
+    (id: number) => {
+      setSelectedDestinationNetwork(id);
+      setSelectedOriginNetwork(
+        chains.find((c) => c.id !== id)?.id || baseChain.id
+      );
+    },
+    [chains]
+  );
+
+  const switchNetworks = useCallback(() => {
     setSwapRotation((r) => r + 180);
     handleDestinationNetworkChange(selectedOriginNetwork);
-  };
+  }, [handleDestinationNetworkChange, selectedOriginNetwork]);
+
+  /* ----- Amount handlers ------------------------------------------ */
 
   const handleAmountChange = useCallback((inputValue: string) => {
     setInputDisplayValue(inputValue);
@@ -61,7 +109,7 @@ export const BridgeBox: React.FC = () => {
     const normalizedValue = inputValue.replace(/,/g, "").trim();
 
     if (!normalizedValue || isNaN(Number(normalizedValue))) {
-      setDepositAmount(BigInt(0));
+      setDepositAmount(ZERO);
       return;
     }
 
@@ -70,14 +118,14 @@ export const BridgeBox: React.FC = () => {
       const integerPart = BigInt(parts[0]) * BigInt(10 ** 18);
       const fractionalPart = parts[1]
         ? BigInt(parts[1].padEnd(18, "0").slice(0, 18))
-        : BigInt(0);
+        : ZERO;
       setDepositAmount(integerPart + fractionalPart);
     } catch {
-      setDepositAmount(BigInt(0));
+      setDepositAmount(ZERO);
     }
   }, []);
 
-  const setMaxAmount = () => {
+  const setMaxAmount = useCallback(() => {
     if (originBalance) {
       const formatted = formatBalance(originBalance);
       if (formatted) {
@@ -85,9 +133,68 @@ export const BridgeBox: React.FC = () => {
         setDepositAmount(originBalance);
       }
     }
-  };
+  }, [originBalance]);
 
-  const hasEnoughBalance = originBalance !== undefined ? originBalance >= depositAmount : false;
+  const handleQuickAmount = useCallback(
+    (amount: QuickAmount) => {
+      handleAmountChange(amount);
+    },
+    [handleAmountChange]
+  );
+
+  /* ----- Computed / memoised values ------------------------------- */
+
+  const hasEnoughBalance = useMemo(
+    () => (originBalance !== undefined ? originBalance >= depositAmount : false),
+    [originBalance, depositAmount]
+  );
+
+  const isDeposit = selectedOriginNetwork === baseChain.id;
+
+  const estimatedTime = useMemo(
+    () => (isDeposit ? "~10 min" : "~7 days"),
+    [isDeposit]
+  );
+
+  const originNetworkName = useMemo(
+    () => (selectedOriginNetwork === defaultChain.id ? "Nova Cidade" : "Arbitrum"),
+    [selectedOriginNetwork]
+  );
+
+  const destinationNetworkName = useMemo(
+    () => (selectedDestinationNetwork === defaultChain.id ? "Nova Cidade" : "Arbitrum"),
+    [selectedDestinationNetwork]
+  );
+
+  const eurValue = useMemo(() => {
+    if (!inputDisplayValue || !ethPrice) return "";
+    const ethNum = parseFloat(inputDisplayValue);
+    if (isNaN(ethNum)) return "";
+    return (ethNum * ethPrice).toFixed(2);
+  }, [inputDisplayValue, ethPrice]);
+
+  const formattedOriginBalance = useMemo(
+    () => formatBalance(originBalance) || "0 ETH",
+    [originBalance]
+  );
+
+  const formattedDestinationBalance = useMemo(
+    () => formatBalance(destinationBalance) || "0 ETH",
+    [destinationBalance]
+  );
+
+  const showInsufficientBalance = useMemo(
+    () => !hasEnoughBalance && depositAmount > ZERO && originBalance !== undefined,
+    [hasEnoughBalance, depositAmount, originBalance]
+  );
+
+  // Determine which bridge step the user is at
+  const currentStep = useMemo(
+    () => (depositAmount > ZERO && hasEnoughBalance ? 2 : 1),
+    [depositAmount, hasEnoughBalance]
+  );
+
+  /* ----- Balance fetching ----------------------------------------- */
 
   const fetchBalances = useCallback(async () => {
     if (!address || !l1Provider || !l2Provider) {
@@ -117,20 +224,8 @@ export const BridgeBox: React.FC = () => {
     fetchBalances().finally(() => setInitialLoading(false));
   }, [fetchBalances]);
 
-  const getEURValue = (eth: string | undefined): string => {
-    if (!eth || !ethPrice) return "";
-    const ethNum = parseFloat(eth);
-    return (ethNum * ethPrice).toFixed(2);
-  };
+  /* ----- Skeleton (initial load, disconnected) -------------------- */
 
-  const getNetworkName = (chainId: number): string => {
-    return chainId === defaultChain.id ? "Nova Cidade" : "Arbitrum";
-  };
-
-  // Determine which bridge step the user is at
-  const currentStep = depositAmount > BigInt(0) && hasEnoughBalance ? 2 : 1;
-
-  // Skeleton for initial data load
   if (initialLoading && !isConnected) {
     return (
       <div className="space-y-4">
@@ -147,16 +242,19 @@ export const BridgeBox: React.FC = () => {
     );
   }
 
+  /* ----- Render --------------------------------------------------- */
+
   return (
-    <div className="space-y-4">
-      {/* Step Indicator */}
-      <div className="flex items-center justify-between mb-2">
+    <div className="space-y-3 sm:space-y-4">
+      {/* ---- Step Indicator ---- */}
+      <div className="flex items-center justify-between mb-1 sm:mb-2 px-1">
         {BRIDGE_STEPS.map((step, idx) => (
           <React.Fragment key={step.id}>
-            <div className="flex flex-col items-center gap-1">
+            <div className="flex flex-col items-center gap-0.5 sm:gap-1">
               <div
                 className={`
-                  w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-300
+                  w-6 h-6 sm:w-7 sm:h-7 rounded-full flex items-center justify-center
+                  text-[10px] sm:text-xs font-bold transition-all duration-300
                   ${step.id < currentStep
                     ? "bg-emerald-500 text-white"
                     : step.id === currentStep
@@ -165,59 +263,85 @@ export const BridgeBox: React.FC = () => {
                   }
                 `}
               >
-                {step.id < currentStep ? <Check size={14} /> : step.id}
+                {step.id < currentStep ? <Check size={12} /> : step.id}
               </div>
-              <span className={`text-[10px] font-medium ${step.id <= currentStep ? "text-gray-300" : "text-gray-600"}`}>
+              <span
+                className={`
+                  text-[9px] sm:text-[10px] font-medium whitespace-nowrap
+                  ${step.id <= currentStep ? "text-gray-300" : "text-gray-600"}
+                `}
+              >
                 {step.label}
               </span>
             </div>
             {idx < BRIDGE_STEPS.length - 1 && (
-              <div className={`flex-1 h-px mx-1 mb-4 transition-colors duration-300 ${step.id < currentStep ? "bg-emerald-500/50" : "bg-white/10"}`} />
+              <div
+                className={`
+                  flex-1 h-px mx-0.5 sm:mx-1 mb-4 transition-colors duration-300
+                  ${step.id < currentStep ? "bg-emerald-500/50" : "bg-white/10"}
+                `}
+              />
             )}
           </React.Fragment>
         ))}
       </div>
 
-      {/* From Section */}
-      <div className="space-y-3">
+      {/* ---- From Section ---- */}
+      <div className="space-y-2 sm:space-y-3">
         <div className="flex items-center justify-between">
-          <span className="text-sm font-medium text-gray-400">From</span>
+          <span className="text-xs sm:text-sm font-medium text-gray-400">From</span>
           <NetworkSelector
             selectedNetwork={selectedOriginNetwork}
             onSelectNetwork={handleOriginNetworkChange}
           />
         </div>
 
-        <div className="p-4 bg-white/5 rounded-xl border border-white/10">
-          <div className="flex items-center justify-between mb-2">
+        <div className={fromSectionCardClasses}>
+          {/* Amount input row */}
+          <div className="flex items-center justify-between gap-2 mb-2">
             <input
               type="text"
               inputMode="decimal"
+              autoComplete="off"
               value={inputDisplayValue}
               onChange={(e) => handleAmountChange(e.target.value)}
               placeholder="0.0"
-              className="w-full bg-transparent text-2xl font-semibold text-white placeholder-gray-600 focus:outline-none"
+              className="
+                w-full min-w-0 bg-transparent
+                text-xl sm:text-2xl font-semibold text-white
+                placeholder-gray-600 focus:outline-none
+                [-moz-appearance:textfield]
+                [&::-webkit-outer-spin-button]:appearance-none
+                [&::-webkit-inner-spin-button]:appearance-none
+                text-[16px] sm:text-2xl
+              "
+              aria-label="Bridge amount in ETH"
             />
-            <div className="flex items-center gap-2 px-3 py-2 bg-white/5 rounded-lg">
+            <div className={ethBadgeClasses}>
               <Image src="/eth.png" alt="ETH" width={20} height={20} />
-              <span className="text-sm font-medium text-white">ETH</span>
+              <span className="text-xs sm:text-sm font-medium text-white">ETH</span>
             </div>
           </div>
 
-          <div className="flex items-center justify-between text-sm">
-            <span className="text-gray-500">
-              {ethPrice && inputDisplayValue && (
-                <>~${getEURValue(inputDisplayValue)} EUR</>
-              )}
+          {/* EUR value + balance row */}
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 sm:gap-0 text-xs sm:text-sm">
+            <span className="text-gray-500 truncate">
+              {eurValue && <>~&euro;{eurValue} EUR</>}
             </span>
-            <div className="flex items-center gap-2">
-              <span className="text-gray-500">
-                Balance: {formatBalance(originBalance) || "0 ETH"}
+            <div className="flex items-center gap-2 shrink-0">
+              <Wallet size={13} className="text-gray-500 hidden sm:block" />
+              <span className="text-gray-500 truncate">
+                {formattedOriginBalance}
               </span>
-              {originBalance && originBalance > BigInt(0) && (
+              {originBalance && originBalance > ZERO && (
                 <button
                   onClick={setMaxAmount}
-                  className="px-2 py-0.5 text-xs font-medium bg-emerald-500/20 text-emerald-400 rounded hover:bg-emerald-500/30 transition-colors"
+                  className="
+                    px-2 py-0.5 text-[10px] sm:text-xs font-semibold
+                    bg-emerald-500/20 text-emerald-400 rounded
+                    hover:bg-emerald-500/30 active:bg-emerald-500/40
+                    transition-colors touch-manipulation
+                  "
                 >
                   MAX
                 </button>
@@ -226,19 +350,20 @@ export const BridgeBox: React.FC = () => {
           </div>
         </div>
 
-        {/* Quick amount pick buttons */}
-        <div className="flex items-center gap-2">
+        {/* Quick-pick amounts */}
+        <div className="grid grid-cols-4 gap-1.5 sm:gap-2">
           {QUICK_AMOUNTS.map((amount) => (
             <motion.button
               key={amount}
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              onClick={() => handleAmountChange(amount)}
+              onClick={() => handleQuickAmount(amount)}
               className={`
-                flex-1 py-1.5 text-xs font-medium rounded-lg border transition-colors
+                py-2 sm:py-1.5 text-xs font-medium rounded-lg border
+                transition-colors touch-manipulation
                 ${inputDisplayValue === amount
                   ? "bg-emerald-500/20 border-emerald-500/40 text-emerald-400"
-                  : "bg-white/5 border-white/10 text-gray-400 hover:bg-white/10 hover:text-white"
+                  : "bg-white/5 border-white/10 text-gray-400 hover:bg-white/10 hover:text-white active:bg-white/15"
                 }
               `}
             >
@@ -247,80 +372,109 @@ export const BridgeBox: React.FC = () => {
           ))}
         </div>
 
-        {!hasEnoughBalance && depositAmount > BigInt(0) && originBalance !== undefined && (
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="flex items-center gap-2 text-red-400 text-sm"
-          >
-            <AlertCircle size={14} />
-            Insufficient balance
-          </motion.div>
-        )}
+        {/* Insufficient balance warning */}
+        <AnimatePresence>
+          {showInsufficientBalance && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              className="overflow-hidden"
+            >
+              <div className="flex items-center gap-2 text-red-400 text-xs sm:text-sm py-1">
+                <AlertCircle size={14} className="shrink-0" />
+                <span>Insufficient balance on {originNetworkName}</span>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
-      {/* Swap Button with rotation animation */}
-      <div className="flex justify-center -my-1">
+      {/* ---- Swap / Direction Indicator ---- */}
+      <div className="flex items-center justify-center gap-3 -my-0.5 sm:-my-1">
+        <div className="flex-1 h-px bg-white/5" />
         <motion.button
           whileHover={{ scale: 1.1 }}
           whileTap={{ scale: 0.9 }}
           animate={{ rotate: swapRotation }}
           transition={{ type: "spring", stiffness: 200, damping: 15 }}
           onClick={switchNetworks}
-          className="p-3 bg-emerald-500/20 hover:bg-emerald-500/30 rounded-xl text-emerald-400 transition-colors"
+          className="
+            p-2.5 sm:p-3 bg-emerald-500/20 hover:bg-emerald-500/30
+            active:bg-emerald-500/40 rounded-xl text-emerald-400
+            transition-colors touch-manipulation
+            shadow-lg shadow-emerald-500/5
+          "
           aria-label="Swap networks"
         >
-          <ArrowDownUp size={20} />
+          <ArrowDownUp size={18} className="sm:w-5 sm:h-5" />
         </motion.button>
+        <div className="flex-1 h-px bg-white/5" />
       </div>
 
-      {/* To Section */}
-      <div className="space-y-3">
+      {/* ---- To Section ---- */}
+      <div className="space-y-2 sm:space-y-3">
         <div className="flex items-center justify-between">
-          <span className="text-sm font-medium text-gray-400">To</span>
+          <span className="text-xs sm:text-sm font-medium text-gray-400">To</span>
           <NetworkSelector
             selectedNetwork={selectedDestinationNetwork}
             onSelectNetwork={handleDestinationNetworkChange}
           />
         </div>
 
-        <div className="p-4 bg-white/5 rounded-xl border border-white/10">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-2xl font-semibold text-gray-400">
+        <div className={sectionCardClasses}>
+          <div className="flex items-center justify-between gap-2 mb-2">
+            <span className="text-xl sm:text-2xl font-semibold text-gray-400 truncate min-w-0">
               {inputDisplayValue || "0.0"}
             </span>
-            <div className="flex items-center gap-2 px-3 py-2 bg-white/5 rounded-lg">
+            <div className={ethBadgeClasses}>
               <Image src="/eth.png" alt="ETH" width={20} height={20} />
-              <span className="text-sm font-medium text-white">ETH</span>
+              <span className="text-xs sm:text-sm font-medium text-white">ETH</span>
             </div>
           </div>
 
-          <div className="flex items-center justify-between text-sm">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 sm:gap-0 text-xs sm:text-sm">
             <span className="text-gray-500">You will receive</span>
-            <span className="text-gray-500">
-              Balance: {formatBalance(destinationBalance) || "0 ETH"}
-            </span>
+            <div className="flex items-center gap-2">
+              <Wallet size={13} className="text-gray-500 hidden sm:block" />
+              <span className="text-gray-500 truncate">
+                {formattedDestinationBalance}
+              </span>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Route Info */}
-      <div className="p-3 bg-white/5 rounded-xl space-y-2">
-        <div className="flex items-center justify-between text-sm">
-          <span className="text-gray-500">Route</span>
-          <span className="text-white font-medium">
-            {getNetworkName(selectedOriginNetwork)} → {getNetworkName(selectedDestinationNetwork)}
+      {/* ---- Route Info ---- */}
+      <motion.div
+        layout
+        className="p-2.5 sm:p-3 bg-white/5 rounded-xl space-y-1.5 sm:space-y-2"
+      >
+        <div className="flex items-center justify-between text-xs sm:text-sm">
+          <span className="text-gray-500 flex items-center gap-1.5">
+            <ArrowRight size={13} className="text-gray-600" />
+            Route
+          </span>
+          <span className="text-white font-medium text-right truncate ml-2">
+            {originNetworkName} → {destinationNetworkName}
           </span>
         </div>
-        <div className="flex items-center justify-between text-sm">
-          <span className="text-gray-500">Est. Time</span>
-          <span className="text-white">
-            {selectedOriginNetwork === baseChain.id ? "~10 min" : "~7 days"}
+        <div className="flex items-center justify-between text-xs sm:text-sm">
+          <span className="text-gray-500 flex items-center gap-1.5">
+            <Clock size={13} className="text-gray-600" />
+            Est. Time
+          </span>
+          <span
+            className={`font-medium ${
+              isDeposit ? "text-emerald-400" : "text-amber-400"
+            }`}
+          >
+            {estimatedTime}
           </span>
         </div>
-      </div>
+      </motion.div>
 
-      {/* Submit Button */}
+      {/* ---- Submit Button ---- */}
       <SubmitButton
         originNetwork={selectedOriginNetwork}
         amount={depositAmount}

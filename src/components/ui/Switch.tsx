@@ -11,22 +11,25 @@ interface SwitchProps {
 
 const sizeClasses = {
   sm: {
-    track: "w-8 h-4",
-    thumb: "w-3 h-3",
-    translate: "translate-x-4",
-    rest: "translate-x-0.5",
+    track: "w-9 h-5",
+    thumb: "w-3.5 h-3.5",
+    translate: "translate-x-[18px]",
+    rest: "translate-x-[3px]",
+    tapArea: "min-w-[44px] min-h-[44px]",
   },
   md: {
-    track: "w-10 h-5",
-    thumb: "w-4 h-4",
-    translate: "translate-x-5",
-    rest: "translate-x-0.5",
+    track: "w-11 h-6",
+    thumb: "w-4.5 h-4.5",
+    translate: "translate-x-[22px]",
+    rest: "translate-x-[3px]",
+    tapArea: "min-w-[44px] min-h-[44px]",
   },
   lg: {
-    track: "w-12 h-6",
-    thumb: "w-5 h-5",
-    translate: "translate-x-6",
-    rest: "translate-x-0.5",
+    track: "w-13 h-7",
+    thumb: "w-5.5 h-5.5",
+    translate: "translate-x-[26px]",
+    rest: "translate-x-[3px]",
+    tapArea: "min-w-[52px] min-h-[44px]",
   },
 };
 
@@ -56,26 +59,37 @@ export const Switch: React.FC<SwitchProps> = ({
       disabled={disabled}
       onClick={onChange}
       className={`
-        relative inline-flex items-center shrink-0
-        ${sizes.track}
+        relative inline-flex items-center justify-center shrink-0
+        ${sizes.tapArea}
         rounded-full
-        transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]
+        cursor-pointer
         focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary-500)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-bg-dark)]
-        ${disabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}
-        ${isChecked ? `${colors.active} ${colors.glow}` : "bg-white/15"}
+        ${disabled ? "opacity-50 cursor-not-allowed" : ""}
+        select-none
+        -webkit-tap-highlight-color-transparent
       `}
     >
       <span
         className={`
-          ${sizes.thumb}
-          inline-block
+          relative inline-flex items-center shrink-0
+          ${sizes.track}
           rounded-full
-          bg-white
-          shadow-md
-          transition-transform duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]
-          ${isChecked ? sizes.translate : sizes.rest}
+          transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]
+          ${isChecked ? `${colors.active} ${colors.glow}` : "bg-white/15"}
         `}
-      />
+      >
+        <span
+          className={`
+            ${sizes.thumb}
+            inline-block
+            rounded-full
+            bg-white
+            shadow-md
+            transition-transform duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]
+            ${isChecked ? sizes.translate : sizes.rest}
+          `}
+        />
+      </span>
     </button>
   );
 };

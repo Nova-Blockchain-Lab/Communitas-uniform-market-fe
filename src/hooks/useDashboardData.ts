@@ -22,14 +22,23 @@ export interface HourData {
   sellers: Participant[];
 }
 
-export function useDashboardData(selectedDay: Date) {
+interface UseDashboardDataReturn {
+  hourData: HourData[];
+  isPending: boolean;
+  refetch: () => void;
+}
+
+// Cache ABI reference to avoid re-creating on every render
+const typedAbi = EnergyBiddingMarketAbi as AbiFunction[];
+
+export function useDashboardData(selectedDay: Date): UseDashboardDataReturn {
   const { energyMarketAddress } = useAppContext();
 
   const timestamps = useMemo(() => getTimestampsForDay(selectedDay), [selectedDay]);
 
   const createConfig = useCallback(
     (functionName: string, args: unknown[]) => ({
-      abi: EnergyBiddingMarketAbi as AbiFunction[],
+      abi: typedAbi,
       address: energyMarketAddress,
       functionName,
       args,
@@ -50,8 +59,17 @@ export function useDashboardData(selectedDay: Date) {
     ]);
   }, [timestamps, energyMarketAddress, createConfig]);
 
+  const hasContracts = contracts.length > 0;
+
   const { data, isPending, refetch } = useReadContracts({
-    contracts: contracts.length > 0 ? contracts : [],
+    contracts: hasContracts ? contracts : undefined,
+    query: {
+      enabled: hasContracts,
+      staleTime: 30_000, // Data is fresh for 30s
+      gcTime: 5 * 60_000, // Keep in cache for 5 min
+      refetchInterval: 60_000, // Auto-refetch every 60s
+      refetchIntervalInBackground: false,
+    },
   });
 
   const hourData: HourData[] = useMemo(() => {
@@ -88,5 +106,13 @@ export function useDashboardData(selectedDay: Date) {
     });
   }, [data, timestamps]);
 
-  return { hourData, isPending, refetch };
+  // Wrap refetch in useCallback to provide a stable reference
+  const stableRefetch = useCallback(() => {
+    refetch();
+  }, [refetch]);
+
+  return useMemo(
+    () => ({ hourData, isPending, refetch: stableRefetch }),
+    [hourData, isPending, stableRefetch]
+  );
 }
