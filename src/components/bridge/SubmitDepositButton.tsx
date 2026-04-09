@@ -1,4 +1,6 @@
-import React, { useState, useCallback } from "react";
+"use client";
+
+import React, { useState, useCallback, useMemo } from "react";
 import { ArrowUp } from "lucide-react";
 import { BigNumber } from "ethers";
 import { EthBridger, EthDepositMessageStatus, getArbitrumNetwork } from "@arbitrum/sdk";
@@ -87,7 +89,17 @@ const SubmitDepositButtonInner: React.FC<SubmitDepositButtonProps> = ({
   const isLoading = txStatus === "pending" || txStatus === "confirming" || txStatus === "bridging";
 
   const amountInETH = Number(amount) / 10 ** 18;
-  const amountInEUR = ethPrice ? amountInETH * ethPrice : 0;
+
+  const buttonLabel = useMemo(() => {
+    if (isLoading) {
+      if (txStatus === "pending") return "Confirm in Wallet...";
+      if (txStatus === "bridging") return "Bridging...";
+      return "Processing...";
+    }
+    if (amount === BigInt(0)) return "Enter an amount";
+    if (!hasEnoughBalance) return "Insufficient balance";
+    return "Deposit to Nova Cidade";
+  }, [isLoading, txStatus, amount, hasEnoughBalance]);
 
   return (
     <>
@@ -96,6 +108,7 @@ const SubmitDepositButtonInner: React.FC<SubmitDepositButtonProps> = ({
         whileTap={isDisabled ? {} : { scale: 0.98 }}
         onClick={handleDeposit}
         disabled={isDisabled}
+        aria-busy={isLoading}
         className={`
           w-full flex items-center justify-center gap-2
           min-h-[48px] px-5 sm:px-6 py-3 sm:py-4
@@ -112,14 +125,12 @@ const SubmitDepositButtonInner: React.FC<SubmitDepositButtonProps> = ({
         {isLoading ? (
           <>
             <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin shrink-0" />
-            <span className="truncate">
-              {txStatus === "pending" ? "Confirm in Wallet..." : txStatus === "bridging" ? "Bridging..." : "Processing..."}
-            </span>
+            <span className="truncate">{buttonLabel}</span>
           </>
         ) : (
           <>
             <ArrowUp size={18} className="shrink-0" />
-            <span className="truncate">Deposit to Nova Cidade</span>
+            <span className="truncate">{buttonLabel}</span>
           </>
         )}
       </motion.button>

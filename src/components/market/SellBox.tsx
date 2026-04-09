@@ -12,17 +12,59 @@ import ConnectAndSwitchNetworkButton from "@/components/common/ConnectAndSwitchN
 import { Card, CardHeader, CardSection, Button } from "@/components/ui";
 import { TransactionModal, TransactionStatus } from "@/components/ui/TransactionModal";
 
+/* ------------------------------------------------------------------ */
+/*  Types                                                              */
+/* ------------------------------------------------------------------ */
+
+interface QuickAmount {
+  readonly value: number;
+  readonly label: string;
+}
+
+interface TransactionDetails {
+  type: "sell";
+  amount: number;
+}
+
+/* ------------------------------------------------------------------ */
+/*  Static data kept outside the component to avoid re-creation        */
+/* ------------------------------------------------------------------ */
+
 /** Quick-select presets for the energy amount input */
-const QUICK_AMOUNTS = [
+const QUICK_AMOUNTS: ReadonlyArray<QuickAmount> = [
   { value: 0.1, label: "100W" },
   { value: 0.5, label: "500W" },
   { value: 1, label: "1 kWh" },
   { value: 5, label: "5 kWh" },
   { value: 10, label: "10 kWh" },
-] as const;
+];
 
 /** Spring transition shared by all quick-select buttons */
 const QUICK_BTN_TRANSITION = { type: "spring" as const, stiffness: 400, damping: 17 };
+
+/** Motion presets kept outside render to avoid allocating new objects each frame */
+const MOTION_TAP = { scale: 0.92 };
+const MOTION_HOVER = { scale: 1.04 };
+const SUMMARY_INITIAL = { opacity: 0, height: 0 };
+const SUMMARY_ANIMATE = { opacity: 1, height: "auto" as const };
+const SUMMARY_EXIT = { opacity: 0, height: 0 };
+
+/* Shared Tailwind class strings (mirrors BidBox pattern) */
+const INPUT_BASE =
+  "w-full px-4 py-3 min-h-[48px] bg-white/5 border rounded-xl text-white text-base font-medium placeholder-gray-500 transition-colors focus:outline-none focus:ring-2 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed";
+
+const INPUT_VALID = "border-white/10 focus:ring-emerald-500 focus:border-emerald-500";
+const INPUT_ERROR = "border-red-500/60 focus:ring-red-500/50";
+
+const BADGE_ENERGY =
+  "flex items-center gap-2 px-3 sm:px-4 py-3 min-h-[44px] bg-amber-500/10 border border-amber-500/20 rounded-xl shrink-0";
+
+/* Enforce 16px font on inputs to prevent iOS auto-zoom */
+const INPUT_FONT_STYLE: React.CSSProperties = { fontSize: "16px" };
+
+/* ------------------------------------------------------------------ */
+/*  Component                                                          */
+/* ------------------------------------------------------------------ */
 
 const SellBox: React.FC = () => {
   const { isConnected, chainId, address } = useAccount();
@@ -105,6 +147,32 @@ const SellBox: React.FC = () => {
   }, [energy, energyDisplay]);
 
   const canSubmit = !validationError && energy > 0 && !isLoading && !isNotWhitelisted;
+
+  /** Watts equivalent for the summary panel */
+  const wattsEquivalent = useMemo(
+    () => (energy * WATTS_PER_KWH).toLocaleString(),
+    [energy],
+  );
+
+  /** Pre-computed input className to avoid inline ternary on every render */
+  const energyInputClassName = useMemo(
+    () => `${INPUT_BASE} ${validationError ? INPUT_ERROR : INPUT_VALID}`,
+    [validationError],
+  );
+
+  /** Stable transaction details object for the modal */
+  const txDetails = useMemo<TransactionDetails>(
+    () => ({ type: "sell", amount: energy }),
+    [energy],
+  );
+
+  /** Button label derived from current transaction state */
+  const submitLabel = useMemo((): string => {
+    if (isWhitelistLoading) return "Checking authorization...";
+    if (isWritePending) return "Confirm in wallet...";
+    if (isConfirming) return "Confirming on-chain...";
+    return "List Energy for Sale";
+  }, [isWhitelistLoading, isWritePending, isConfirming]);
 
   // ---------------------------------------------------------------------------
   // Handlers (stable references via useCallback)
@@ -201,10 +269,10 @@ const SellBox: React.FC = () => {
 
         {/* Whitelist Warning Banner */}
         {isConnected && !needsConnection && !isWhitelistLoading && isNotWhitelisted && (
-          <div className="relative overflow-hidden p-4 bg-amber-500/10 border-2 border-amber-500/30 rounded-xl mb-6">
+          <div className="relative overflow-hidden p-3 sm:p-4 bg-amber-500/10 border-2 border-amber-500/30 rounded-xl mb-5 sm:mb-6">
             <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-amber-500 to-amber-400" />
             <div className="flex items-start gap-3">
-              <div className="p-2 rounded-lg bg-amber-500/20 mt-0.5">
+              <div className="p-2 rounded-lg bg-amber-500/20 mt-0.5 shrink-0">
                 <AlertTriangle size={20} className="text-amber-400" />
               </div>
               <div className="min-w-0">
@@ -220,7 +288,7 @@ const SellBox: React.FC = () => {
         )}
 
         {/* Current Hour Display */}
-        <div className="flex items-center gap-3 p-3 sm:p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-xl mb-6">
+        <div className="flex items-center gap-3 p-3 sm:p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-xl mb-5 sm:mb-6">
           <Clock size={20} className="text-emerald-400 shrink-0" />
           <div className="min-w-0">
             <p className="text-xs text-emerald-400/70">Selling for current hour</p>
@@ -229,10 +297,10 @@ const SellBox: React.FC = () => {
         </div>
 
         {/* Energy Input */}
-        <CardSection title="Energy Amount (kWh)" className="mb-6">
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+        <CardSection title="Energy Amount (kWh)" className="mb-5 sm:mb-6">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3">
             {/* Unit badge */}
-            <div className="flex items-center gap-2 px-4 py-3 bg-amber-500/10 border border-amber-500/20 rounded-xl shrink-0 self-start sm:self-auto">
+            <div className={BADGE_ENERGY}>
               <Image src="/energy.png" alt="Energy" width={24} height={24} />
               <span className="text-sm font-medium text-amber-400 whitespace-nowrap">kWh</span>
             </div>
@@ -245,25 +313,12 @@ const SellBox: React.FC = () => {
               onChange={handleEnergyChange}
               onBlur={handleEnergyBlur}
               min={0}
-              placeholder="0"
+              placeholder="Enter amount"
               disabled={isInputDisabled}
               aria-label="Energy amount in kWh"
               aria-invalid={!!validationError}
-              className={`
-                w-full sm:flex-1 px-4 py-3 min-h-[48px]
-                bg-white/5 border rounded-xl
-                text-white text-base font-medium
-                placeholder-gray-500
-                focus:outline-none focus:ring-2 focus:border-transparent
-                transition-colors
-                disabled:opacity-50 disabled:cursor-not-allowed
-                ${
-                  validationError
-                    ? "border-red-500/60 focus:ring-red-500/50"
-                    : "border-white/10 focus:ring-emerald-500 focus:border-emerald-500"
-                }
-              `}
-              style={{ fontSize: "16px" }}
+              className={energyInputClassName}
+              style={INPUT_FONT_STYLE}
             />
           </div>
 
@@ -277,12 +332,12 @@ const SellBox: React.FC = () => {
         </CardSection>
 
         {/* Quick Amount Buttons */}
-        <div className="grid grid-cols-3 sm:grid-cols-5 gap-2 mb-6">
+        <div className="grid grid-cols-3 sm:grid-cols-5 gap-2 mb-5 sm:mb-6">
           {QUICK_AMOUNTS.map(({ value, label }) => (
             <motion.button
               key={value}
-              whileTap={{ scale: 0.92 }}
-              whileHover={{ scale: 1.04 }}
+              whileTap={MOTION_TAP}
+              whileHover={MOTION_HOVER}
               transition={QUICK_BTN_TRANSITION}
               onClick={() => handleQuickAmount(value)}
               disabled={isInputDisabled}
@@ -304,10 +359,10 @@ const SellBox: React.FC = () => {
         {/* Listing Summary */}
         {energy > 0 && (
           <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: "auto" }}
-            exit={{ opacity: 0, height: 0 }}
-            className="p-4 bg-emerald-500/5 border border-emerald-500/15 rounded-xl space-y-3 mb-6"
+            initial={SUMMARY_INITIAL}
+            animate={SUMMARY_ANIMATE}
+            exit={SUMMARY_EXIT}
+            className="p-3 sm:p-4 bg-emerald-500/5 border border-emerald-500/15 rounded-xl space-y-3 mb-5 sm:mb-6"
           >
             <div className="flex items-center justify-between">
               <span className="text-sm text-gray-400">Energy to list</span>
@@ -317,7 +372,7 @@ const SellBox: React.FC = () => {
             <div className="flex items-center justify-between">
               <span className="text-sm text-gray-400">Watts equivalent</span>
               <span className="text-sm font-semibold text-white">
-                {(energy * WATTS_PER_KWH).toLocaleString()} W
+                {wattsEquivalent} W
               </span>
             </div>
             <div className="h-px bg-white/10" />
@@ -340,13 +395,7 @@ const SellBox: React.FC = () => {
             loading={isLoading}
             disabled={!canSubmit}
           >
-            {isWhitelistLoading
-              ? "Checking authorization..."
-              : isWritePending
-                ? "Confirm in wallet..."
-                : isConfirming
-                  ? "Confirming on-chain..."
-                  : "List Energy for Sale"}
+            {submitLabel}
           </Button>
         )}
 
@@ -366,10 +415,7 @@ const SellBox: React.FC = () => {
         status={txStatus}
         hash={hash}
         error={txError}
-        details={{
-          type: "sell",
-          amount: energy,
-        }}
+        details={txDetails}
         onClose={handleModalClose}
         onRetry={handleRetry}
       />

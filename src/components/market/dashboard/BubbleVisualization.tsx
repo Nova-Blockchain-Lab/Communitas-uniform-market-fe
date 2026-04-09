@@ -51,11 +51,17 @@ const PRICE_COLOR = "#F59E0B";
 const TOOLTIP_WIDTH = 220;
 const TOOLTIP_HEIGHT_ESTIMATE = 180;
 
+/** Minimum touch target radius for mobile accessibility (44px logical) */
+const MIN_TOUCH_TARGET = 22;
+
 /** Scale bubble radii based on container width to prevent overflow on tablets */
 function getRadiusBounds(containerWidth: number): {
   minRadius: number;
   maxRadius: number;
 } {
+  if (containerWidth < 380) {
+    return { minRadius: 18, maxRadius: 30 };
+  }
   if (containerWidth < 480) {
     return { minRadius: 22, maxRadius: 38 };
   }
@@ -70,6 +76,7 @@ function getRadiusBounds(containerWidth: number): {
 
 /** Scale font sizes inside bubbles based on radius */
 function getBubbleFontSize(radius: number): string {
+  if (radius < 22) return "7px";
   if (radius >= 44) return "10px";
   if (radius >= 34) return "9px";
   return "8px";
@@ -224,10 +231,11 @@ const BubbleVisualization: React.FC<BubbleVisualizationProps> = ({
       for (const entry of entries) {
         const { width } = entry.contentRect;
         if (width > 0) {
-          setIsMobile(width < 640);
+          // Only fall back to card list on very narrow screens
+          setIsMobile(width < 380);
           setDimensions({
-            width: Math.max(width, 300),
-            height: Math.max(Math.min(width * 0.6, 500), 250),
+            width: Math.max(width, 280),
+            height: Math.max(Math.min(width * 0.65, 500), 220),
           });
         }
       }
@@ -330,6 +338,9 @@ const BubbleVisualization: React.FC<BubbleVisualizationProps> = ({
     setTradeTooltip(null);
   }, []);
 
+  // Whether the current viewport is touch-size (used for larger hit areas)
+  const isCompact = dimensions.width < 640;
+
   // D3 force simulation
   useEffect(() => {
     if (!svgRef.current || nodes.length === 0 || isMobile) {
@@ -391,6 +402,14 @@ const BubbleVisualization: React.FC<BubbleVisualizationProps> = ({
             .style("cursor", "pointer")
             .style("opacity", 0);
 
+          // Invisible larger hit area for touch devices
+          group
+            .append("circle")
+            .attr("class", "bubble-hit-area")
+            .attr("r", (d) => Math.max(d.radius + 8, MIN_TOUCH_TARGET))
+            .attr("fill", "transparent")
+            .attr("stroke", "none");
+
           // Outer glow circle
           group
             .append("circle")
@@ -403,7 +422,8 @@ const BubbleVisualization: React.FC<BubbleVisualizationProps> = ({
             .attr("stroke-width", 1)
             .attr("stroke-opacity", 0.2)
             .transition()
-            .duration(300)
+            .duration(500)
+            .ease(d3.easeCubicOut)
             .attr("r", (d) => d.radius + 4);
 
           // Main circle
@@ -420,20 +440,22 @@ const BubbleVisualization: React.FC<BubbleVisualizationProps> = ({
             .attr("stroke-width", 1.5)
             .attr("stroke-opacity", 0.6)
             .transition()
-            .duration(300)
+            .duration(500)
+            .ease(d3.easeCubicOut)
             .attr("r", (d) => d.radius);
 
-          // Address text
+          // Address text -- high-contrast white with slight shadow for readability
           group
             .append("text")
             .attr("class", "bubble-address")
             .attr("text-anchor", "middle")
             .attr("dy", "-0.3em")
-            .attr("fill", "white")
+            .attr("fill", "#E2E8F0")
             .attr("font-size", (d) => getBubbleFontSize(d.radius))
             .attr("font-family", "monospace")
-            .attr("font-weight", "500")
+            .attr("font-weight", "600")
             .attr("pointer-events", "none")
+            .style("text-shadow", "0 1px 3px rgba(0,0,0,0.6)")
             .text((d) => truncateAddress(d.address));
 
           // Amount text
@@ -448,24 +470,38 @@ const BubbleVisualization: React.FC<BubbleVisualizationProps> = ({
             .attr("font-size", (d) => getBubbleFontSize(d.radius))
             .attr("font-weight", "bold")
             .attr("pointer-events", "none")
+            .style("text-shadow", "0 1px 3px rgba(0,0,0,0.6)")
             .text((d) => `${d.amount} kWh`);
 
-          // Animate in
-          group.transition().duration(600).style("opacity", 1);
+          // Staggered fade-in per bubble
+          group
+            .transition()
+            .delay((_, i) => i * 80)
+            .duration(600)
+            .ease(d3.easeCubicOut)
+            .style("opacity", 1);
 
           return group;
         },
         (update) => {
           // Smooth transition for updated bubbles
           update
+            .select(".bubble-hit-area")
+            .transition()
+            .duration(400)
+            .ease(d3.easeCubicOut)
+            .attr("r", (d) => Math.max(d.radius + 8, MIN_TOUCH_TARGET));
+          update
             .select(".bubble-glow")
             .transition()
-            .duration(300)
+            .duration(400)
+            .ease(d3.easeCubicOut)
             .attr("r", (d) => d.radius + 4);
           update
             .select(".bubble-main")
             .transition()
-            .duration(300)
+            .duration(400)
+            .ease(d3.easeCubicOut)
             .attr("r", (d) => d.radius);
           update
             .select(".bubble-amount")
@@ -473,7 +509,12 @@ const BubbleVisualization: React.FC<BubbleVisualizationProps> = ({
           return update;
         },
         (exit) =>
-          exit.transition().duration(300).style("opacity", 0).remove()
+          exit
+            .transition()
+            .duration(400)
+            .ease(d3.easeCubicIn)
+            .style("opacity", 0)
+            .remove()
       );
 
     // Create trade line paths (rendered behind bubbles)
@@ -501,6 +542,7 @@ const BubbleVisualization: React.FC<BubbleVisualizationProps> = ({
         .transition()
         .delay((_, i) => i * 100)
         .duration(500)
+        .ease(d3.easeCubicOut)
         .style("opacity", 0.4);
 
       // Trade line hover / touch interactions
@@ -517,7 +559,7 @@ const BubbleVisualization: React.FC<BubbleVisualizationProps> = ({
 
         // Thicken and brighten this line
         d3.select(this)
-          .transition().duration(200)
+          .transition().duration(200).ease(d3.easeCubicOut)
           .attr("stroke-width", ws(d.amount) + 2)
           .style("opacity", 0.9);
 
@@ -601,6 +643,7 @@ const BubbleVisualization: React.FC<BubbleVisualizationProps> = ({
         .select(".bubble-main")
         .transition()
         .duration(200)
+        .ease(d3.easeCubicOut)
         .attr("stroke-width", 2.5)
         .attr("stroke-opacity", 1);
 
@@ -608,6 +651,7 @@ const BubbleVisualization: React.FC<BubbleVisualizationProps> = ({
         .select(".bubble-glow")
         .transition()
         .duration(200)
+        .ease(d3.easeCubicOut)
         .attr("stroke-opacity", 0.5)
         .attr("stroke-width", 2);
 
@@ -640,6 +684,7 @@ const BubbleVisualization: React.FC<BubbleVisualizationProps> = ({
         .select(".bubble-main")
         .transition()
         .duration(200)
+        .ease(d3.easeCubicOut)
         .attr("stroke-width", 1.5)
         .attr("stroke-opacity", 0.6);
 
@@ -647,6 +692,7 @@ const BubbleVisualization: React.FC<BubbleVisualizationProps> = ({
         .select(".bubble-glow")
         .transition()
         .duration(200)
+        .ease(d3.easeCubicOut)
         .attr("stroke-opacity", 0.2)
         .attr("stroke-width", 1);
 
@@ -758,13 +804,16 @@ const BubbleVisualization: React.FC<BubbleVisualizationProps> = ({
       }
     });
 
+    // Capture ref value for cleanup to satisfy react-hooks/exhaustive-deps
+    const svgEl = svgRef.current;
+
     return () => {
       simulation.stop();
       simulationRef.current = null;
       // Remove all D3-created elements so React can cleanly reconcile on unmount
-      if (svgRef.current) {
-        d3.select(svgRef.current).select(".bubbles-group").selectAll("*").remove();
-        d3.select(svgRef.current).select(".trade-lines-group").selectAll("*").remove();
+      if (svgEl) {
+        d3.select(svgEl).select(".bubbles-group").selectAll("*").remove();
+        d3.select(svgEl).select(".trade-lines-group").selectAll("*").remove();
       }
     };
   }, [nodes, dimensions, isMobile, tradeLinks]);
@@ -781,6 +830,7 @@ const BubbleVisualization: React.FC<BubbleVisualizationProps> = ({
     if (!tooltip) return {};
     const { x, y } = tooltip;
     const containerW = dimensions.width;
+    const containerH = dimensions.height;
 
     // Determine horizontal placement
     const flipLeft = x + TOOLTIP_WIDTH > containerW;
@@ -788,8 +838,8 @@ const BubbleVisualization: React.FC<BubbleVisualizationProps> = ({
     const flipDown = y - TOOLTIP_HEIGHT_ESTIMATE < 0;
 
     return {
-      left: flipLeft ? Math.max(x - TOOLTIP_WIDTH, 0) : x,
-      top: flipDown ? y + 16 : y - 10,
+      left: flipLeft ? Math.max(x - TOOLTIP_WIDTH, 4) : Math.min(x, containerW - TOOLTIP_WIDTH - 4),
+      top: flipDown ? Math.min(y + 16, containerH - 20) : y - 10,
       transform: flipDown ? "translateY(0%)" : "translateY(-100%)",
     };
   }, [tooltip, dimensions]);
@@ -799,13 +849,14 @@ const BubbleVisualization: React.FC<BubbleVisualizationProps> = ({
     if (!tradeTooltip) return {};
     const { x, y } = tradeTooltip;
     const containerW = dimensions.width;
+    const containerH = dimensions.height;
 
     const flipLeft = x + TOOLTIP_WIDTH > containerW;
     const flipDown = y - TOOLTIP_HEIGHT_ESTIMATE < 0;
 
     return {
-      left: flipLeft ? Math.max(x - TOOLTIP_WIDTH, 0) : x,
-      top: flipDown ? y + 16 : y - 10,
+      left: flipLeft ? Math.max(x - TOOLTIP_WIDTH, 4) : Math.min(x, containerW - TOOLTIP_WIDTH - 4),
+      top: flipDown ? Math.min(y + 16, containerH - 20) : y - 10,
       transform: flipDown ? "translateY(0%)" : "translateY(-100%)",
     };
   }, [tradeTooltip, dimensions]);
@@ -815,6 +866,14 @@ const BubbleVisualization: React.FC<BubbleVisualizationProps> = ({
     () => (dimensions.width < 500 ? 130 : 160),
     [dimensions.width]
   );
+
+  // Responsive font sizes for SVG labels based on viewport width
+  const svgFontSizes = useMemo(() => {
+    const w = dimensions.width;
+    if (w < 480) return { clearing: "7", label: "7" };
+    if (w < 640) return { clearing: "8", label: "8" };
+    return { clearing: "10", label: "10" };
+  }, [dimensions.width]);
 
   // Empty state
   if (!data || (buyerCount === 0 && sellerCount === 0)) {
@@ -836,52 +895,52 @@ const BubbleVisualization: React.FC<BubbleVisualizationProps> = ({
       transition={{ duration: 0.4 }}
     >
       {/* Summary bar */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
-        <div className="p-3 bg-blue-500/10 border border-blue-500/20 rounded-xl">
-          <div className="flex items-center gap-2 mb-1">
-            <Users size={14} className="text-blue-400" />
-            <span className="text-xs text-[var(--color-text-secondary)] uppercase tracking-wide">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 mb-4 sm:mb-6">
+        <div className="p-2.5 sm:p-3 bg-blue-500/10 border border-blue-500/20 rounded-xl">
+          <div className="flex items-center gap-1.5 sm:gap-2 mb-1">
+            <Users size={14} className="text-blue-400 shrink-0" />
+            <span className="text-[10px] sm:text-xs text-[var(--color-text-secondary)] uppercase tracking-wide">
               Buyers
             </span>
           </div>
-          <p className="text-lg font-bold text-blue-400">{buyerCount}</p>
+          <p className="text-base sm:text-lg font-bold text-blue-400">{buyerCount}</p>
         </div>
 
-        <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl">
-          <div className="flex items-center gap-2 mb-1">
-            <Users size={14} className="text-emerald-400" />
-            <span className="text-xs text-[var(--color-text-secondary)] uppercase tracking-wide">
+        <div className="p-2.5 sm:p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl">
+          <div className="flex items-center gap-1.5 sm:gap-2 mb-1">
+            <Users size={14} className="text-emerald-400 shrink-0" />
+            <span className="text-[10px] sm:text-xs text-[var(--color-text-secondary)] uppercase tracking-wide">
               Sellers
             </span>
           </div>
-          <p className="text-lg font-bold text-emerald-400">{sellerCount}</p>
+          <p className="text-base sm:text-lg font-bold text-emerald-400">{sellerCount}</p>
         </div>
 
-        <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl">
-          <div className="flex items-center gap-2 mb-1">
-            <TrendingUp size={14} className="text-amber-400" />
-            <span className="text-xs text-[var(--color-text-secondary)] uppercase tracking-wide">
+        <div className="p-2.5 sm:p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl">
+          <div className="flex items-center gap-1.5 sm:gap-2 mb-1">
+            <TrendingUp size={14} className="text-amber-400 shrink-0" />
+            <span className="text-[10px] sm:text-xs text-[var(--color-text-secondary)] uppercase tracking-wide">
               Clearing Price
             </span>
           </div>
-          <p className="text-lg font-bold text-amber-400">
+          <p className="text-sm sm:text-lg font-bold text-amber-400 break-all">
             {isCleared ? `${clearingPrice.toFixed(6)} ETH/kWh` : "Pending"}
           </p>
           {isCleared && ethPrice ? (
-            <p className="text-xs text-[var(--color-text-muted)]">
+            <p className="text-[10px] sm:text-xs text-[var(--color-text-muted)]">
               ~{"\u20AC"}{(clearingPrice * ethPrice).toFixed(4)}
             </p>
           ) : null}
         </div>
 
-        <div className="p-3 bg-white/5 border border-[var(--color-border)] rounded-xl">
-          <div className="flex items-center gap-2 mb-1">
-            <Zap size={14} className="text-[var(--color-text-secondary)]" />
-            <span className="text-xs text-[var(--color-text-secondary)] uppercase tracking-wide">
+        <div className="p-2.5 sm:p-3 bg-white/5 border border-[var(--color-border)] rounded-xl">
+          <div className="flex items-center gap-1.5 sm:gap-2 mb-1">
+            <Zap size={14} className="text-[var(--color-text-secondary)] shrink-0" />
+            <span className="text-[10px] sm:text-xs text-[var(--color-text-secondary)] uppercase tracking-wide">
               Total Energy
             </span>
           </div>
-          <p className="text-lg font-bold text-[var(--color-text-primary)]">{totalEnergy} kWh</p>
+          <p className="text-base sm:text-lg font-bold text-[var(--color-text-primary)]">{totalEnergy} kWh</p>
         </div>
       </div>
 
@@ -903,24 +962,26 @@ const BubbleVisualization: React.FC<BubbleVisualizationProps> = ({
         ) : (
           <>
             {/* Side labels */}
-            <div className="absolute top-3 left-4 z-10 flex items-center gap-1.5">
-              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 shrink-0" />
-              <span className="text-xs font-medium text-emerald-400/80">
+            <div className="absolute top-2 sm:top-3 left-2 sm:left-4 z-10 flex items-center gap-1 sm:gap-1.5">
+              <span className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-emerald-500 shrink-0" />
+              <span className="text-[10px] sm:text-xs font-medium text-emerald-400/90">
                 Sellers
               </span>
             </div>
-            <div className="absolute top-3 right-4 z-10 flex items-center gap-1.5">
-              <span className="text-xs font-medium text-blue-400/80">Buyers</span>
-              <span className="w-2.5 h-2.5 rounded-full bg-blue-500 shrink-0" />
+            <div className="absolute top-2 sm:top-3 right-2 sm:right-4 z-10 flex items-center gap-1 sm:gap-1.5">
+              <span className="text-[10px] sm:text-xs font-medium text-blue-400/90">Buyers</span>
+              <span className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-blue-500 shrink-0" />
             </div>
 
             {/* SVG with viewBox for responsive scaling */}
             <svg
               ref={svgRef}
               viewBox={`0 0 ${dimensions.width} ${dimensions.height}`}
-              className="w-full touch-none"
-              style={{ minHeight: "250px" }}
+              className="w-full touch-none select-none"
+              style={{ minHeight: isCompact ? "200px" : "250px" }}
               preserveAspectRatio="xMidYMid meet"
+              role="img"
+              aria-label="Bubble chart showing market participants"
               onTouchStart={(e) => {
                 // If touch lands on the SVG background (not a bubble), dismiss tooltips
                 if ((e.target as SVGElement).tagName === "svg" || (e.target as SVGElement).tagName === "rect") {
@@ -966,7 +1027,7 @@ const BubbleVisualization: React.FC<BubbleVisualizationProps> = ({
                     y={dimensions.height * 0.2 + 1}
                     textAnchor="middle"
                     fill={PRICE_COLOR}
-                    fontSize={dimensions.width < 500 ? "8" : "10"}
+                    fontSize={svgFontSizes.clearing}
                     fontWeight="600"
                     fontFamily="monospace"
                   >
@@ -1023,7 +1084,7 @@ const BubbleVisualization: React.FC<BubbleVisualizationProps> = ({
                   className="absolute z-20 pointer-events-none"
                   style={tooltipStyle}
                 >
-                  <div className="bg-[var(--color-bg-card)]/95 backdrop-blur-xl border border-white/15 rounded-xl p-3 shadow-2xl min-w-[200px] max-w-[240px]">
+                  <div className="bg-[var(--color-bg-card)]/95 backdrop-blur-xl border border-white/15 rounded-xl p-2.5 sm:p-3 shadow-2xl min-w-[180px] sm:min-w-[200px] max-w-[220px] sm:max-w-[240px]">
                     <div className="flex items-center gap-2 mb-2 pb-2 border-b border-[var(--color-border)]">
                       <span
                         className={`w-2.5 h-2.5 rounded-full shrink-0 ${
@@ -1039,16 +1100,16 @@ const BubbleVisualization: React.FC<BubbleVisualizationProps> = ({
 
                     <div className="space-y-1.5">
                       <div>
-                        <span className="text-xs text-[var(--color-text-muted)]">Address</span>
-                        <p className="text-xs text-[var(--color-text-primary)] font-mono break-all">
+                        <span className="text-[10px] sm:text-xs text-[var(--color-text-muted)]">Address</span>
+                        <p className="text-[10px] sm:text-xs text-[var(--color-text-primary)] font-mono break-all">
                           {tooltip.node.address}
                         </p>
                       </div>
 
                       <div>
-                        <span className="text-xs text-[var(--color-text-muted)]">Amount</span>
+                        <span className="text-[10px] sm:text-xs text-[var(--color-text-muted)]">Amount</span>
                         <p
-                          className={`text-sm font-bold ${
+                          className={`text-xs sm:text-sm font-bold ${
                             tooltip.node.type === "buyer"
                               ? "text-blue-400"
                               : "text-emerald-400"
@@ -1060,12 +1121,12 @@ const BubbleVisualization: React.FC<BubbleVisualizationProps> = ({
 
                       {tooltip.node.price !== undefined && (
                         <div>
-                          <span className="text-xs text-[var(--color-text-muted)]">Bid Price</span>
-                          <p className="text-sm font-bold text-amber-400">
+                          <span className="text-[10px] sm:text-xs text-[var(--color-text-muted)]">Bid Price</span>
+                          <p className="text-xs sm:text-sm font-bold text-amber-400">
                             {tooltip.node.price.toFixed(6)} ETH/kWh
                           </p>
                           {ethPrice && (
-                            <p className="text-xs text-[var(--color-text-muted)]">
+                            <p className="text-[10px] sm:text-xs text-[var(--color-text-muted)]">
                               ~{"\u20AC"}{(tooltip.node.price * ethPrice).toFixed(4)}
                             </p>
                           )}
@@ -1074,10 +1135,10 @@ const BubbleVisualization: React.FC<BubbleVisualizationProps> = ({
 
                       {isCleared && clearingPrice > 0 && (
                         <div>
-                          <span className="text-xs text-[var(--color-text-muted)]">
+                          <span className="text-[10px] sm:text-xs text-[var(--color-text-muted)]">
                             Clearing Price
                           </span>
-                          <p className="text-sm font-bold text-amber-400">
+                          <p className="text-xs sm:text-sm font-bold text-amber-400">
                             {clearingPrice.toFixed(6)} ETH/kWh
                           </p>
                         </div>
@@ -1085,12 +1146,12 @@ const BubbleVisualization: React.FC<BubbleVisualizationProps> = ({
 
                       {isCleared && clearingPrice > 0 && (
                         <div className="pt-1.5 mt-1.5 border-t border-[var(--color-border)]">
-                          <span className="text-xs text-[var(--color-text-muted)]">Total Value</span>
-                          <p className="text-sm font-bold text-[var(--color-text-primary)]">
+                          <span className="text-[10px] sm:text-xs text-[var(--color-text-muted)]">Total Value</span>
+                          <p className="text-xs sm:text-sm font-bold text-[var(--color-text-primary)]">
                             {(clearingPrice * tooltip.node.amount).toFixed(6)} ETH
                           </p>
                           {ethPrice && (
-                            <p className="text-xs text-[var(--color-text-muted)]">
+                            <p className="text-[10px] sm:text-xs text-[var(--color-text-muted)]">
                               ~{"\u20AC"}
                               {(
                                 clearingPrice *
@@ -1118,7 +1179,7 @@ const BubbleVisualization: React.FC<BubbleVisualizationProps> = ({
                   className="absolute z-20 pointer-events-none"
                   style={tradeTooltipStyle}
                 >
-                  <div className="bg-[var(--color-bg-card)]/95 backdrop-blur-xl border border-violet-500/30 rounded-xl p-3 shadow-2xl min-w-[200px] max-w-[240px]">
+                  <div className="bg-[var(--color-bg-card)]/95 backdrop-blur-xl border border-violet-500/30 rounded-xl p-2.5 sm:p-3 shadow-2xl min-w-[180px] sm:min-w-[200px] max-w-[220px] sm:max-w-[240px]">
                     <div className="flex items-center gap-2 mb-2 pb-2 border-b border-violet-500/20">
                       <span className="w-2.5 h-2.5 rounded-full bg-violet-500 shrink-0" />
                       <span className="text-xs font-bold uppercase tracking-wider text-violet-400">
@@ -1128,20 +1189,20 @@ const BubbleVisualization: React.FC<BubbleVisualizationProps> = ({
 
                     <div className="space-y-1.5">
                       <div>
-                        <span className="text-xs text-[var(--color-text-muted)]">Seller</span>
-                        <p className="text-xs text-emerald-400 font-mono break-all">
+                        <span className="text-[10px] sm:text-xs text-[var(--color-text-muted)]">Seller</span>
+                        <p className="text-[10px] sm:text-xs text-emerald-400 font-mono break-all">
                           {tradeTooltip.link.seller}
                         </p>
                       </div>
                       <div>
-                        <span className="text-xs text-[var(--color-text-muted)]">Buyer</span>
-                        <p className="text-xs text-blue-400 font-mono break-all">
+                        <span className="text-[10px] sm:text-xs text-[var(--color-text-muted)]">Buyer</span>
+                        <p className="text-[10px] sm:text-xs text-blue-400 font-mono break-all">
                           {tradeTooltip.link.buyer}
                         </p>
                       </div>
                       <div>
-                        <span className="text-xs text-[var(--color-text-muted)]">Amount</span>
-                        <p className="text-sm font-bold text-violet-400">
+                        <span className="text-[10px] sm:text-xs text-[var(--color-text-muted)]">Amount</span>
+                        <p className="text-xs sm:text-sm font-bold text-violet-400">
                           {tradeTooltip.link.amount.toFixed(2)} kWh
                         </p>
                       </div>

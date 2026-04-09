@@ -12,9 +12,15 @@ import { useAppContext } from "@/context/AppContext";
 import { EmptyState, SkeletonBlock, SkeletonLine } from "@/components/ui";
 import MessageHistoryRow from "./MessageHistoryRow";
 
+/** DateGroup type for grouped messages */
+interface DateGroup {
+  label: string;
+  items: ETHDepositOrWithdrawalMessage[];
+}
+
 /** Group messages by "Today", "Yesterday", "Earlier" */
-function groupByDate(messages: ETHDepositOrWithdrawalMessage[]) {
-  const groups: { label: string; items: ETHDepositOrWithdrawalMessage[] }[] = [];
+function groupByDate(messages: ETHDepositOrWithdrawalMessage[]): DateGroup[] {
+  const groups: DateGroup[] = [];
   const buckets: Record<string, ETHDepositOrWithdrawalMessage[]> = {
     Today: [],
     Yesterday: [],
@@ -41,7 +47,7 @@ function groupByDate(messages: ETHDepositOrWithdrawalMessage[]) {
   return groups;
 }
 
-/** Skeleton placeholder for the loading state */
+/** Skeleton placeholder matching the card-based layout */
 const HistorySkeleton: React.FC = () => (
   <div className="space-y-3 animate-in fade-in duration-300">
     <div className="flex items-center justify-between px-1 mb-4">
@@ -99,6 +105,10 @@ const BridgeHistory: React.FC = () => {
 
   const grouped = useMemo(() => groupByDate(messages), [messages]);
 
+  const handleRefresh = useCallback(() => {
+    getMessages();
+  }, [getMessages]);
+
   // Not connected state
   if (!isConnected) {
     return (
@@ -134,17 +144,18 @@ const BridgeHistory: React.FC = () => {
           {messages.length} transaction{messages.length !== 1 ? "s" : ""}
         </span>
         <button
-          onClick={getMessages}
+          onClick={handleRefresh}
           disabled={isLoading}
           className="text-xs text-emerald-500 hover:text-emerald-400 active:scale-95
                      transition-all disabled:opacity-50 flex items-center gap-1.5
-                     min-h-[28px] min-w-[28px] justify-center"
+                     min-h-[36px] sm:min-h-[28px] min-w-[36px] sm:min-w-[28px] justify-center
+                     rounded-lg hover:bg-white/5 px-2 py-1"
           aria-label="Refresh history"
         >
           {isLoading ? (
-            <Loader2 size={12} className="animate-spin" />
+            <Loader2 size={14} className="animate-spin" />
           ) : (
-            <RefreshCw size={12} />
+            <RefreshCw size={14} />
           )}
           <span className="hidden sm:inline">Refresh</span>
         </button>

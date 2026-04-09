@@ -1,4 +1,6 @@
-import React, { useState, useCallback } from "react";
+"use client";
+
+import React, { useState, useCallback, useMemo } from "react";
 import { ArrowDown, Clock } from "lucide-react";
 import { BigNumber } from "ethers";
 import { EthBridger, getArbitrumNetwork } from "@arbitrum/sdk";
@@ -84,7 +86,15 @@ const SubmitWithdrawalButtonInner: React.FC<SubmitWithdrawalButtonProps> = ({
   const isLoading = txStatus === "pending" || txStatus === "confirming";
 
   const amountInETH = Number(amount) / 10 ** 18;
-  const amountInEUR = ethPrice ? amountInETH * ethPrice : 0;
+
+  const buttonLabel = useMemo(() => {
+    if (isLoading) {
+      return txStatus === "pending" ? "Confirm in Wallet..." : "Processing...";
+    }
+    if (amount === BigInt(0)) return "Enter an amount";
+    if (!hasEnoughBalance) return "Insufficient balance";
+    return "Withdraw to Arbitrum";
+  }, [isLoading, txStatus, amount, hasEnoughBalance]);
 
   return (
     <>
@@ -94,6 +104,7 @@ const SubmitWithdrawalButtonInner: React.FC<SubmitWithdrawalButtonProps> = ({
           whileTap={isDisabled ? {} : { scale: 0.98 }}
           onClick={handleWithdrawal}
           disabled={isDisabled}
+          aria-busy={isLoading}
           className={`
             w-full flex items-center justify-center gap-2
             min-h-[48px] px-5 sm:px-6 py-3 sm:py-4
@@ -110,14 +121,12 @@ const SubmitWithdrawalButtonInner: React.FC<SubmitWithdrawalButtonProps> = ({
           {isLoading ? (
             <>
               <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin shrink-0" />
-              <span className="truncate">
-                {txStatus === "pending" ? "Confirm in Wallet..." : "Processing..."}
-              </span>
+              <span className="truncate">{buttonLabel}</span>
             </>
           ) : (
             <>
               <ArrowDown size={18} className="shrink-0" />
-              <span className="truncate">Withdraw to Arbitrum</span>
+              <span className="truncate">{buttonLabel}</span>
             </>
           )}
         </motion.button>

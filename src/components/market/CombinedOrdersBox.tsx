@@ -39,11 +39,13 @@ import { AbiFunction } from "viem";
 type StatusFilter = "all" | "active" | "settled" | "canceled";
 type SortMode = "time" | "amount";
 type OrderType = "bid" | "ask";
+type MobileTab = "buy" | "sell";
 
 interface StatusInfo {
   label: string;
   variant: "success" | "warning" | "error" | "info" | "neutral";
   icon: React.ReactNode;
+  pulse?: boolean;
 }
 
 interface OrderItemProps {
@@ -136,7 +138,7 @@ const getOrderStatus = (
     if (!settled && isMarketCleared) {
       return { label: "Unsettled", variant: "error", icon: <AlertCircle size={12} /> };
     }
-    return { label: "Pending", variant: "info", icon: null };
+    return { label: "Pending", variant: "info", icon: null, pulse: true };
   }
 
   // Asks
@@ -149,7 +151,7 @@ const getOrderStatus = (
     }
     return { label: "Unsettled", variant: "error", icon: <AlertCircle size={12} /> };
   }
-  return { label: "Pending", variant: "info", icon: null };
+  return { label: "Pending", variant: "info", icon: null, pulse: true };
 };
 
 /* ------------------------------------------------------------------ */
@@ -173,7 +175,8 @@ const OrderItem: React.FC<OrderItemProps> = React.memo(({
   isLoading,
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
-  const isMarketClearingAllowed = Date.now() / 1000 - time >= 3600;
+  const [now] = useState(() => Date.now());
+  const isMarketClearingAllowed = now / 1000 - time >= 3600;
   const isBid = type === "bid";
 
   const status = useMemo(
@@ -243,7 +246,7 @@ const OrderItem: React.FC<OrderItemProps> = React.memo(({
         {/* Header row - clickable to expand */}
         <button
           onClick={handleToggle}
-          className="flex items-center justify-between w-full text-left min-h-[44px] gap-2"
+          className="flex items-center justify-between w-full text-left min-h-[44px] gap-2 touch-manipulation"
           aria-expanded={isExpanded}
         >
           {/* Left: type badge + key info */}
@@ -261,7 +264,7 @@ const OrderItem: React.FC<OrderItemProps> = React.memo(({
             <span className="shrink-0 text-xs sm:text-sm font-medium text-white">
               {formatTime(time)}
             </span>
-            {/* Amount - truncated on very small screens */}
+            {/* Amount */}
             <span
               className={`text-xs sm:text-sm font-bold truncate ${
                 isBid ? "text-blue-400" : "text-emerald-400"
@@ -273,10 +276,8 @@ const OrderItem: React.FC<OrderItemProps> = React.memo(({
 
           {/* Right: status + chevron */}
           <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-            <Badge variant={status.variant} size="sm" icon={status.icon}>
-              <span className="hidden xs:inline">{status.label}</span>
-              {/* On very small screens, just show the icon/dot */}
-              <span className="inline xs:hidden">{status.label.slice(0, 3)}</span>
+            <Badge variant={status.variant} size="sm" icon={status.icon} pulse={status.pulse}>
+              {status.label}
             </Badge>
             <motion.div
               animate={{ rotate: isExpanded ? 180 : 0 }}
@@ -448,35 +449,22 @@ OrderItem.displayName = "OrderItem";
 /* ------------------------------------------------------------------ */
 
 const OrdersSkeleton: React.FC = () => (
-  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
-    {[0, 1].map((col) => (
-      <div key={col} className="space-y-3">
-        {/* Column header skeleton */}
-        <div className="flex items-center gap-3 pb-3">
-          <SkeletonBlock width="2rem" height="2rem" rounded="lg" />
-          <div className="space-y-1.5 flex-1">
-            <SkeletonBlock width="5rem" height="0.875rem" rounded="md" />
-            <SkeletonBlock width="3rem" height="0.75rem" rounded="md" />
+  <div className="space-y-3">
+    {Array.from({ length: 4 }).map((_, i) => (
+      <div
+        key={`skeleton-${i}`}
+        className="rounded-xl overflow-hidden border border-white/5"
+      >
+        <div className="px-4 py-4 space-y-2">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <SkeletonBlock width="3rem" height="1.5rem" rounded="lg" />
+              <SkeletonBlock width="3.5rem" height="1rem" rounded="md" />
+              <SkeletonBlock width="4rem" height="1rem" rounded="md" />
+            </div>
+            <SkeletonBlock width="4rem" height="1.5rem" rounded="full" />
           </div>
         </div>
-        {/* Order card skeletons */}
-        {Array.from({ length: col === 0 ? 3 : 2 }).map((_, i) => (
-          <div
-            key={i}
-            className="rounded-xl overflow-hidden border border-white/5"
-          >
-            <div className="px-4 py-4 space-y-2">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <SkeletonBlock width="3rem" height="1.5rem" rounded="lg" />
-                  <SkeletonBlock width="3.5rem" height="1rem" rounded="md" />
-                  <SkeletonBlock width="4rem" height="1rem" rounded="md" />
-                </div>
-                <SkeletonBlock width="4rem" height="1.5rem" rounded="full" />
-              </div>
-            </div>
-          </div>
-        ))}
       </div>
     ))}
   </div>
@@ -529,6 +517,105 @@ const ColumnHeader: React.FC<ColumnHeaderProps> = React.memo(({ type, count, act
 ColumnHeader.displayName = "ColumnHeader";
 
 /* ------------------------------------------------------------------ */
+/*  Mobile Tab Switcher                                                */
+/* ------------------------------------------------------------------ */
+
+interface MobileTabSwitcherProps {
+  activeTab: MobileTab;
+  onTabChange: (tab: MobileTab) => void;
+  bidCount: number;
+  askCount: number;
+}
+
+const MobileTabSwitcher: React.FC<MobileTabSwitcherProps> = React.memo(({
+  activeTab,
+  onTabChange,
+  bidCount,
+  askCount,
+}) => {
+  const handleBuyClick = useCallback(() => onTabChange("buy"), [onTabChange]);
+  const handleSellClick = useCallback(() => onTabChange("sell"), [onTabChange]);
+
+  return (
+    <div className="flex gap-1 p-1 bg-white/5 rounded-xl mb-4 md:hidden">
+      <button
+        onClick={handleBuyClick}
+        className={`
+          flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-semibold
+          transition-all duration-200 min-h-[44px] touch-manipulation
+          ${activeTab === "buy"
+            ? "bg-blue-500/20 text-blue-400 shadow-sm shadow-blue-500/10"
+            : "text-gray-400 hover:text-gray-300 active:bg-white/5"
+          }
+        `}
+      >
+        <ShoppingCart size={14} />
+        <span>Buy Orders</span>
+        <span className={`
+          px-1.5 py-0.5 rounded-full text-[10px] font-bold
+          ${activeTab === "buy" ? "bg-blue-500/30 text-blue-300" : "bg-white/10 text-gray-500"}
+        `}>
+          {bidCount}
+        </span>
+      </button>
+      <button
+        onClick={handleSellClick}
+        className={`
+          flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-semibold
+          transition-all duration-200 min-h-[44px] touch-manipulation
+          ${activeTab === "sell"
+            ? "bg-emerald-500/20 text-emerald-400 shadow-sm shadow-emerald-500/10"
+            : "text-gray-400 hover:text-gray-300 active:bg-white/5"
+          }
+        `}
+      >
+        <Zap size={14} />
+        <span>Sell Orders</span>
+        <span className={`
+          px-1.5 py-0.5 rounded-full text-[10px] font-bold
+          ${activeTab === "sell" ? "bg-emerald-500/30 text-emerald-300" : "bg-white/10 text-gray-500"}
+        `}>
+          {askCount}
+        </span>
+      </button>
+    </div>
+  );
+});
+
+MobileTabSwitcher.displayName = "MobileTabSwitcher";
+
+/* ------------------------------------------------------------------ */
+/*  Order List Column                                                  */
+/* ------------------------------------------------------------------ */
+
+interface OrderListColumnProps {
+  type: OrderType;
+  header: React.ReactNode;
+  orders: React.ReactNode;
+  emptyState: React.ReactNode;
+  isEmpty: boolean;
+}
+
+const OrderListColumn: React.FC<OrderListColumnProps> = React.memo(({
+  header,
+  orders,
+  emptyState,
+  isEmpty,
+}) => (
+  <div className="space-y-3 sm:space-y-4">
+    {header}
+    <div className="space-y-2.5 sm:space-y-3 max-h-[400px] sm:max-h-[500px] overflow-y-auto overscroll-contain pr-0.5 -webkit-overflow-scrolling-touch">
+      <AnimatePresence mode="popLayout" initial={false}>
+        {orders}
+      </AnimatePresence>
+      {isEmpty && emptyState}
+    </div>
+  </div>
+));
+
+OrderListColumn.displayName = "OrderListColumn";
+
+/* ------------------------------------------------------------------ */
 /*  Main Component                                                     */
 /* ------------------------------------------------------------------ */
 
@@ -543,6 +630,7 @@ const CombinedOrdersBox: React.FC = () => {
   const [refundedBidKeys, setRefundedBidKeys] = useState<Set<string>>(new Set());
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [sortMode, setSortMode] = useState<SortMode>("time");
+  const [mobileTab, setMobileTab] = useState<MobileTab>("buy");
 
   const timestamps = useMemo(() => getTimestampsForDay(selectedDay), [selectedDay]);
 
@@ -813,6 +901,136 @@ const CombinedOrdersBox: React.FC = () => {
     [],
   );
 
+  /* ---- Memoized order item renderers ---- */
+
+  const bidOrderItems = useMemo(
+    () =>
+      filteredBids.map(({ bid, hourIndex: i }) => (
+        <OrderItem
+          key={`bid-${timestamps[i]}-${bid.globalIndex}`}
+          type="bid"
+          time={timestamps[i]}
+          index={bid.globalIndex}
+          amount={bid.amount}
+          price={bid.price}
+          settled={bid.settled}
+          canceled={bid.canceled}
+          isRefunded={refundedBidKeys.has(
+            `${BigInt(timestamps[i])}-${BigInt(bid.globalIndex)}`,
+          )}
+          isMarketCleared={cleared?.[i]?.result as boolean}
+          clearingPrice={prices?.[i]?.result as bigint}
+          ethPrice={ethPrice}
+          onCancel={() => handleCancelBid(timestamps[i], bid.globalIndex)}
+          onClearMarket={() => handleClearMarket(timestamps[i])}
+          isLoading={
+            (isWritePending || isConfirming) &&
+            (activeOrderIndex === `bid-${timestamps[i]}-${bid.globalIndex}` ||
+              activeOrderIndex === `clear-${timestamps[i]}`)
+          }
+        />
+      )),
+    [
+      filteredBids,
+      timestamps,
+      refundedBidKeys,
+      cleared,
+      prices,
+      ethPrice,
+      handleCancelBid,
+      handleClearMarket,
+      isWritePending,
+      isConfirming,
+      activeOrderIndex,
+    ],
+  );
+
+  const askOrderItems = useMemo(
+    () =>
+      filteredAsks.map(({ ask, hourIndex: i, askIndex: j }) => (
+        <OrderItem
+          key={`ask-${timestamps[i]}-${j}`}
+          type="ask"
+          time={timestamps[i]}
+          amount={ask.amount}
+          settled={ask.settled}
+          matchedAmount={ask.matchedAmount}
+          isMarketCleared={cleared?.[i]?.result as boolean}
+          clearingPrice={prices?.[i]?.result as bigint}
+          ethPrice={ethPrice}
+          onClearMarket={() => handleClearMarket(timestamps[i])}
+          isLoading={
+            (isWritePending || isConfirming) &&
+            activeOrderIndex === `clear-${timestamps[i]}`
+          }
+        />
+      )),
+    [
+      filteredAsks,
+      timestamps,
+      cleared,
+      prices,
+      ethPrice,
+      handleClearMarket,
+      isWritePending,
+      isConfirming,
+      activeOrderIndex,
+    ],
+  );
+
+  const bidEmptyState = useMemo(
+    () => (
+      <EmptyState
+        icon={<ShoppingCart size={20} className="text-blue-500/50" />}
+        iconColorClass="bg-blue-500/10"
+        title={bidCount === 0 ? "No buy orders for this day" : "No matching buy orders"}
+        subtitle={bidCount === 0 ? "Place a bid to get started" : "Try a different filter"}
+      />
+    ),
+    [bidCount],
+  );
+
+  const askEmptyState = useMemo(
+    () => (
+      <EmptyState
+        icon={<Zap size={20} className="text-emerald-500/50" />}
+        iconColorClass="bg-emerald-500/10"
+        title={askCount === 0 ? "No sell orders for this day" : "No matching sell orders"}
+        subtitle={askCount === 0 ? "List energy to sell" : "Try a different filter"}
+      />
+    ),
+    [askCount],
+  );
+
+  const cancelActiveButton = useMemo(
+    () =>
+      bidCount > 0 && hasActiveBids ? (
+        <Button
+          size="sm"
+          variant="danger"
+          icon={<Trash2 size={14} />}
+          disabled={isWritePending || isConfirming}
+          onClick={handleCancelFirstActive}
+        >
+          <span className="hidden sm:inline">Cancel Active</span>
+          <span className="inline sm:hidden">Cancel</span>
+        </Button>
+      ) : undefined,
+    [bidCount, hasActiveBids, isWritePending, isConfirming, handleCancelFirstActive],
+  );
+
+  /* ---- Render helpers ---- */
+
+  const bidColumnHeader = useMemo(
+    () => <ColumnHeader type="bid" count={bidCount} action={cancelActiveButton} />,
+    [bidCount, cancelActiveButton],
+  );
+
+  const askColumnHeader = useMemo(
+    () => <ColumnHeader type="ask" count={askCount} />,
+    [askCount],
+  );
+
   /* ---- Render ---- */
 
   return (
@@ -839,7 +1057,7 @@ const CombinedOrdersBox: React.FC = () => {
                 <button
                   key={filter}
                   onClick={() => setStatusFilter(filter)}
-                  className={`shrink-0 px-2.5 sm:px-3 py-1.5 text-xs font-medium rounded-lg transition-all min-h-[32px] ${
+                  className={`shrink-0 px-2.5 sm:px-3 py-1.5 text-xs font-medium rounded-lg transition-all min-h-[36px] touch-manipulation ${
                     statusFilter === filter
                       ? "bg-blue-500/20 text-blue-400 border border-blue-500/30"
                       : "bg-white/5 text-gray-400 hover:bg-white/10 hover:text-white border border-transparent active:bg-white/15"
@@ -852,10 +1070,10 @@ const CombinedOrdersBox: React.FC = () => {
             <div className="h-4 w-px bg-white/10 mx-0.5 hidden sm:block" />
             <button
               onClick={toggleSortMode}
-              className="shrink-0 flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 text-xs font-medium rounded-lg bg-white/5 text-gray-400 hover:bg-white/10 hover:text-white active:bg-white/15 transition-all border border-transparent min-h-[32px]"
+              className="shrink-0 flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 text-xs font-medium rounded-lg bg-white/5 text-gray-400 hover:bg-white/10 hover:text-white active:bg-white/15 transition-all border border-transparent min-h-[36px] touch-manipulation"
             >
               <ArrowUpDown size={14} />
-              <span className="hidden xs:inline">Sort:</span>{" "}
+              <span className="hidden sm:inline">Sort:</span>{" "}
               {sortMode === "time" ? "Time" : "Amount"}
             </button>
           </div>
@@ -876,117 +1094,72 @@ const CombinedOrdersBox: React.FC = () => {
             subtitle="Place a buy or sell order from the trading panel to see them here"
           />
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
-            {/* ====== Bids Column ====== */}
-            <div className="space-y-3 sm:space-y-4">
-              <ColumnHeader
+          <>
+            {/* Mobile tab switcher - only visible below md breakpoint */}
+            <MobileTabSwitcher
+              activeTab={mobileTab}
+              onTabChange={setMobileTab}
+              bidCount={bidCount}
+              askCount={askCount}
+            />
+
+            {/* Desktop: side-by-side columns */}
+            <div className="hidden md:grid md:grid-cols-2 md:gap-6">
+              <OrderListColumn
                 type="bid"
-                count={bidCount}
-                action={
-                  bidCount > 0 && hasActiveBids ? (
-                    <Button
-                      size="sm"
-                      variant="danger"
-                      icon={<Trash2 size={14} />}
-                      disabled={isWritePending || isConfirming}
-                      onClick={handleCancelFirstActive}
-                    >
-                      <span className="hidden sm:inline">Cancel Active</span>
-                      <span className="inline sm:hidden">Cancel</span>
-                    </Button>
-                  ) : undefined
-                }
+                header={bidColumnHeader}
+                orders={bidOrderItems}
+                emptyState={bidEmptyState}
+                isEmpty={filteredBids.length === 0}
               />
-              <div className="space-y-2.5 sm:space-y-3 max-h-[350px] sm:max-h-[500px] overflow-y-auto overscroll-contain pr-0.5">
-                <AnimatePresence mode="popLayout" initial={false}>
-                  {filteredBids.map(({ bid, hourIndex: i }) => (
-                    <OrderItem
-                      key={`bid-${timestamps[i]}-${bid.globalIndex}`}
-                      type="bid"
-                      time={timestamps[i]}
-                      index={bid.globalIndex}
-                      amount={bid.amount}
-                      price={bid.price}
-                      settled={bid.settled}
-                      canceled={bid.canceled}
-                      isRefunded={refundedBidKeys.has(
-                        `${BigInt(timestamps[i])}-${BigInt(bid.globalIndex)}`,
-                      )}
-                      isMarketCleared={cleared?.[i]?.result as boolean}
-                      clearingPrice={prices?.[i]?.result as bigint}
-                      ethPrice={ethPrice}
-                      onCancel={() => handleCancelBid(timestamps[i], bid.globalIndex)}
-                      onClearMarket={() => handleClearMarket(timestamps[i])}
-                      isLoading={
-                        (isWritePending || isConfirming) &&
-                        (activeOrderIndex === `bid-${timestamps[i]}-${bid.globalIndex}` ||
-                          activeOrderIndex === `clear-${timestamps[i]}`)
-                      }
-                    />
-                  ))}
-                </AnimatePresence>
-                {filteredBids.length === 0 && (
-                  <EmptyState
-                    icon={<ShoppingCart size={20} className="text-blue-500/50" />}
-                    iconColorClass="bg-blue-500/10"
-                    title={
-                      bidCount === 0
-                        ? "No buy orders for this day"
-                        : "No matching buy orders"
-                    }
-                    subtitle={
-                      bidCount === 0
-                        ? "Place a bid to get started"
-                        : "Try a different filter"
-                    }
-                  />
-                )}
-              </div>
+              <OrderListColumn
+                type="ask"
+                header={askColumnHeader}
+                orders={askOrderItems}
+                emptyState={askEmptyState}
+                isEmpty={filteredAsks.length === 0}
+              />
             </div>
 
-            {/* ====== Asks Column ====== */}
-            <div className="space-y-3 sm:space-y-4">
-              <ColumnHeader type="ask" count={askCount} />
-              <div className="space-y-2.5 sm:space-y-3 max-h-[350px] sm:max-h-[500px] overflow-y-auto overscroll-contain pr-0.5">
-                <AnimatePresence mode="popLayout" initial={false}>
-                  {filteredAsks.map(({ ask, hourIndex: i, askIndex: j }) => (
-                    <OrderItem
-                      key={`ask-${timestamps[i]}-${j}`}
-                      type="ask"
-                      time={timestamps[i]}
-                      amount={ask.amount}
-                      settled={ask.settled}
-                      matchedAmount={ask.matchedAmount}
-                      isMarketCleared={cleared?.[i]?.result as boolean}
-                      clearingPrice={prices?.[i]?.result as bigint}
-                      ethPrice={ethPrice}
-                      onClearMarket={() => handleClearMarket(timestamps[i])}
-                      isLoading={
-                        (isWritePending || isConfirming) &&
-                        activeOrderIndex === `clear-${timestamps[i]}`
-                      }
+            {/* Mobile: tabbed single column */}
+            <div className="md:hidden">
+              <AnimatePresence mode="wait" initial={false}>
+                {mobileTab === "buy" ? (
+                  <motion.div
+                    key="mobile-buy"
+                    initial={{ opacity: 0, x: -16 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: 16 }}
+                    transition={{ duration: 0.2, ease: "easeInOut" }}
+                  >
+                    <OrderListColumn
+                      type="bid"
+                      header={bidColumnHeader}
+                      orders={bidOrderItems}
+                      emptyState={bidEmptyState}
+                      isEmpty={filteredBids.length === 0}
                     />
-                  ))}
-                </AnimatePresence>
-                {filteredAsks.length === 0 && (
-                  <EmptyState
-                    icon={<Zap size={20} className="text-emerald-500/50" />}
-                    iconColorClass="bg-emerald-500/10"
-                    title={
-                      askCount === 0
-                        ? "No sell orders for this day"
-                        : "No matching sell orders"
-                    }
-                    subtitle={
-                      askCount === 0
-                        ? "List energy to sell"
-                        : "Try a different filter"
-                    }
-                  />
+                  </motion.div>
+                ) : (
+                  <motion.div
+                    key="mobile-sell"
+                    initial={{ opacity: 0, x: 16 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -16 }}
+                    transition={{ duration: 0.2, ease: "easeInOut" }}
+                  >
+                    <OrderListColumn
+                      type="ask"
+                      header={askColumnHeader}
+                      orders={askOrderItems}
+                      emptyState={askEmptyState}
+                      isEmpty={filteredAsks.length === 0}
+                    />
+                  </motion.div>
                 )}
-              </div>
+              </AnimatePresence>
             </div>
-          </div>
+          </>
         )}
       </Card>
     </div>

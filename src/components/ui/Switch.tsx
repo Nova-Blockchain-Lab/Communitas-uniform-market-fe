@@ -1,4 +1,4 @@
-import React from "react";
+import React, { memo } from "react";
 
 interface SwitchProps {
   isChecked: boolean;
@@ -34,12 +34,21 @@ const sizeClasses = {
 };
 
 const colorClasses = {
-  blue: { active: "bg-[var(--color-primary-500)]", glow: "shadow-[0_0_8px_rgba(51,112,255,0.4)]" },
-  green: { active: "bg-green-500", glow: "shadow-[0_0_8px_rgba(34,197,94,0.4)]" },
-  emerald: { active: "bg-emerald-500", glow: "shadow-[0_0_8px_rgba(16,185,129,0.4)]" },
+  blue: {
+    active: "bg-[var(--color-primary-500)]",
+    glow: "shadow-[0_0_8px_rgba(51,112,255,0.4)]",
+  },
+  green: {
+    active: "bg-green-500",
+    glow: "shadow-[0_0_8px_rgba(34,197,94,0.4)]",
+  },
+  emerald: {
+    active: "bg-[var(--color-accent-green)]",
+    glow: "shadow-[0_0_8px_rgba(16,185,129,0.4)]",
+  },
 };
 
-export const Switch: React.FC<SwitchProps> = ({
+export const Switch: React.FC<SwitchProps> = memo(({
   isChecked,
   onChange,
   size = "md",
@@ -85,13 +94,15 @@ export const Switch: React.FC<SwitchProps> = ({
             rounded-full
             bg-white
             shadow-md
-            transition-transform duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]
-            ${isChecked ? sizes.translate : sizes.rest}
+            transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]
+            ${isChecked ? `${sizes.translate} scale-110` : sizes.rest}
           `}
         />
       </span>
     </button>
   );
-};
+});
+
+Switch.displayName = "Switch";
 
 export default Switch;

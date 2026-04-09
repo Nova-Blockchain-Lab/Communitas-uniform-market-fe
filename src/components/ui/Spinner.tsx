@@ -6,12 +6,12 @@ interface SpinnerProps {
   className?: string;
 }
 
-const sizeClasses = {
+const sizeClasses: Record<NonNullable<SpinnerProps["size"]>, string> = {
   xs: "w-3 h-3",
-  sm: "w-4 h-4",
-  md: "w-6 h-6",
-  lg: "w-8 h-8",
-  xl: "w-12 h-12",
+  sm: "w-4 h-4 sm:w-5 sm:h-5",
+  md: "w-5 h-5 sm:w-6 sm:h-6",
+  lg: "w-7 h-7 sm:w-8 sm:h-8",
+  xl: "w-10 h-10 sm:w-12 sm:h-12",
 };
 
 export const Spinner: React.FC<SpinnerProps> = memo(({

@@ -3,7 +3,6 @@ import React, {
   useState,
   useEffect,
   useCallback,
-  useMemo,
 } from "react";
 import { motion, type Transition } from "motion/react";
 import {
@@ -104,7 +103,7 @@ const Slider: React.FC<SliderProps> = ({ selected, setSelected }) => {
     [selected, setSelected],
   );
 
-  /* ---------- memoised click handlers (one per tab) ---------- */
+  /* ---------- memoised click handler ---------- */
   const handleClick = useCallback(
     (id: number) => {
       setSelected(id);
@@ -126,7 +125,11 @@ const Slider: React.FC<SliderProps> = ({ selected, setSelected }) => {
 
   return (
     <nav
-      className="relative hidden md:flex flex-1 justify-center overflow-hidden"
+      className={[
+        "relative flex flex-1 justify-center overflow-hidden",
+        // Mobile: take full width, allow edge-to-edge scroll
+        "max-md:flex-none max-md:w-full max-md:order-last",
+      ].join(" ")}
       aria-label="Main navigation"
       role="tablist"
     >
@@ -141,8 +144,10 @@ const Slider: React.FC<SliderProps> = ({ selected, setSelected }) => {
           "snap-x snap-mandatory",
           // Hide scrollbar cross-browser
           "scrollbar-none",
-          // Mobile: full width, some horizontal padding
+          // Mobile: full width with horizontal padding
           "max-md:w-full max-md:px-2",
+          // Desktop: no extra padding
+          "md:px-0",
         ].join(" ")}
         style={
           hasOverflow
@@ -170,7 +175,7 @@ const Slider: React.FC<SliderProps> = ({ selected, setSelected }) => {
 };
 
 /* ================================================================
-   TabButton — memoised so only the active / previously-active
+   TabButton -- memoised so only the active / previously-active
    tabs re-render when selection changes.
    ================================================================ */
 
@@ -198,17 +203,22 @@ const TabButton = React.memo(
           title={tab.label}
           className={[
             // Layout
-            "relative flex items-center justify-center gap-2 shrink-0 snap-start",
-            // Touch-friendly sizing: 44px min height
-            "min-h-[44px] px-3 sm:px-3.5 lg:px-4 py-2.5",
+            "relative flex items-center justify-center gap-1.5 sm:gap-2 shrink-0 snap-start",
+            // Touch-friendly sizing: 44px min height, comfortable tap target
+            "min-h-[44px] min-w-[44px]",
+            "px-2.5 sm:px-3 md:px-3.5 lg:px-4 py-2.5",
             // Text
             "text-[13px] font-medium tracking-[0.02em]",
             // Shape + transition
-            "rounded-lg transition-colors duration-200",
+            "rounded-lg transition-all duration-200",
             // Colour states
             isSelected
               ? "text-white"
-              : "text-gray-500 hover:text-gray-300 hover:bg-white/[0.04]",
+              : [
+                  "text-gray-500",
+                  "hover:text-gray-300 hover:bg-white/[0.04]",
+                  "active:scale-[0.97] active:bg-white/[0.06]",
+                ].join(" "),
             // Focus ring (keyboard-only)
             "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500",
             "outline-none",
@@ -239,7 +249,7 @@ const TabButton = React.memo(
             {tab.icon}
           </span>
 
-          {/* Label: hidden on very small screens, visible sm+ */}
+          {/* Label: hidden on very small screens (icon-only), visible sm+ */}
           <span className="relative z-10 hidden sm:inline">{tab.label}</span>
         </button>
       );

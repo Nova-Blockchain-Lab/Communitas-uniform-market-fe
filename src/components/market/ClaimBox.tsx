@@ -22,7 +22,9 @@ import { Card, CardHeader, Button, SkeletonLine, EmptyState, type TransactionSta
 /* -------------------------------------------------------------------------- */
 const ADDRESS_REGEX = /^0x[a-fA-F0-9]{40}$/;
 
-const validateAddress = (addr: string): "empty" | "valid" | "short" | "long" | "invalid" => {
+type AddressStatus = "empty" | "valid" | "short" | "long" | "invalid";
+
+const validateAddress = (addr: string): AddressStatus => {
   if (addr.length === 0) return "empty";
   if (ADDRESS_REGEX.test(addr)) return "valid";
   if (addr.length < 42) return "short";
@@ -43,24 +45,43 @@ const destinationContainerClass =
   "p-3 sm:p-4 bg-white/5 rounded-xl mb-4 sm:mb-6";
 
 const inputBaseClass =
-  "w-full px-3 py-3 sm:py-2 pr-10 rounded-lg bg-white/5 border text-sm text-white placeholder-gray-500 focus:outline-none transition-colors";
+  "w-full px-3 py-3 sm:py-2 pr-10 rounded-lg bg-white/5 border text-sm text-white placeholder-gray-500 focus:outline-none transition-colors min-h-[44px]";
 
 const infoNoteClass =
   "mt-3 sm:mt-4 flex items-start gap-2 text-xs text-gray-500";
 
+const errorPanelClass =
+  "mt-3 p-3 rounded-lg bg-red-500/10 border border-red-500/20";
+
+const arrowBounceTransition = { repeat: Infinity, duration: 1.5 } as const;
+
+const celebrationRotateAnimation = { rotate: [0, -10, 10, -10, 10, 0], scale: [1, 1.2, 1] };
+const celebrationRotateTransition = { duration: 0.6 } as const;
+
+const fadeInInitial = { opacity: 0, scale: 0.8 } as const;
+const fadeInAnimate = { opacity: 1, scale: 1 } as const;
+
+const slideInInitial = { opacity: 0, height: 0 } as const;
+const slideInAnimate = { opacity: 1, height: "auto" as const } as const;
+
+const scaleInInitial = { scale: 0.95, opacity: 0 } as const;
+const scaleInAnimate = { scale: 1, opacity: 1 } as const;
+
+const arrowBounceAnimate = { y: [0, 8, 0] };
+
 /* -------------------------------------------------------------------------- */
 /*  Confetti burst on successful claim                                        */
 /* -------------------------------------------------------------------------- */
-const SuccessCelebration: React.FC = () => (
+const SuccessCelebration: React.FC = React.memo(() => (
   <motion.div
-    initial={{ opacity: 0, scale: 0.8 }}
-    animate={{ opacity: 1, scale: 1 }}
-    exit={{ opacity: 0, scale: 0.8 }}
+    initial={fadeInInitial}
+    animate={fadeInAnimate}
+    exit={fadeInInitial}
     className="flex flex-col items-center gap-2 py-4 sm:py-6"
   >
     <motion.div
-      animate={{ rotate: [0, -10, 10, -10, 10, 0], scale: [1, 1.2, 1] }}
-      transition={{ duration: 0.6 }}
+      animate={celebrationRotateAnimation}
+      transition={celebrationRotateTransition}
       className="p-3 rounded-full bg-emerald-500/20 text-emerald-400"
     >
       <PartyPopper size={28} />
@@ -68,7 +89,54 @@ const SuccessCelebration: React.FC = () => (
     <p className="text-sm font-medium text-emerald-400">Claim successful!</p>
     <p className="text-xs text-gray-500">Earnings sent to your wallet</p>
   </motion.div>
-);
+));
+SuccessCelebration.displayName = "SuccessCelebration";
+
+/* -------------------------------------------------------------------------- */
+/*  Address validation message                                                */
+/* -------------------------------------------------------------------------- */
+interface ValidationMessageProps {
+  status: AddressStatus;
+  charCount: number;
+}
+
+const ValidationMessage: React.FC<ValidationMessageProps> = React.memo(({ status, charCount }) => {
+  if (status === "empty") return null;
+
+  if (status === "valid") {
+    return (
+      <p className="mt-1.5 text-xs text-emerald-400 flex items-center gap-1">
+        <CheckCircle2 size={12} />
+        Valid Ethereum address
+      </p>
+    );
+  }
+
+  if (status === "short") {
+    return (
+      <p className="mt-1.5 text-xs text-amber-400 flex items-center gap-1">
+        Address too short ({charCount}/42 characters)
+      </p>
+    );
+  }
+
+  if (status === "long") {
+    return (
+      <p className="mt-1.5 text-xs text-red-400 flex items-center gap-1">
+        <XCircle size={12} />
+        Address too long ({charCount}/42 characters)
+      </p>
+    );
+  }
+
+  return (
+    <p className="mt-1.5 text-xs text-red-400 flex items-center gap-1">
+      <XCircle size={12} />
+      Invalid format - must start with 0x followed by 40 hex characters
+    </p>
+  );
+});
+ValidationMessage.displayName = "ValidationMessage";
 
 /* -------------------------------------------------------------------------- */
 /*  ClaimBox                                                                  */
@@ -126,7 +194,10 @@ const ClaimBox: React.FC = () => {
 
   const isLoading = isWritePending || isConfirming;
 
-  const needsConnection = !isConnected || (chainId !== undefined && defaultChain.id !== chainId);
+  const needsConnection = useMemo(
+    () => !isConnected || (chainId !== undefined && defaultChain.id !== chainId),
+    [isConnected, chainId],
+  );
 
   const addressValidation = useMemo(() => validateAddress(customAddress), [customAddress]);
 
@@ -140,6 +211,9 @@ const ClaimBox: React.FC = () => {
         return "border-red-500/50 focus:border-red-500/70";
     }
   }, [addressValidation]);
+
+  const formattedBalance = useMemo(() => balance.toFixed(6), [balance]);
+  const formattedBalanceEUR = useMemo(() => balanceInEUR.toFixed(2), [balanceInEUR]);
 
   /* ---------------------------------------------------------------------- */
   /*  Transaction status tracking                                           */
@@ -235,6 +309,11 @@ const ClaimBox: React.FC = () => {
     }
   }, [hasBalance, energyMarketAddress, claimToOther, addressValidation, customAddress, writeContract, toast]);
 
+  const handleDismissError = useCallback(() => {
+    setTxStatus("idle");
+    setTxError(undefined);
+  }, []);
+
   /* ---------------------------------------------------------------------- */
   /*  Button label                                                          */
   /* ---------------------------------------------------------------------- */
@@ -281,8 +360,8 @@ const ClaimBox: React.FC = () => {
 
             {/* Balance Display */}
             <motion.div
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
+              initial={scaleInInitial}
+              animate={scaleInAnimate}
               className={balanceGradientClass}
             >
               {/* Background decoration */}
@@ -301,16 +380,16 @@ const ClaimBox: React.FC = () => {
                   <>
                     <div className="flex items-baseline gap-2 sm:gap-3 mb-1 sm:mb-2 flex-wrap">
                       <span className="text-2xl sm:text-4xl font-bold text-white break-all">
-                        {balance.toFixed(6)}
+                        {formattedBalance}
                       </span>
-                      <span className="text-lg sm:text-xl text-gray-400">ETH</span>
+                      <span className="text-base sm:text-xl text-gray-400">ETH</span>
                     </div>
 
-                    {ethPrice && (
+                    {ethPrice ? (
                       <p className="text-sm sm:text-lg text-gray-400">
-                        ~{balanceInEUR.toFixed(2)} EUR
+                        ~{formattedBalanceEUR} EUR
                       </p>
-                    )}
+                    ) : null}
                   </>
                 )}
               </div>
@@ -320,8 +399,8 @@ const ClaimBox: React.FC = () => {
             {hasBalance && !showCelebration && (
               <div className="flex justify-center mb-4 sm:mb-6">
                 <motion.div
-                  animate={{ y: [0, 8, 0] }}
-                  transition={{ repeat: Infinity, duration: 1.5 }}
+                  animate={arrowBounceAnimate}
+                  transition={arrowBounceTransition}
                   className="p-2 sm:p-3 rounded-full bg-emerald-500/20 text-emerald-400"
                 >
                   <ArrowDown size={20} className="sm:hidden" />
@@ -342,7 +421,7 @@ const ClaimBox: React.FC = () => {
 
             {/* Destination */}
             <div className={destinationContainerClass}>
-              <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center justify-between mb-3 gap-2">
                 <p className="text-xs text-gray-500">Claim to different address</p>
                 <Switch
                   size="sm"
@@ -360,6 +439,8 @@ const ClaimBox: React.FC = () => {
                       onChange={handleAddressChange}
                       placeholder="0x..."
                       className={`${inputBaseClass} ${inputBorderClass}`}
+                      autoComplete="off"
+                      spellCheck={false}
                     />
                     {/* Inline validation icon */}
                     {addressValidation !== "empty" && (
@@ -372,31 +453,7 @@ const ClaimBox: React.FC = () => {
                       </div>
                     )}
                   </div>
-                  {/* Inline validation message */}
-                  {addressValidation !== "empty" && (
-                    <div className="mt-1.5">
-                      {addressValidation === "valid" ? (
-                        <p className="text-xs text-emerald-400 flex items-center gap-1">
-                          <CheckCircle2 size={12} />
-                          Valid Ethereum address
-                        </p>
-                      ) : addressValidation === "short" ? (
-                        <p className="text-xs text-amber-400 flex items-center gap-1">
-                          Address too short ({customAddress.length}/42 characters)
-                        </p>
-                      ) : addressValidation === "long" ? (
-                        <p className="text-xs text-red-400 flex items-center gap-1">
-                          <XCircle size={12} />
-                          Address too long ({customAddress.length}/42 characters)
-                        </p>
-                      ) : (
-                        <p className="text-xs text-red-400 flex items-center gap-1">
-                          <XCircle size={12} />
-                          Invalid format - must start with 0x followed by 40 hex characters
-                        </p>
-                      )}
-                    </div>
-                  )}
+                  <ValidationMessage status={addressValidation} charCount={customAddress.length} />
                 </div>
               ) : (
                 <div className="flex items-center gap-3">
@@ -431,14 +488,21 @@ const ClaimBox: React.FC = () => {
             <AnimatePresence>
               {txStatus === "error" && txError && (
                 <motion.div
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: "auto" }}
-                  exit={{ opacity: 0, height: 0 }}
-                  className="mt-3 p-3 rounded-lg bg-red-500/10 border border-red-500/20"
+                  initial={slideInInitial}
+                  animate={slideInAnimate}
+                  exit={slideInInitial}
+                  className={errorPanelClass}
                 >
                   <div className="flex items-start gap-2">
                     <XCircle size={14} className="text-red-400 mt-0.5 shrink-0" />
-                    <p className="text-xs text-red-400 break-words">{txError}</p>
+                    <p className="text-xs text-red-400 break-words flex-1">{txError}</p>
+                    <button
+                      onClick={handleDismissError}
+                      className="shrink-0 p-1 min-w-[28px] min-h-[28px] flex items-center justify-center rounded hover:bg-red-500/20 text-red-400 transition-colors"
+                      aria-label="Dismiss error"
+                    >
+                      <XCircle size={12} />
+                    </button>
                   </div>
                 </motion.div>
               )}

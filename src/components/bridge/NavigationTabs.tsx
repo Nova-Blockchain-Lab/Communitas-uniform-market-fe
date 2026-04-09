@@ -5,7 +5,7 @@ import { useCallback } from "react";
 import BridgeBox from "./BridgeBox";
 import BridgeHistory from "./BridgeHistory";
 
-type TabItem = {
+export type TabItem = {
     id: string;
     label: string;
     component: React.FunctionComponentElement<any>;
@@ -18,7 +18,8 @@ interface NavigationTabsProps {
 }
 
 /**
- * NavigationTabs component provides a stylish navigation bar with tab-like functionality
+ * NavigationTabs component provides a stylish navigation bar with tab-like functionality.
+ * Touch-friendly (min 44px targets), animated active indicator, keyboard accessible.
  */
 const NavigationTabs: React.FC<NavigationTabsProps> = ({
     tabs,
@@ -45,13 +46,15 @@ const NavigationTabs: React.FC<NavigationTabsProps> = ({
                             <button
                                 onClick={() => handleTabClick(tab.id)}
                                 className={`
-                                    min-h-[44px] px-5 sm:px-6 py-2 rounded-lg
+                                    relative
+                                    min-h-[44px] min-w-[44px] px-5 sm:px-6 py-2 rounded-lg
                                     text-sm sm:text-base font-medium
                                     transition-all duration-200 ease-in-out
                                     focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/60
+                                    active:scale-95
                                     ${isActive
                                         ? "bg-black/80 shadow-md text-white"
-                                        : "bg-transparent text-gray-300 hover:bg-white/15 hover:text-white"
+                                        : "bg-transparent text-gray-400 hover:bg-white/10 hover:text-white"
                                     }
                                 `}
                                 aria-selected={isActive}
@@ -59,6 +62,16 @@ const NavigationTabs: React.FC<NavigationTabsProps> = ({
                                 tabIndex={isActive ? 0 : -1}
                             >
                                 {tab.label}
+                                {/* Active tab bottom accent */}
+                                <span
+                                    className={`
+                                        absolute bottom-0 left-1/2 -translate-x-1/2
+                                        h-[2px] rounded-full bg-emerald-400
+                                        transition-all duration-200 ease-in-out
+                                        ${isActive ? "w-1/2 opacity-100" : "w-0 opacity-0"}
+                                    `}
+                                    aria-hidden="true"
+                                />
                             </button>
                         </li>
                     );

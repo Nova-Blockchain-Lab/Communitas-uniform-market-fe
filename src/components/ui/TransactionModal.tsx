@@ -239,8 +239,8 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          transition={{ duration: 0.2 }}
-          className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/70 backdrop-blur-sm"
+          transition={{ duration: 0.25, ease: "easeOut" }}
+          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/70 backdrop-blur-sm"
           onClick={(e) => {
             if (e.target === e.currentTarget && canDismiss) {
               onClose();
@@ -251,12 +251,17 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
           aria-labelledby="tx-modal-title"
         >
           <motion.div
-            initial={{ scale: 0.9, opacity: 0, y: 20 }}
+            initial={{ scale: 0.95, opacity: 0, y: 40 }}
             animate={{ scale: 1, opacity: 1, y: 0 }}
-            exit={{ scale: 0.9, opacity: 0, y: 20 }}
-            transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            className="w-full max-w-md max-h-[calc(100dvh-1.5rem)] sm:max-h-[calc(100dvh-2rem)] overflow-y-auto rounded-2xl bg-[var(--color-bg-card)] border border-[var(--color-border)] shadow-2xl"
+            exit={{ scale: 0.95, opacity: 0, y: 40 }}
+            transition={{ type: "spring", damping: 28, stiffness: 320, mass: 0.8 }}
+            className="w-full sm:max-w-md max-h-[90dvh] sm:max-h-[calc(100dvh-2rem)] overflow-y-auto rounded-t-2xl sm:rounded-2xl bg-[var(--color-bg-card)] border border-[var(--color-border)] shadow-2xl"
           >
+            {/* Drag indicator for mobile sheet appearance */}
+            <div className="flex justify-center pt-2 pb-0 sm:hidden">
+              <div className="w-10 h-1 rounded-full bg-white/20" />
+            </div>
+
             {/* Header with gradient */}
             <div className={`relative p-5 sm:p-6 bg-gradient-to-br ${config.bgGradient}`}>
               {/* Close button -- touch-friendly 44x44 tap target */}
@@ -271,7 +276,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
               )}
 
               {/* Background decoration */}
-              <div className="absolute inset-0 overflow-hidden">
+              <div className="absolute inset-0 overflow-hidden pointer-events-none">
                 <div className={`absolute -top-12 -right-12 w-32 h-32 rounded-full ${config.decorBg} blur-3xl`} />
                 <div className={`absolute -bottom-8 -left-8 w-24 h-24 rounded-full ${config.decorBg} blur-2xl`} />
               </div>
@@ -386,7 +391,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
                     <AlertTriangle size={20} className="text-red-400 shrink-0 mt-0.5" />
                     <div className="min-w-0">
                       <p className="text-sm font-medium text-red-400 mb-1">Error Details</p>
-                      <p className="text-xs text-red-300/80 break-words">{error}</p>
+                      <p className="text-xs text-red-300/80 break-words line-clamp-6">{error}</p>
                     </div>
                   </div>
                 </div>
@@ -445,7 +450,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
               )}
 
               {/* Actions */}
-              <div className="flex gap-3 pt-2">
+              <div className="flex gap-3 pt-2 pb-[env(safe-area-inset-bottom)]">
                 {status === "success" && (
                   <Button fullWidth onClick={onClose}>
                     Done

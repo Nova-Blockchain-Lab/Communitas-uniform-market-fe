@@ -329,17 +329,17 @@ const NFTBox: React.FC = () => {
 
   // ---- Render helpers -------------------------------------------------
 
-  /** Grid-view class string -- responsive columns */
+  /** Grid-view class string -- responsive columns (1 mobile, 2 tablet, 3+ desktop) */
   const gridClasses =
-    "grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4";
+    "grid grid-cols-1 min-[480px]:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-5";
 
   /** List-view class string */
-  const listClasses = "flex flex-col gap-3";
+  const listClasses = "flex flex-col gap-3 sm:gap-4";
 
   // ---- Render ---------------------------------------------------------
 
   return (
-    <div className="w-full max-w-5xl space-y-6">
+    <div className="w-full max-w-5xl space-y-4 sm:space-y-6 px-0">
       <Card padding="lg">
         <CardHeader
           title="Your NFTs"
@@ -351,7 +351,7 @@ const NFTBox: React.FC = () => {
                 {/* View toggle */}
                 <button
                   onClick={toggleViewMode}
-                  className="p-2 rounded-lg bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white transition-colors"
+                  className="p-2.5 sm:p-2 rounded-lg bg-white/5 hover:bg-white/10 active:bg-white/15 text-gray-400 hover:text-white transition-colors touch-manipulation"
                   title={viewMode === "grid" ? "Switch to list view" : "Switch to grid view"}
                   aria-label={viewMode === "grid" ? "Switch to list view" : "Switch to grid view"}
                 >
@@ -360,7 +360,7 @@ const NFTBox: React.FC = () => {
                 {/* Refresh */}
                 <button
                   onClick={refetchAll}
-                  className="p-2 rounded-lg bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white transition-colors"
+                  className="p-2.5 sm:p-2 rounded-lg bg-white/5 hover:bg-white/10 active:bg-white/15 text-gray-400 hover:text-white transition-colors touch-manipulation"
                   title="Refresh"
                   aria-label="Refresh NFTs"
                 >
@@ -378,13 +378,13 @@ const NFTBox: React.FC = () => {
         ) : (
           <>
             {/* Chain Switcher -- segmented control */}
-            <div className="flex items-center p-1 bg-white/5 rounded-xl mb-6">
+            <div className="flex items-center p-1 bg-white/5 rounded-xl mb-4 sm:mb-6">
               <button
                 onClick={() => {
                   if (isL2) handleSwitchChain();
                 }}
                 className={`
-                  flex-1 flex items-center justify-center gap-2 py-2.5 px-3 sm:px-4 rounded-lg text-xs sm:text-sm font-medium transition-all duration-200
+                  flex-1 flex items-center justify-center gap-1.5 sm:gap-2 py-3 sm:py-2.5 px-3 sm:px-4 rounded-lg text-xs sm:text-sm font-medium transition-all duration-200 touch-manipulation
                   ${
                     !isL2
                       ? "bg-[var(--color-primary-500)] text-white shadow-md"
@@ -407,7 +407,7 @@ const NFTBox: React.FC = () => {
                   if (!isL2) handleSwitchChain();
                 }}
                 className={`
-                  flex-1 flex items-center justify-center gap-2 py-2.5 px-3 sm:px-4 rounded-lg text-xs sm:text-sm font-medium transition-all duration-200
+                  flex-1 flex items-center justify-center gap-1.5 sm:gap-2 py-3 sm:py-2.5 px-3 sm:px-4 rounded-lg text-xs sm:text-sm font-medium transition-all duration-200 touch-manipulation
                   ${
                     isL2
                       ? "bg-[var(--color-primary-500)] text-white shadow-md"
@@ -429,7 +429,7 @@ const NFTBox: React.FC = () => {
 
             {/* Mint Button (L2 only) */}
             {isL2 && (
-              <div className="flex justify-center mb-6">
+              <div className="flex justify-center mb-4 sm:mb-6">
                 <Button
                   variant="primary"
                   onClick={handleMint}
@@ -515,12 +515,12 @@ const NFTBox: React.FC = () => {
                       {sortedNfts.map((nft, index) => (
                         <motion.div
                           key={nft.tokenId}
-                          initial={{ opacity: 0, y: 16 }}
-                          animate={{ opacity: 1, y: 0 }}
+                          initial={{ opacity: 0, y: 20, scale: 0.97 }}
+                          animate={{ opacity: 1, y: 0, scale: 1 }}
                           transition={{
                             delay: Math.min(index * 0.06, 0.5),
-                            duration: 0.3,
-                            ease: "easeOut",
+                            duration: 0.35,
+                            ease: [0.25, 0.1, 0.25, 1],
                           }}
                           layout
                         >

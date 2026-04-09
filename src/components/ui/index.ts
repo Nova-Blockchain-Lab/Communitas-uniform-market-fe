@@ -20,7 +20,7 @@ export { Spinner } from "./Spinner";
 export { Switch } from "./Switch";
 
 // Skeleton
-export { SkeletonLine, SkeletonBlock, SkeletonCircle, SkeletonRows } from "./Skeleton";
+export { SkeletonLine, SkeletonBlock, SkeletonCircle, SkeletonRows, SkeletonCard } from "./Skeleton";
 
 // Error Boundary
 export { ErrorBoundary } from "./ErrorBoundary";

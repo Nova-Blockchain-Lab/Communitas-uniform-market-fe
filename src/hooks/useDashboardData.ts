@@ -28,8 +28,9 @@ interface UseDashboardDataReturn {
   refetch: () => void;
 }
 
-// Cache ABI reference to avoid re-creating on every render
+// Module-level constants — stable references that never change between renders
 const typedAbi = EnergyBiddingMarketAbi as AbiFunction[];
+const EMPTY_HOUR_DATA: HourData[] = [];
 
 export function useDashboardData(selectedDay: Date): UseDashboardDataReturn {
   const { energyMarketAddress } = useAppContext();
@@ -73,7 +74,7 @@ export function useDashboardData(selectedDay: Date): UseDashboardDataReturn {
   });
 
   const hourData: HourData[] = useMemo(() => {
-    if (!data || data.length === 0) return [];
+    if (!data || data.length === 0) return EMPTY_HOUR_DATA;
 
     return timestamps.map((ts, i) => {
       const base = i * 5;

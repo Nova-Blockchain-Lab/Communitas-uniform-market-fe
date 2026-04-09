@@ -30,6 +30,7 @@ interface UseTransactionFeedbackReturn {
   isConfirmed: boolean;
 }
 
+/** Extract a user-friendly message from a transaction error. */
 function extractErrorMessage(err: Error): string {
   const message = err.message;
   if (message.includes("User rejected")) {
@@ -53,9 +54,12 @@ export function useTransactionFeedback(): UseTransactionFeedbackReturn {
   const [details, setDetails] = useState<TransactionDetails | undefined>();
   const [errorMessage, setErrorMessage] = useState<string | undefined>();
 
-  // Use ref to avoid stale closure in closeModal
+  // Ref to read current status inside closeModal without adding it to deps
   const statusRef = useRef<TransactionStatus>(status);
   statusRef.current = status;
+
+  // Ref to track the close-modal delayed reset timer so it can be cleaned up
+  const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const {
     data: hash,
@@ -71,7 +75,8 @@ export function useTransactionFeedback(): UseTransactionFeedbackReturn {
     error: confirmError,
   } = useWaitForTransactionReceipt({ hash });
 
-  // Update status based on transaction state
+  // Derive status from wagmi transaction lifecycle flags.
+  // Order matters: pending > confirming > confirmed > error.
   useEffect(() => {
     if (isPending) {
       setStatus("pending");
@@ -88,7 +93,22 @@ export function useTransactionFeedback(): UseTransactionFeedbackReturn {
     }
   }, [isPending, isConfirming, isConfirmed, writeError, confirmError]);
 
+  // Clean up the delayed-reset timer on unmount to prevent state updates
+  // on an unmounted component.
+  useEffect(() => {
+    return () => {
+      if (closeTimerRef.current !== null) {
+        clearTimeout(closeTimerRef.current);
+      }
+    };
+  }, []);
+
   const openModal = useCallback((txDetails: TransactionDetails) => {
+    // Cancel any pending delayed reset from a previous close
+    if (closeTimerRef.current !== null) {
+      clearTimeout(closeTimerRef.current);
+      closeTimerRef.current = null;
+    }
     setDetails(txDetails);
     setIsModalOpen(true);
     setStatus("idle");
@@ -97,10 +117,12 @@ export function useTransactionFeedback(): UseTransactionFeedbackReturn {
 
   const closeModal = useCallback(() => {
     setIsModalOpen(false);
-    // Only reset if success or error — use ref to avoid status in dep array
+    // Only reset wagmi + local state after a brief delay when the
+    // transaction reached a terminal state, giving the exit animation time.
     const currentStatus = statusRef.current;
     if (currentStatus === "success" || currentStatus === "error") {
-      setTimeout(() => {
+      closeTimerRef.current = setTimeout(() => {
+        closeTimerRef.current = null;
         setStatus("idle");
         setDetails(undefined);
         setErrorMessage(undefined);
@@ -110,6 +132,11 @@ export function useTransactionFeedback(): UseTransactionFeedbackReturn {
   }, [resetWrite]);
 
   const resetTransaction = useCallback(() => {
+    // Cancel any pending delayed reset
+    if (closeTimerRef.current !== null) {
+      clearTimeout(closeTimerRef.current);
+      closeTimerRef.current = null;
+    }
     setIsModalOpen(false);
     setStatus("idle");
     setDetails(undefined);

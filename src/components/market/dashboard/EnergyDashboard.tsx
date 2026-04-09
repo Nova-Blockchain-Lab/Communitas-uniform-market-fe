@@ -44,46 +44,53 @@ interface StatCardProps {
   colorClass: string;
   bgClass: string;
   borderClass: string;
+  index: number;
+}
+
+interface StatCardData {
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+  subtext?: string;
+  colorClass: string;
+  bgClass: string;
+  borderClass: string;
 }
 
 /* ------------------------------------------------------------------ */
 /*  Stat Card                                                          */
 /* ------------------------------------------------------------------ */
 
-const StatCard: React.FC<StatCardProps> = ({
-  icon,
-  label,
-  value,
-  subtext,
-  colorClass,
-  bgClass,
-  borderClass,
-}) => (
-  <motion.div
-    initial={{ opacity: 0, y: 12 }}
-    animate={{ opacity: 1, y: 0 }}
-    transition={{ duration: 0.3, ease: "easeOut" }}
-    className={`p-3 sm:p-4 rounded-xl ${bgClass} border ${borderClass} transition-colors duration-200 hover:brightness-110`}
-  >
-    <div className="flex items-center gap-2 mb-1.5">
-      {icon}
-      <span className="text-[10px] sm:text-xs text-[var(--color-text-secondary)] uppercase tracking-wide leading-tight">
-        {label}
-      </span>
-    </div>
-    <p
-      className={`text-base sm:text-lg font-bold ${colorClass} truncate`}
-      title={value}
+const StatCard: React.FC<StatCardProps> = React.memo(
+  ({ icon, label, value, subtext, colorClass, bgClass, borderClass, index }) => (
+    <motion.div
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3, ease: "easeOut", delay: index * 0.05 }}
+      className={`p-3 sm:p-4 rounded-xl ${bgClass} border ${borderClass} transition-colors duration-200 hover:brightness-110`}
     >
-      {value}
-    </p>
-    {subtext && (
-      <p className="text-[10px] sm:text-xs text-[var(--color-text-muted)] mt-0.5 truncate">
-        {subtext}
+      <div className="flex items-center gap-2 mb-1.5">
+        {icon}
+        <span className="text-[10px] sm:text-xs text-[var(--color-text-secondary)] uppercase tracking-wide leading-tight">
+          {label}
+        </span>
+      </div>
+      <p
+        className={`text-base sm:text-lg font-bold ${colorClass} truncate`}
+        title={value}
+      >
+        {value}
       </p>
-    )}
-  </motion.div>
+      {subtext && (
+        <p className="text-[10px] sm:text-xs text-[var(--color-text-muted)] mt-0.5 truncate">
+          {subtext}
+        </p>
+      )}
+    </motion.div>
+  ),
 );
+
+StatCard.displayName = "StatCard";
 
 /* ------------------------------------------------------------------ */
 /*  Table Row                                                          */
@@ -95,58 +102,63 @@ interface ParticipantRowProps {
   ethPrice?: number;
 }
 
-const ParticipantRow: React.FC<ParticipantRowProps> = ({
-  type,
-  participant,
-  ethPrice,
-}) => {
-  const isBuyer = type === "buyer";
-  const colorClass = isBuyer ? "text-blue-400" : "text-emerald-400";
-  const dotClass = isBuyer ? "bg-blue-400" : "bg-emerald-400";
-  const label = isBuyer ? "Buyer" : "Seller";
+const ParticipantRow: React.FC<ParticipantRowProps> = React.memo(
+  ({ type, participant, ethPrice }) => {
+    const isBuyer = type === "buyer";
+    const colorClass = isBuyer ? "text-blue-400" : "text-emerald-400";
+    const dotClass = isBuyer ? "bg-blue-400" : "bg-emerald-400";
+    const label = isBuyer ? "Buyer" : "Seller";
 
-  return (
-    <tr className="border-b border-[var(--color-border)] hover:bg-white/[0.02] transition-colors">
-      <td className="px-3 sm:px-4 py-3">
-        <span
-          className={`inline-flex items-center gap-1.5 ${colorClass} font-medium text-xs sm:text-sm`}
-        >
-          <span className={`w-2 h-2 rounded-full ${dotClass} flex-shrink-0`} />
-          {label}
-        </span>
-      </td>
-      <td className="px-3 sm:px-4 py-3 font-mono text-[10px] sm:text-xs text-[var(--color-text-primary)]">
-        <span className="hidden sm:inline">{participant.address}</span>
-        <span className="sm:hidden">
-          {participant.address.slice(0, 6)}...{participant.address.slice(-4)}
-        </span>
-      </td>
-      <td
-        className={`px-3 sm:px-4 py-3 text-right ${colorClass} font-medium text-xs sm:text-sm`}
-      >
-        {participant.amount}
-      </td>
-      <td className="px-3 sm:px-4 py-3 text-right text-xs sm:text-sm">
-        {isBuyer && participant.price !== undefined ? (
-          <span className="text-amber-400 font-medium">
-            {participant.price.toFixed(6)}
+    return (
+      <tr className="border-b border-[var(--color-border)] hover:bg-white/[0.02] transition-colors">
+        <td className="px-3 sm:px-4 py-3">
+          <span
+            className={`inline-flex items-center gap-1.5 ${colorClass} font-medium text-xs sm:text-sm`}
+          >
+            <span
+              className={`w-2 h-2 rounded-full ${dotClass} flex-shrink-0`}
+            />
+            {label}
           </span>
-        ) : (
-          <span className="text-[var(--color-text-muted)]">&mdash;</span>
-        )}
-      </td>
-    </tr>
-  );
-};
+        </td>
+        <td className="px-3 sm:px-4 py-3 font-mono text-[10px] sm:text-xs text-[var(--color-text-primary)]">
+          <span className="hidden sm:inline">{participant.address}</span>
+          <span className="sm:hidden">
+            {participant.address.slice(0, 6)}...{participant.address.slice(-4)}
+          </span>
+        </td>
+        <td
+          className={`px-3 sm:px-4 py-3 text-right ${colorClass} font-medium text-xs sm:text-sm`}
+        >
+          {participant.amount}
+        </td>
+        <td className="px-3 sm:px-4 py-3 text-right text-xs sm:text-sm">
+          {isBuyer && participant.price !== undefined ? (
+            <span className="text-amber-400 font-medium">
+              {participant.price.toFixed(6)}
+            </span>
+          ) : (
+            <span className="text-[var(--color-text-muted)]">&mdash;</span>
+          )}
+        </td>
+      </tr>
+    );
+  },
+);
+
+ParticipantRow.displayName = "ParticipantRow";
 
 /* ------------------------------------------------------------------ */
 /*  Section Heading                                                    */
 /* ------------------------------------------------------------------ */
 
-const SectionHeading: React.FC<{ children: React.ReactNode }> = ({
-  children,
-}) => (
-  <h3 className="text-xs sm:text-sm font-semibold text-[var(--color-text-secondary)] uppercase tracking-wider mb-3">
+const SectionHeading: React.FC<{
+  children: React.ReactNode;
+  className?: string;
+}> = ({ children, className = "" }) => (
+  <h3
+    className={`text-xs sm:text-sm font-semibold text-[var(--color-text-secondary)] uppercase tracking-wider mb-3 ${className}`}
+  >
     {children}
   </h3>
 );
@@ -160,8 +172,8 @@ const DashboardSkeleton: React.FC = () => (
     {/* Section heading skeleton */}
     <SkeletonLine width="8rem" height="0.75rem" />
 
-    {/* Market summary skeleton */}
-    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+    {/* Market summary skeleton -- mirrors the 1-col / 2-col / 4-col stat grid */}
+    <div className="grid grid-cols-1 min-[400px]:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3">
       {Array.from({ length: 4 }).map((_, i) => (
         <div
           key={i}
@@ -172,6 +184,9 @@ const DashboardSkeleton: React.FC = () => (
             <SkeletonLine width="60%" height="0.625rem" />
           </div>
           <SkeletonLine width="50%" height="1.25rem" />
+          <div className="mt-1.5">
+            <SkeletonLine width="40%" height="0.625rem" />
+          </div>
         </div>
       ))}
     </div>
@@ -179,8 +194,8 @@ const DashboardSkeleton: React.FC = () => (
     {/* Section heading skeleton */}
     <SkeletonLine width="10rem" height="0.75rem" />
 
-    {/* Hour selector skeleton */}
-    <div className="flex gap-2 overflow-hidden">
+    {/* Hour selector skeleton -- compact grid on mobile, scrolling row on desktop */}
+    <div className="grid grid-cols-6 gap-1.5 sm:flex sm:gap-2 sm:overflow-hidden">
       {Array.from({ length: 12 }).map((_, i) => (
         <SkeletonBlock key={i} width="60px" height="56px" rounded="xl" />
       ))}
@@ -188,6 +203,17 @@ const DashboardSkeleton: React.FC = () => (
 
     {/* Visualization skeleton */}
     <SkeletonBlock height="300px" rounded="xl" />
+
+    {/* Table skeleton rows (simulates alternate view) */}
+    <div className="rounded-xl border border-[var(--color-border)] overflow-hidden">
+      <div className="flex gap-4 px-3 sm:px-4 py-3 bg-white/[0.02]">
+        <SkeletonLine width="15%" height="0.625rem" />
+        <SkeletonLine width="40%" height="0.625rem" />
+        <SkeletonLine width="15%" height="0.625rem" />
+        <SkeletonLine width="15%" height="0.625rem" />
+      </div>
+      <SkeletonRows count={4} gap="0" className="px-3 sm:px-4 py-2" />
+    </div>
   </div>
 );
 
@@ -253,6 +279,60 @@ const EnergyDashboard: React.FC = () => {
     };
   }, [hourData]);
 
+  /* ---- Memoised stat card descriptors ---- */
+
+  const statCards = useMemo<StatCardData[]>(
+    () => [
+      {
+        icon: <Users size={14} className="text-blue-400 flex-shrink-0" />,
+        label: "Total Bids",
+        value: String(dailyStats.totalBids),
+        colorClass: "text-blue-400",
+        bgClass: "bg-blue-500/10",
+        borderClass: "border-blue-500/20",
+      },
+      {
+        icon: <Users size={14} className="text-emerald-400 flex-shrink-0" />,
+        label: "Total Asks",
+        value: String(dailyStats.totalAsks),
+        colorClass: "text-emerald-400",
+        bgClass: "bg-emerald-500/10",
+        borderClass: "border-emerald-500/20",
+      },
+      {
+        icon: (
+          <TrendingUp size={14} className="text-amber-400 flex-shrink-0" />
+        ),
+        label: "Avg Clearing",
+        value:
+          dailyStats.clearedHours > 0
+            ? `${dailyStats.avgClearingPrice.toFixed(6)} ETH`
+            : "N/A",
+        subtext:
+          dailyStats.clearedHours > 0
+            ? `${dailyStats.clearedHours} hour${dailyStats.clearedHours !== 1 ? "s" : ""} cleared`
+            : undefined,
+        colorClass: "text-amber-400",
+        bgClass: "bg-amber-500/10",
+        borderClass: "border-amber-500/20",
+      },
+      {
+        icon: (
+          <Zap
+            size={14}
+            className="text-[var(--color-text-secondary)] flex-shrink-0"
+          />
+        ),
+        label: "Total Energy",
+        value: `${dailyStats.totalEnergy.toFixed(1)} kWh`,
+        colorClass: "text-[var(--color-text-primary)]",
+        bgClass: "bg-white/5",
+        borderClass: "border-[var(--color-border)]",
+      },
+    ],
+    [dailyStats],
+  );
+
   /* ---- Memoised table data ---- */
 
   const tableParticipants = useMemo(() => {
@@ -276,7 +356,7 @@ const EnergyDashboard: React.FC = () => {
 
   return (
     <div className="w-full max-w-6xl px-2 sm:px-0">
-      <Card padding="lg" className="!p-4 sm:!p-6 lg:!p-8">
+      <Card padding="lg" className="!p-3 min-[400px]:!p-4 sm:!p-6 lg:!p-8">
         <CardHeader
           title="Energy Exchange"
           subtitle="Real-time market participant visualization"
@@ -325,53 +405,10 @@ const EnergyDashboard: React.FC = () => {
             {/* ---- Daily Market Summary ---- */}
             <SectionHeading>Daily Summary</SectionHeading>
 
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 mb-6">
-              <StatCard
-                icon={<Users size={14} className="text-blue-400 flex-shrink-0" />}
-                label="Total Bids"
-                value={String(dailyStats.totalBids)}
-                colorClass="text-blue-400"
-                bgClass="bg-blue-500/10"
-                borderClass="border-blue-500/20"
-              />
-              <StatCard
-                icon={<Users size={14} className="text-emerald-400 flex-shrink-0" />}
-                label="Total Asks"
-                value={String(dailyStats.totalAsks)}
-                colorClass="text-emerald-400"
-                bgClass="bg-emerald-500/10"
-                borderClass="border-emerald-500/20"
-              />
-              <StatCard
-                icon={<TrendingUp size={14} className="text-amber-400 flex-shrink-0" />}
-                label="Avg Clearing"
-                value={
-                  dailyStats.clearedHours > 0
-                    ? `${dailyStats.avgClearingPrice.toFixed(6)} ETH`
-                    : "N/A"
-                }
-                subtext={
-                  dailyStats.clearedHours > 0
-                    ? `${dailyStats.clearedHours} hour${dailyStats.clearedHours !== 1 ? "s" : ""} cleared`
-                    : undefined
-                }
-                colorClass="text-amber-400"
-                bgClass="bg-amber-500/10"
-                borderClass="border-amber-500/20"
-              />
-              <StatCard
-                icon={
-                  <Zap
-                    size={14}
-                    className="text-[var(--color-text-secondary)] flex-shrink-0"
-                  />
-                }
-                label="Total Energy"
-                value={`${dailyStats.totalEnergy.toFixed(1)} kWh`}
-                colorClass="text-[var(--color-text-primary)]"
-                bgClass="bg-white/5"
-                borderClass="border-[var(--color-border)]"
-              />
+            <div className="grid grid-cols-1 min-[400px]:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3 mb-6">
+              {statCards.map((card, i) => (
+                <StatCard key={card.label} index={i} {...card} />
+              ))}
             </div>
 
             {/* ---- Hourly Detail ---- */}
@@ -406,9 +443,9 @@ const EnergyDashboard: React.FC = () => {
                   exit={{ opacity: 0 }}
                   transition={{ duration: 0.2 }}
                 >
-                  {/* Table view */}
-                  <div className="overflow-x-auto rounded-xl border border-[var(--color-border)]">
-                    <table className="w-full text-sm">
+                  {/* Table view -- horizontal scroll keeps columns usable on narrow screens */}
+                  <div className="overflow-x-auto -mx-3 min-[400px]:mx-0 rounded-none min-[400px]:rounded-xl border-y min-[400px]:border border-[var(--color-border)]">
+                    <table className="w-full text-sm min-w-[28rem]">
                       <thead>
                         <tr className="border-b border-[var(--color-border)] bg-white/[0.02]">
                           <th className="text-left px-3 sm:px-4 py-3 text-[10px] sm:text-xs font-semibold text-[var(--color-text-secondary)] uppercase tracking-wide">
@@ -418,11 +455,15 @@ const EnergyDashboard: React.FC = () => {
                             Address
                           </th>
                           <th className="text-right px-3 sm:px-4 py-3 text-[10px] sm:text-xs font-semibold text-[var(--color-text-secondary)] uppercase tracking-wide">
-                            <span className="hidden sm:inline">Amount (kWh)</span>
+                            <span className="hidden sm:inline">
+                              Amount (kWh)
+                            </span>
                             <span className="sm:hidden">kWh</span>
                           </th>
                           <th className="text-right px-3 sm:px-4 py-3 text-[10px] sm:text-xs font-semibold text-[var(--color-text-secondary)] uppercase tracking-wide">
-                            <span className="hidden sm:inline">Price (ETH)</span>
+                            <span className="hidden sm:inline">
+                              Price (ETH)
+                            </span>
                             <span className="sm:hidden">ETH</span>
                           </th>
                         </tr>

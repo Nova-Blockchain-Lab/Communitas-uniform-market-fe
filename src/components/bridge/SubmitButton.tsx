@@ -28,7 +28,7 @@ const SubmitButton: React.FC<SubmitButtonProps> = ({
 
   if (!isConnected) {
     return (
-      <div className="flex flex-col items-center gap-3 py-4">
+      <div className="flex flex-col items-center gap-3 py-4 w-full">
         <div className="p-3 rounded-full bg-emerald-500/10">
           <Wallet size={24} className="text-emerald-400" />
         </div>
@@ -42,25 +42,27 @@ const SubmitButton: React.FC<SubmitButtonProps> = ({
     const targetName = originNetwork === defaultChain.id ? "Nova Cidade" : "Arbitrum";
     return (
       <motion.button
-        whileHover={{ scale: 1.02 }}
-        whileTap={{ scale: 0.98 }}
+        whileHover={isSwitching ? {} : { scale: 1.02 }}
+        whileTap={isSwitching ? {} : { scale: 0.98 }}
         onClick={handleSwitchChain}
         disabled={isSwitching}
-        className="
+        className={`
           w-full flex items-center justify-center gap-2
           min-h-[48px] px-5 sm:px-6 py-3 sm:py-4
-          bg-gradient-to-r from-amber-600 to-amber-500 text-white font-semibold
+          text-white font-semibold
           text-sm sm:text-base
           rounded-xl
-          shadow-lg hover:shadow-xl hover:shadow-amber-500/25
           transition-all duration-200
-          disabled:opacity-50 disabled:cursor-not-allowed
           focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400/60
-        "
+          ${isSwitching
+            ? "bg-gray-600 cursor-not-allowed opacity-50"
+            : "bg-gradient-to-r from-amber-600 to-amber-500 shadow-lg hover:shadow-xl hover:shadow-amber-500/25"
+          }
+        `}
       >
         {isSwitching ? (
           <>
-            <RefreshCw size={18} className="animate-spin shrink-0" />
+            <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin shrink-0" />
             <span className="truncate">Switching...</span>
           </>
         ) : (

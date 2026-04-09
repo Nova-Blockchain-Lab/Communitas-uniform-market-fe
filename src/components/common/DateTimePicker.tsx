@@ -1,7 +1,8 @@
 import React, { useState, useCallback, useEffect, useMemo } from "react";
 import { DayPicker, DateRange } from "react-day-picker";
+import { motion, AnimatePresence } from "motion/react";
 import "react-day-picker/dist/style.css";
-import { AlertTriangle, Clock } from "lucide-react";
+import { AlertTriangle, Clock, ChevronDown } from "lucide-react";
 
 import { getNextHour, computeHourTimestamps } from "@/utils/dateHelpers";
 
@@ -17,6 +18,7 @@ const DateTimePicker: React.FC<DateTimePickerProps> = ({
   maxHours = 400,
 }) => {
   const [mode, setMode] = useState<"range" | "multiple">("range");
+  const [isCalendarOpen, setIsCalendarOpen] = useState(true);
 
   // Range mode state
   const [dateRange, setDateRange] = useState<DateRange | undefined>({
@@ -82,6 +84,10 @@ const DateTimePicker: React.FC<DateTimePickerProps> = ({
     setEndHour(hourValue);
   }, []);
 
+  const toggleCalendar = useCallback(() => {
+    setIsCalendarOpen((prev) => !prev);
+  }, []);
+
   const spansNextDay = endHour <= startHour && endHour !== 0;
 
   // Determine which hours are in the past (for today only)
@@ -129,6 +135,28 @@ const DateTimePicker: React.FC<DateTimePickerProps> = ({
     [startHour, endHour]
   );
 
+  // Calendar summary text for collapsed state
+  const calendarSummary = useMemo(() => {
+    if (mode === "range" && dateRange?.from) {
+      const from = dateRange.from.toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+      });
+      if (dateRange.to && dateRange.to.getTime() !== dateRange.from.getTime()) {
+        const to = dateRange.to.toLocaleDateString("en-US", {
+          month: "short",
+          day: "numeric",
+        });
+        return `${from} - ${to}`;
+      }
+      return from;
+    }
+    if (mode === "multiple" && selectedDays.length > 0) {
+      return `${selectedDays.length} day${selectedDays.length === 1 ? "" : "s"} selected`;
+    }
+    return "Select dates";
+  }, [mode, dateRange, selectedDays]);
+
   // Quick preset handlers
   const setPresetToday = useCallback(() => {
     const today = new Date();
@@ -149,7 +177,7 @@ const DateTimePicker: React.FC<DateTimePickerProps> = ({
   }, []);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5 sm:space-y-6">
       {/* Quick Preset Buttons */}
       <div className="flex items-center justify-center gap-2">
         <button
@@ -200,38 +228,77 @@ const DateTimePicker: React.FC<DateTimePickerProps> = ({
         </div>
       </div>
 
-      {/* Calendar — full-width on mobile */}
-      <div className="flex justify-center [&_.rdp-root]:w-full [&_.rdp-root]:max-w-full [&_.rdp-root]:sm:w-auto [&_.rdp-months]:w-full [&_.rdp-months]:sm:w-auto [&_.rdp-month]:w-full [&_.rdp-month]:sm:w-auto [&_.rdp-month_table]:w-full [&_.rdp-month_table]:sm:w-auto">
-        {mode === "range" ? (
-          <DayPicker
-            showOutsideDays
-            mode="range"
-            selected={dateRange}
-            onSelect={handleRangeSelect}
-            disabled={disabledMatcher}
-          />
-        ) : (
-          <DayPicker
-            showOutsideDays
-            mode="multiple"
-            selected={selectedDays}
-            onSelect={handleMultipleSelect}
-            disabled={disabledMatcher}
-          />
-        )}
+      {/* Calendar toggle header (collapsed state shows summary) */}
+      <div>
+        <button
+          onClick={toggleCalendar}
+          className="w-full flex items-center justify-between px-4 py-3 bg-white/5 hover:bg-white/[0.07] rounded-xl border border-[var(--color-border)] transition-all duration-[var(--transition-fast)] min-h-[44px]"
+        >
+          <span className="text-sm font-medium text-[var(--color-text-secondary)]">
+            {calendarSummary}
+          </span>
+          <motion.span
+            animate={{ rotate: isCalendarOpen ? 180 : 0 }}
+            transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
+            className="text-[var(--color-text-muted)]"
+          >
+            <ChevronDown size={18} />
+          </motion.span>
+        </button>
+
+        {/* Calendar — animated open/close, full-width on mobile */}
+        <AnimatePresence initial={false}>
+          {isCalendarOpen && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: "auto", opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
+              className="overflow-hidden"
+            >
+              <div className="pt-3 flex justify-center [&_.rdp-root]:w-full [&_.rdp-root]:max-w-full [&_.rdp-root]:sm:w-auto [&_.rdp-months]:w-full [&_.rdp-months]:sm:w-auto [&_.rdp-month]:w-full [&_.rdp-month]:sm:w-auto [&_.rdp-month_table]:w-full [&_.rdp-month_table]:sm:w-auto">
+                {mode === "range" ? (
+                  <DayPicker
+                    showOutsideDays
+                    mode="range"
+                    selected={dateRange}
+                    onSelect={handleRangeSelect}
+                    disabled={disabledMatcher}
+                  />
+                ) : (
+                  <DayPicker
+                    showOutsideDays
+                    mode="multiple"
+                    selected={selectedDays}
+                    onSelect={handleMultipleSelect}
+                    disabled={disabledMatcher}
+                  />
+                )}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
       {/* Selected count for multiple mode */}
-      {mode === "multiple" && selectedDays.length > 0 && (
-        <div className="flex justify-center">
-          <div className="inline-flex items-center gap-2 px-4 py-2 bg-[var(--color-primary-500)]/15 border border-[var(--color-primary-500)]/30 rounded-xl">
-            <span className="text-[var(--color-primary-400)] font-semibold">{selectedDays.length}</span>
-            <span className="text-[var(--color-primary-300)] text-sm">
-              {selectedDays.length === 1 ? "day" : "days"} selected
-            </span>
-          </div>
-        </div>
-      )}
+      <AnimatePresence>
+        {mode === "multiple" && selectedDays.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
+            className="flex justify-center"
+          >
+            <div className="inline-flex items-center gap-2 px-4 py-2 bg-[var(--color-primary-500)]/15 border border-[var(--color-primary-500)]/30 rounded-xl">
+              <span className="text-[var(--color-primary-400)] font-semibold">{selectedDays.length}</span>
+              <span className="text-[var(--color-primary-300)] text-sm">
+                {selectedDays.length === 1 ? "day" : "days"} selected
+              </span>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Visual Time Range Indicator */}
       {startHour < endHour && (
@@ -342,16 +409,24 @@ const DateTimePicker: React.FC<DateTimePickerProps> = ({
       </div>
 
       {/* Warning for next-day spans */}
-      {spansNextDay && (
-        <div className="flex justify-center">
-          <div className="flex items-center gap-3 px-4 py-3 bg-amber-500/15 border border-amber-500/30 rounded-xl max-w-md">
-            <AlertTriangle size={18} className="text-amber-400 flex-shrink-0" />
-            <p className="text-sm text-amber-300">
-              The selected hours span into the next day. Please ensure this is intended.
-            </p>
-          </div>
-        </div>
-      )}
+      <AnimatePresence>
+        {spansNextDay && (
+          <motion.div
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
+            className="flex justify-center"
+          >
+            <div className="flex items-center gap-3 px-4 py-3 bg-amber-500/15 border border-amber-500/30 rounded-xl max-w-md">
+              <AlertTriangle size={18} className="text-amber-400 flex-shrink-0" />
+              <p className="text-sm text-amber-300">
+                The selected hours span into the next day. Please ensure this is intended.
+              </p>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

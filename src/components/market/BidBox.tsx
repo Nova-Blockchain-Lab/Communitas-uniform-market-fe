@@ -5,7 +5,15 @@ import {
   useWaitForTransactionReceipt,
   useWriteContract,
 } from "wagmi";
-import { Zap, ArrowLeftRight, Calendar, Clock, Info, AlertCircle } from "lucide-react";
+import {
+  Zap,
+  ArrowLeftRight,
+  Calendar,
+  Clock,
+  Info,
+  AlertCircle,
+  CheckCircle2,
+} from "lucide-react";
 import Image from "next/image";
 
 import EnergyBiddingMarketAbi from "@/../abi/EnergyBiddingMarket.json";
@@ -50,6 +58,56 @@ const BADGE_ENERGY =
 
 const BADGE_PRICE =
   "flex items-center gap-2 px-3 sm:px-4 py-3 min-h-[44px] bg-blue-500/10 border border-blue-500/20 rounded-xl shrink-0";
+
+const QUICK_BTN_BASE =
+  "px-3 py-2 min-h-[44px] text-sm font-medium rounded-lg transition-colors";
+
+const QUICK_BTN_ACTIVE =
+  `${QUICK_BTN_BASE} bg-blue-500 text-white shadow-lg shadow-blue-500/30`;
+
+const QUICK_BTN_INACTIVE =
+  `${QUICK_BTN_BASE} bg-white/5 text-gray-400 hover:bg-white/10 hover:text-white`;
+
+/** Extract a short human-readable message from a contract / wallet error. */
+function formatTxError(error: Error): string {
+  const msg = error.message ?? String(error);
+  /* Wagmi / viem often wrap the actual reason in a verbose string.
+     Try to pull out the "shortMessage" or "reason" when available. */
+  const shortMatch = msg.match(/shortMessage"?:\s*"([^"]+)"/);
+  if (shortMatch) return shortMatch[1];
+  /* Fall back to the first sentence (capped at 120 chars). */
+  const first = msg.split(/[.\n]/)[0];
+  return first.length > 120 ? `${first.slice(0, 117)}...` : first;
+}
+
+/* ------------------------------------------------------------------ */
+/*  Quick-amount button (extracted to avoid inline closures)           */
+/* ------------------------------------------------------------------ */
+
+interface QuickAmountButtonProps {
+  value: number;
+  label: string;
+  isActive: boolean;
+  onSelect: (value: number) => void;
+}
+
+const QuickAmountButton: React.FC<QuickAmountButtonProps> = React.memo(
+  function QuickAmountButton({ value, label, isActive, onSelect }) {
+    const handleClick = useCallback(() => {
+      onSelect(value);
+    }, [value, onSelect]);
+
+    return (
+      <button
+        type="button"
+        onClick={handleClick}
+        className={isActive ? QUICK_BTN_ACTIVE : QUICK_BTN_INACTIVE}
+      >
+        {label}
+      </button>
+    );
+  },
+);
 
 /* ------------------------------------------------------------------ */
 /*  Component                                                          */
@@ -131,6 +189,21 @@ const BidBox: React.FC = () => {
       : `${priceDerived.priceInEUR.toFixed(2)} EUR`;
   }, [ethPrice, isPriceInEUR, priceDerived.priceInETH, priceDerived.priceInEUR]);
 
+  /* Human-readable transaction error */
+  const txErrorMessage = useMemo<string | null>(() => {
+    const err = writeError ?? confirmError;
+    if (!err) return null;
+    return formatTxError(err);
+  }, [writeError, confirmError]);
+
+  /* Button label */
+  const buttonLabel = useMemo<string>(() => {
+    if (isConfirming) return "Confirming...";
+    if (isWritePending) return "Waiting for wallet...";
+    if (isConfirmed) return "Bid Submitted!";
+    return "Submit Bid";
+  }, [isConfirming, isWritePending, isConfirmed]);
+
   /* ---- Validation ------------------------------------------------ */
   const validateBid = useCallback((): boolean => {
     if (energy <= 0) {
@@ -154,6 +227,8 @@ const BidBox: React.FC = () => {
 
   /* ---- Handlers -------------------------------------------------- */
   const handleBid = useCallback(() => {
+    /* Clear any stale error before submitting */
+    resetWrite();
     if (!validateBid()) return;
 
     const energyInWatts = energy * WATTS_PER_KWH;
@@ -181,7 +256,7 @@ const BidBox: React.FC = () => {
         args: [bidTimestamps, energyInWatts],
       });
     }
-  }, [validateBid, energy, priceDerived.priceInETH, bidTimestamps, writeContract, energyMarketAddress]);
+  }, [validateBid, resetWrite, energy, priceDerived.priceInETH, bidTimestamps, writeContract, energyMarketAddress]);
 
   const handleTimestampsChange = useCallback((timestamps: number[]) => {
     setBidTimestamps(timestamps);
@@ -233,6 +308,10 @@ const BidBox: React.FC = () => {
     setEnergyDisplay(String(value));
   }, []);
 
+  const handleDismissError = useCallback(() => {
+    resetWrite();
+  }, [resetWrite]);
+
   /* ---- Effects --------------------------------------------------- */
   useEffect(() => {
     if (isConnected && isConfirmed) {
@@ -249,7 +328,10 @@ const BidBox: React.FC = () => {
     [energyError],
   );
 
-  const priceInputClassName = `${INPUT_BASE} border-white/10 pr-24 sm:pr-32`;
+  const priceInputClassName = useMemo(
+    () => `${INPUT_BASE} border-white/10 pr-24 sm:pr-32`,
+    [],
+  );
 
   /* ---- Render ---------------------------------------------------- */
   return (
@@ -305,20 +387,13 @@ const BidBox: React.FC = () => {
           {/* Quick amount buttons */}
           <div className="flex flex-wrap gap-2 mt-3">
             {QUICK_AMOUNTS.map(({ value, label }) => (
-              <button
+              <QuickAmountButton
                 key={value}
-                type="button"
-                onClick={() => handleQuickAmount(value)}
-                className={`
-                  px-3 py-2 min-h-[36px] text-sm font-medium rounded-lg transition-colors
-                  ${energy === value
-                    ? "bg-blue-500 text-white shadow-lg shadow-blue-500/30"
-                    : "bg-white/5 text-gray-400 hover:bg-white/10 hover:text-white"
-                  }
-                `}
-              >
-                {label}
-              </button>
+                value={value}
+                label={label}
+                isActive={energy === value}
+                onSelect={handleQuickAmount}
+              />
             ))}
           </div>
 
@@ -333,8 +408,8 @@ const BidBox: React.FC = () => {
               onChange={handleSliderChange}
               aria-label="Energy amount slider"
               className="w-full h-2 rounded-full appearance-none cursor-pointer bg-white/10
-                [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-6 [&::-webkit-slider-thumb]:h-6 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-blue-500 [&::-webkit-slider-thumb]:shadow-lg [&::-webkit-slider-thumb]:shadow-blue-500/40 [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:transition-transform [&::-webkit-slider-thumb]:hover:scale-110
-                [&::-moz-range-thumb]:w-6 [&::-moz-range-thumb]:h-6 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-blue-500 [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:shadow-lg [&::-moz-range-thumb]:shadow-blue-500/40 [&::-moz-range-thumb]:cursor-pointer"
+                [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-7 [&::-webkit-slider-thumb]:h-7 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-blue-500 [&::-webkit-slider-thumb]:shadow-lg [&::-webkit-slider-thumb]:shadow-blue-500/40 [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:transition-transform [&::-webkit-slider-thumb]:hover:scale-110
+                [&::-moz-range-thumb]:w-7 [&::-moz-range-thumb]:h-7 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-blue-500 [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:shadow-lg [&::-moz-range-thumb]:shadow-blue-500/40 [&::-moz-range-thumb]:cursor-pointer"
             />
             <div className="flex justify-between mt-1 text-xs text-gray-500 px-1">
               {SLIDER_MARKS.map((mark) => (
@@ -451,6 +526,39 @@ const BidBox: React.FC = () => {
           )}
         </div>
 
+        {/* ---- Transaction Error Display ---- */}
+        {txErrorMessage && (
+          <div
+            className="flex items-start gap-2 p-3 mb-5 sm:mb-6 bg-red-500/10 border border-red-500/20 rounded-xl text-sm text-red-400"
+            role="alert"
+          >
+            <AlertCircle size={16} className="mt-0.5 shrink-0" />
+            <div className="flex-1 min-w-0">
+              <p className="font-medium">Transaction failed</p>
+              <p className="mt-0.5 text-red-400/80 break-words">{txErrorMessage}</p>
+            </div>
+            <button
+              type="button"
+              onClick={handleDismissError}
+              className="shrink-0 p-1 min-h-[28px] min-w-[28px] rounded-md text-red-400/60 hover:text-red-400 hover:bg-red-500/10 transition-colors"
+              aria-label="Dismiss error"
+            >
+              &times;
+            </button>
+          </div>
+        )}
+
+        {/* ---- Success Confirmation ---- */}
+        {isConfirmed && !txErrorMessage && (
+          <div
+            className="flex items-center gap-2 p-3 mb-5 sm:mb-6 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-sm text-emerald-400"
+            role="status"
+          >
+            <CheckCircle2 size={16} className="shrink-0" />
+            <span className="font-medium">Bid placed successfully!</span>
+          </div>
+        )}
+
         {/* ---- Action Button ---- */}
         {needsConnection ? (
           <ConnectAndSwitchNetworkButton />
@@ -458,15 +566,12 @@ const BidBox: React.FC = () => {
           <Button
             fullWidth
             size="lg"
+            variant={isConfirmed && !txErrorMessage ? "success" : "primary"}
             onClick={handleBid}
             loading={isLoading}
             disabled={!canSubmit}
           >
-            {isConfirming
-              ? "Confirming..."
-              : isWritePending
-                ? "Waiting for wallet..."
-                : "Submit Bid"}
+            {buttonLabel}
           </Button>
         )}
 

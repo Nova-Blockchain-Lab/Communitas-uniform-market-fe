@@ -1,4 +1,4 @@
-import React, { useRef } from "react";
+import React, { useRef, forwardRef } from "react";
 import { motion } from "motion/react";
 
 interface InputProps {
@@ -17,101 +17,107 @@ interface InputProps {
   min?: number;
   max?: number;
   step?: number;
-  ref?: React.Ref<HTMLInputElement>;
 }
 
-export const Input: React.FC<InputProps> = ({
-  label,
-  value,
-  onChange,
-  placeholder,
-  type = "text",
-  disabled = false,
-  error,
-  helperText,
-  icon,
-  suffix,
-  prefix,
-  className = "",
-  min,
-  max,
-  step,
-  ref,
-}) => {
-  const internalRef = useRef<HTMLInputElement>(null);
-  const inputRef = (ref as React.RefObject<HTMLInputElement>) ?? internalRef;
+export const Input = forwardRef<HTMLInputElement, InputProps>(
+  (
+    {
+      label,
+      value,
+      onChange,
+      placeholder,
+      type = "text",
+      disabled = false,
+      error,
+      helperText,
+      icon,
+      suffix,
+      prefix,
+      className = "",
+      min,
+      max,
+      step,
+    },
+    ref
+  ) => {
+    const internalRef = useRef<HTMLInputElement>(null);
+    const inputRef = (ref as React.RefObject<HTMLInputElement>) ?? internalRef;
 
-  return (
-    <div className={`space-y-2 ${className}`}>
-      {label && (
-        <label className="block text-sm font-medium text-[var(--color-text-secondary)]">
-          {label}
-        </label>
-      )}
-      <div
-        className="relative"
-        style={error ? { animation: "shake 0.4s ease-in-out" } : undefined}
-      >
-        {prefix && (
-          <div className="absolute left-3 top-1/2 -translate-y-1/2 flex items-center text-[var(--color-text-muted)]">
-            {prefix}
-          </div>
+    return (
+      <div className={`space-y-2 ${className}`}>
+        {label && (
+          <label className="block text-sm font-medium text-[var(--color-text-secondary)]">
+            {label}
+          </label>
         )}
-        {icon && !prefix && (
-          <div className="absolute left-3 top-1/2 -translate-y-1/2 flex items-center text-[var(--color-text-muted)]">
-            {icon}
-          </div>
+        <div
+          className="relative"
+          style={error ? { animation: "shake 0.4s ease-in-out" } : undefined}
+        >
+          {prefix && (
+            <div className="absolute left-3 top-1/2 -translate-y-1/2 flex items-center text-[var(--color-text-muted)]">
+              {prefix}
+            </div>
+          )}
+          {icon && !prefix && (
+            <div className="absolute left-3 top-1/2 -translate-y-1/2 flex items-center text-[var(--color-text-muted)]">
+              {icon}
+            </div>
+          )}
+          <input
+            ref={inputRef}
+            type={type}
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+            placeholder={placeholder}
+            disabled={disabled}
+            min={min}
+            max={max}
+            step={step}
+            className={`
+              w-full px-4 py-3 min-h-[44px]
+              bg-[var(--glass-bg)]
+              border rounded-xl
+              text-[16px] sm:text-base text-[var(--color-text-primary)] placeholder-[var(--color-text-muted)]
+              transition-all duration-[var(--transition-base)]
+              focus:outline-none focus:ring-2 focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)]
+              focus:bg-[var(--color-bg-elevated)]
+              disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-[rgba(255,255,255,0.02)]
+              ${icon || prefix ? "pl-11" : ""}
+              ${suffix ? "pr-16" : ""}
+              ${error
+                ? "border-[var(--color-accent-red)]/60 focus:ring-[var(--color-accent-red)]/40 focus:border-[var(--color-accent-red)]/60"
+                : "border-[var(--color-border)] hover:border-[var(--color-border-hover)]"
+              }
+            `}
+          />
+          {suffix && (
+            <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center text-[var(--color-text-muted)]">
+              {suffix}
+            </div>
+          )}
+        </div>
+        {error && (
+          <motion.p
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="text-sm text-red-400 flex items-center gap-1.5"
+          >
+            <svg className="w-3.5 h-3.5 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+            </svg>
+            {error}
+          </motion.p>
         )}
-        <input
-          ref={inputRef}
-          type={type}
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          placeholder={placeholder}
-          disabled={disabled}
-          min={min}
-          max={max}
-          step={step}
-          className={`
-            w-full px-4 py-3 min-h-[44px]
-            bg-white/4
-            border rounded-xl
-            text-base text-white placeholder-[var(--color-text-muted)]
-            transition-all duration-200
-            focus:outline-none focus:ring-2 focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)]
-            disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-white/2
-            ${icon || prefix ? "pl-11" : ""}
-            ${suffix ? "pr-16" : ""}
-            ${error
-              ? "border-red-500/60 focus:ring-red-500/40 focus:border-red-500/60"
-              : "border-[var(--color-border)] hover:border-[var(--color-border-hover)]"
-            }
-          `}
-        />
-        {suffix && (
-          <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center text-[var(--color-text-muted)]">
-            {suffix}
-          </div>
+        {helperText && !error && (
+          <p className="text-sm text-[var(--color-text-muted)]">{helperText}</p>
         )}
       </div>
-      {error && (
-        <motion.p
-          initial={{ opacity: 0, y: -8 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="text-sm text-red-400 flex items-center gap-1.5"
-        >
-          <svg className="w-3.5 h-3.5 shrink-0" fill="currentColor" viewBox="0 0 20 20">
-            <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-          </svg>
-          {error}
-        </motion.p>
-      )}
-      {helperText && !error && (
-        <p className="text-sm text-[var(--color-text-muted)]">{helperText}</p>
-      )}
-    </div>
-  );
-};
+    );
+  }
+);
+
+Input.displayName = "Input";
 
 interface NumberInputProps {
   label?: string;
@@ -183,13 +189,14 @@ export const NumberInput: React.FC<NumberInputProps> = ({
             disabled={disabled}
             className={`
               w-full px-4 py-3 min-h-[44px]
-              bg-white/4
+              bg-[var(--glass-bg)]
               border border-[var(--color-border)] rounded-xl
-              text-base text-white sm:text-lg font-medium
-              transition-all duration-200
+              text-[16px] sm:text-lg text-[var(--color-text-primary)] font-medium
+              transition-all duration-[var(--transition-base)]
               focus:outline-none focus:ring-2 focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)]
+              focus:bg-[var(--color-bg-elevated)]
               hover:border-[var(--color-border-hover)]
-              disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-white/2
+              disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-[rgba(255,255,255,0.02)]
               ${showStepper ? "pr-20" : ""}
               [appearance:textfield]
               [&::-webkit-outer-spin-button]:appearance-none

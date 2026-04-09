@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { ArrowUpRight, ArrowDownLeft, Clock, Check, AlertCircle, Loader2, ExternalLink } from "lucide-react";
+import { ArrowUpRight, ArrowDownLeft, Clock, Check, AlertCircle, Loader2 } from "lucide-react";
 import { motion } from "motion/react";
 import {
   ETHDepositOrWithdrawalMessage,
@@ -34,6 +34,7 @@ function formatDate(unixSeconds: number): string {
 
 type StatusMeta = {
   variant: "success" | "warning" | "error" | "info";
+  label: string;
   icon: React.ReactNode;
   pulse: boolean;
 };
@@ -147,14 +148,14 @@ const MessageHistoryRow: React.FC<MessageHistoryRowProps> = ({ message, refetchM
     return () => clearInterval(interval);
   }, []);
 
-  const statusBadge = useMemo((): StatusMeta => {
+  const statusMeta = useMemo((): StatusMeta => {
     if (isSuccess) {
-      return { variant: "success", icon: <Check size={12} />, pulse: false };
+      return { variant: "success", label: "Completed", icon: <Check size={12} />, pulse: false };
     }
     if (isWaitingForConfirmation) {
-      return { variant: "warning", icon: <Clock size={12} />, pulse: true };
+      return { variant: "warning", label: "Pending", icon: <Clock size={12} />, pulse: true };
     }
-    return { variant: "info", icon: <AlertCircle size={12} />, pulse: false };
+    return { variant: "info", label: "Ready", icon: <AlertCircle size={12} />, pulse: false };
   }, [isSuccess, isWaitingForConfirmation]);
 
   /** Challenge period progress for pending withdrawals (7 days = 604800s) */
@@ -178,8 +179,8 @@ const MessageHistoryRow: React.FC<MessageHistoryRowProps> = ({ message, refetchM
     [message.time],
   );
 
-  // ---- Action button (extracted for clarity) ----
-  const renderActionButton = () => {
+  // ---- Action button ----
+  const actionButton = useMemo(() => {
     if (isDeposit || isSuccess) return null;
 
     if (!isConnected) {
@@ -201,7 +202,7 @@ const MessageHistoryRow: React.FC<MessageHistoryRowProps> = ({ message, refetchM
           onClick={handleSwitchNetwork}
           className="px-3 py-2 sm:py-1.5 text-xs font-medium bg-blue-500/20 text-blue-400
                      rounded-lg hover:bg-blue-500/30 active:scale-[0.97] transition-all
-                     min-h-[36px] sm:min-h-0"
+                     min-h-[44px] sm:min-h-0 w-full sm:w-auto"
         >
           Switch Network
         </button>
@@ -214,8 +215,8 @@ const MessageHistoryRow: React.FC<MessageHistoryRowProps> = ({ message, refetchM
         disabled={isLoading}
         className="px-3 py-2 sm:py-1.5 text-xs font-medium bg-emerald-500 text-white
                    rounded-lg hover:bg-emerald-600 active:scale-[0.97] transition-all
-                   disabled:opacity-50 flex items-center gap-1.5
-                   min-h-[36px] sm:min-h-0"
+                   disabled:opacity-50 flex items-center justify-center gap-1.5
+                   min-h-[44px] sm:min-h-0 w-full sm:w-auto"
       >
         {isLoading ? (
           <>
@@ -227,7 +228,7 @@ const MessageHistoryRow: React.FC<MessageHistoryRowProps> = ({ message, refetchM
         )}
       </button>
     );
-  };
+  }, [isDeposit, isSuccess, isConnected, isWaitingForConfirmation, remainingTime, chainId, message.to.id, handleSwitchNetwork, handleExecuteBridge, isLoading]);
 
   return (
     <motion.div
@@ -235,13 +236,12 @@ const MessageHistoryRow: React.FC<MessageHistoryRowProps> = ({ message, refetchM
       initial={{ opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.25, ease: "easeOut" }}
-      className="p-4 rounded-xl bg-white/[0.03] border border-white/5
+      className="p-3 sm:p-4 rounded-xl bg-white/[0.03] border border-white/5
                  hover:border-white/10 transition-colors"
     >
-      {/* ---- Desktop / tablet layout ---- */}
-      {/* Header row: direction + status */}
-      <div className="flex items-center justify-between mb-3 gap-2">
-        <div className="flex items-center gap-3 min-w-0">
+      {/* Header row: direction icon + type/time + status badge */}
+      <div className="flex items-center justify-between mb-2 sm:mb-3 gap-2">
+        <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
           {/* Direction icon */}
           <div
             className={`
@@ -256,7 +256,7 @@ const MessageHistoryRow: React.FC<MessageHistoryRowProps> = ({ message, refetchM
             )}
           </div>
 
-          {/* Type and time */}
+          {/* Type, time, and date */}
           <div className="min-w-0">
             <p className="text-sm font-medium text-white">
               {isDeposit ? "Deposit" : "Withdrawal"}
@@ -268,23 +268,20 @@ const MessageHistoryRow: React.FC<MessageHistoryRowProps> = ({ message, refetchM
           </div>
         </div>
 
-        {/* Status badge */}
+        {/* Status badge -- always shows label text */}
         <Badge
-          variant={statusBadge.variant}
+          variant={statusMeta.variant}
           size="sm"
-          icon={statusBadge.icon}
-          pulse={statusBadge.pulse}
+          icon={statusMeta.icon}
+          pulse={statusMeta.pulse}
           className="shrink-0"
         >
-          <span className="hidden xs:inline">{message.status.status}</span>
-          <span className="xs:hidden" aria-label={message.status.status}>
-            {isSuccess ? "" : ""}
-          </span>
+          {statusMeta.label}
         </Badge>
       </div>
 
-      {/* Route */}
-      <div className="flex items-center gap-2 mb-3 text-xs flex-wrap">
+      {/* Route: from -> to */}
+      <div className="flex items-center gap-2 mb-2 sm:mb-3 text-xs flex-wrap">
         <span className="text-gray-400">{message.from.name}</span>
         <span className="text-gray-600">&rarr;</span>
         <span className="text-gray-400">{message.to.name}</span>
@@ -292,7 +289,7 @@ const MessageHistoryRow: React.FC<MessageHistoryRowProps> = ({ message, refetchM
 
       {/* Progress bar for pending withdrawals */}
       {withdrawalProgress && !isSuccess && (
-        <div className="mb-3">
+        <div className="mb-2 sm:mb-3">
           <div className="flex items-center justify-between text-[10px] text-gray-500 mb-1">
             <span>Challenge period</span>
             <span>{Math.round(withdrawalProgress.pct)}% complete</span>
@@ -311,10 +308,10 @@ const MessageHistoryRow: React.FC<MessageHistoryRowProps> = ({ message, refetchM
         </div>
       )}
 
-      {/* Amount + action (stacks on mobile) */}
-      <div className="flex items-center justify-between gap-2 flex-wrap">
+      {/* Amount + action -- stacks vertically on mobile when action exists */}
+      <div className={`flex gap-2 ${actionButton ? "flex-col sm:flex-row sm:items-center sm:justify-between" : "items-center justify-between"}`}>
         <span className="text-sm font-semibold text-white">{message.token}</span>
-        {renderActionButton()}
+        {actionButton}
       </div>
 
       {/* Full date on mobile (hidden on sm+) */}

@@ -99,6 +99,11 @@ const DateNavigationBar: React.FC<DateNavigationBarProps> = ({
     [selectedDay]
   );
 
+  const shortWeekday = useMemo(
+    () => selectedDay.toLocaleDateString("en-US", { weekday: "short" }),
+    [selectedDay]
+  );
+
   const dateStr = useMemo(
     () => selectedDay.toLocaleDateString("en-US", { month: "long", day: "numeric" }),
     [selectedDay]
@@ -111,48 +116,54 @@ const DateNavigationBar: React.FC<DateNavigationBarProps> = ({
 
   return (
     <>
-      <div className="flex items-center justify-between p-3 sm:p-4 bg-[var(--color-bg-elevated)] border border-[var(--color-border)] rounded-xl mb-6 gap-2">
-        <button
-          onClick={goToPreviousDay}
-          aria-label="Previous day"
-          className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl bg-white/5 hover:bg-white/10 text-[var(--color-text-secondary)] hover:text-white transition-all duration-[var(--transition-fast)] active:scale-95 shrink-0"
-        >
-          <ChevronLeft size={20} />
-        </button>
-
-        <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+      {/* Main bar: flex row on desktop, stacks date+today vertically on very small screens */}
+      <div className="flex flex-col xs:flex-row items-center justify-between p-3 sm:p-4 bg-[var(--color-bg-elevated)] border border-[var(--color-border)] rounded-xl mb-6 gap-2">
+        {/* Top row on mobile: prev + date + next */}
+        <div className="flex items-center justify-between w-full xs:w-auto xs:flex-1 gap-2">
           <button
-            onClick={openCalendar}
-            aria-label="Open calendar"
-            className="flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 bg-white/5 hover:bg-white/10 rounded-xl transition-all duration-[var(--transition-fast)] min-h-[44px] min-w-0 active:scale-[0.98]"
+            onClick={goToPreviousDay}
+            aria-label="Previous day"
+            className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl bg-white/5 hover:bg-white/10 text-[var(--color-text-secondary)] hover:text-white transition-all duration-[var(--transition-fast)] active:scale-95 shrink-0"
           >
-            <Calendar size={18} className="text-[var(--color-primary-500)] shrink-0" />
-            <div className="flex flex-col items-start sm:flex-row sm:items-baseline sm:gap-2 min-w-0">
-              <span className="text-base sm:text-lg font-bold text-white tracking-tight truncate">
-                {weekday}
-              </span>
-              <span className="text-xs sm:text-sm text-[var(--color-text-secondary)] truncate">
-                {dateStr}
-              </span>
-            </div>
+            <ChevronLeft size={20} />
           </button>
-          {!isToday && (
-            <button
-              onClick={goToToday}
-              className="min-h-[44px] px-3 py-1.5 text-xs font-medium bg-[var(--color-primary-500)]/15 text-[var(--color-primary-500)] rounded-lg hover:bg-[var(--color-primary-500)]/25 transition-all duration-[var(--transition-fast)] border border-[var(--color-primary-500)]/20 shrink-0 active:scale-95"
-            >
-              Today
-            </button>
-          )}
-        </div>
 
-        <button
-          onClick={goToNextDay}
-          aria-label="Next day"
-          className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl bg-white/5 hover:bg-white/10 text-[var(--color-text-secondary)] hover:text-white transition-all duration-[var(--transition-fast)] active:scale-95 shrink-0"
-        >
-          <ChevronRight size={20} />
-        </button>
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1 xs:flex-initial justify-center">
+            <button
+              onClick={openCalendar}
+              aria-label="Open calendar"
+              className="flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 bg-white/5 hover:bg-white/10 rounded-xl transition-all duration-[var(--transition-fast)] min-h-[44px] min-w-0 active:scale-[0.98]"
+            >
+              <Calendar size={18} className="text-[var(--color-primary-500)] shrink-0" />
+              <div className="flex flex-col items-start sm:flex-row sm:items-baseline sm:gap-2 min-w-0">
+                <span className="text-base sm:text-lg font-bold text-white tracking-tight truncate">
+                  {/* Show short weekday on very small screens, full on larger */}
+                  <span className="hidden min-[400px]:inline">{weekday}</span>
+                  <span className="inline min-[400px]:hidden">{shortWeekday}</span>
+                </span>
+                <span className="text-xs sm:text-sm text-[var(--color-text-secondary)] truncate">
+                  {dateStr}
+                </span>
+              </div>
+            </button>
+            {!isToday && (
+              <button
+                onClick={goToToday}
+                className="min-h-[44px] px-3 py-1.5 text-xs font-medium bg-[var(--color-primary-500)]/15 text-[var(--color-primary-500)] rounded-lg hover:bg-[var(--color-primary-500)]/25 transition-all duration-[var(--transition-fast)] border border-[var(--color-primary-500)]/20 shrink-0 active:scale-95"
+              >
+                Today
+              </button>
+            )}
+          </div>
+
+          <button
+            onClick={goToNextDay}
+            aria-label="Next day"
+            className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl bg-white/5 hover:bg-white/10 text-[var(--color-text-secondary)] hover:text-white transition-all duration-[var(--transition-fast)] active:scale-95 shrink-0"
+          >
+            <ChevronRight size={20} />
+          </button>
+        </div>
       </div>
 
       {/* Calendar Modal */}
@@ -178,6 +189,7 @@ const DateNavigationBar: React.FC<DateNavigationBarProps> = ({
               aria-modal="true"
               aria-label="Date picker"
             >
+              {/* Modal header */}
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-lg font-semibold text-white">Select Date</h3>
                 <button
@@ -188,6 +200,22 @@ const DateNavigationBar: React.FC<DateNavigationBarProps> = ({
                   <X size={18} />
                 </button>
               </div>
+
+              {/* Quick jump: Today button inside modal */}
+              {!isToday && (
+                <div className="mb-4">
+                  <button
+                    onClick={() => {
+                      goToToday();
+                      setIsCalendarOpen(false);
+                    }}
+                    className="w-full min-h-[44px] px-4 py-2 text-sm font-medium bg-[var(--color-primary-500)]/10 text-[var(--color-primary-400)] hover:bg-[var(--color-primary-500)]/20 border border-[var(--color-primary-500)]/20 rounded-xl transition-all duration-[var(--transition-fast)] active:scale-[0.98]"
+                  >
+                    Jump to Today
+                  </button>
+                </div>
+              )}
+
               <DayPicker
                 mode="single"
                 selected={selectedDay}

@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useId } from "react";
 import Image from "next/image";
 
 /* ------------------------------------------------------------------
@@ -17,7 +17,7 @@ interface IconProps {
 const DEFAULT_COLOR = "var(--color-text-primary, #f0f0f5)";
 
 /* ------------------------------------------------------------------
-   SettingsIcon
+   SettingsIcon  (UI icon — default 24 px)
    ------------------------------------------------------------------ */
 export const SettingsIcon: React.FC<IconProps> = React.memo(
     ({ size = 24, color = DEFAULT_COLOR, className = "" }) => (
@@ -27,7 +27,7 @@ export const SettingsIcon: React.FC<IconProps> = React.memo(
             viewBox="0 0 24 24"
             fill="none"
             xmlns="http://www.w3.org/2000/svg"
-            className={`shrink-0 cursor-pointer transition-colors duration-200 ${className}`}
+            className={`shrink-0 max-sm:scale-90 cursor-pointer transition-colors duration-200 ${className}`}
             role="img"
             aria-label="Settings"
         >
@@ -43,7 +43,7 @@ export const SettingsIcon: React.FC<IconProps> = React.memo(
 SettingsIcon.displayName = "SettingsIcon";
 
 /* ------------------------------------------------------------------
-   DropdownIcon
+   DropdownIcon  (UI icon — default 24 px)
    ------------------------------------------------------------------ */
 export const DropdownIcon: React.FC<IconProps> = React.memo(
     ({ size = 24, color = DEFAULT_COLOR, className = "" }) => (
@@ -53,9 +53,9 @@ export const DropdownIcon: React.FC<IconProps> = React.memo(
             viewBox="0 0 24 24"
             fill="none"
             xmlns="http://www.w3.org/2000/svg"
-            className={`shrink-0 transition-transform duration-200 ${className}`}
+            className={`shrink-0 max-sm:scale-90 transition-transform duration-200 ${className}`}
             role="img"
-            aria-label="Dropdown"
+            aria-label="Toggle dropdown"
         >
             <path
                 d="M12 16.0003C11.7664 16.0007 11.5399 15.9194 11.36 15.7703L5.36003 10.7703C5.15581 10.6005 5.02739 10.3566 5.00301 10.0922C4.97863 9.82777 5.06029 9.56449 5.23003 9.36028C5.39977 9.15606 5.64368 9.02763 5.90811 9.00325C6.17253 8.97888 6.43581 9.06054 6.64003 9.23028L12 13.7103L17.36 9.39028C17.4623 9.30721 17.58 9.24518 17.7064 9.20775C17.8327 9.17031 17.9652 9.15822 18.0962 9.17216C18.2272 9.1861 18.3542 9.2258 18.4699 9.28897C18.5855 9.35214 18.6875 9.43755 18.77 9.54028C18.8616 9.6431 18.931 9.76372 18.9738 9.8946C19.0166 10.0255 19.0319 10.1638 19.0187 10.3008C19.0056 10.4379 18.9643 10.5708 18.8974 10.6911C18.8305 10.8115 18.7395 10.9167 18.63 11.0003L12.63 15.8303C12.4449 15.9558 12.2231 16.0156 12 16.0003Z"
@@ -67,19 +67,19 @@ export const DropdownIcon: React.FC<IconProps> = React.memo(
 DropdownIcon.displayName = "DropdownIcon";
 
 /* ------------------------------------------------------------------
-   SwapIcon
+   SwapIcon  (UI icon — default 24 px, normalised from 26)
    ------------------------------------------------------------------ */
 export const SwapIcon: React.FC<IconProps> = React.memo(
-    ({ size = 26, color = DEFAULT_COLOR, className = "" }) => (
+    ({ size = 24, color = DEFAULT_COLOR, className = "" }) => (
         <svg
             width={size}
             height={size}
             viewBox="0 0 27 26"
             fill="none"
             xmlns="http://www.w3.org/2000/svg"
-            className={`shrink-0 transition-colors duration-200 ${className}`}
+            className={`shrink-0 max-sm:scale-90 transition-colors duration-200 ${className}`}
             role="img"
-            aria-label="Swap"
+            aria-label="Swap direction"
         >
             <path
                 d="M18.5381 0H7.59029C2.83493 0 0 2.79412 0 7.48102V18.2583C0 22.9581 2.83493 25.7522 7.59029 25.7522H18.525C23.2804 25.7522 26.1153 22.9581 26.1153 18.2712V7.48102C26.1284 2.79412 23.2934 0 18.5381 0ZM11.7447 19.3142C11.7447 19.4429 11.7186 19.5588 11.6663 19.6876C11.5618 19.9193 11.3789 20.1125 11.1307 20.2155C11.0131 20.267 10.8825 20.2927 10.7518 20.2927C10.6212 20.2927 10.5036 20.267 10.373 20.2155C10.2554 20.164 10.1509 20.0996 10.0594 20.0095L6.20549 16.211C5.82663 15.8376 5.82663 15.2196 6.20549 14.8462C6.58435 14.4727 7.21143 14.4727 7.59029 14.8462L9.77201 16.9965V6.43805C9.77201 5.91013 10.2162 5.47235 10.7518 5.47235C11.2875 5.47235 11.7447 5.91013 11.7447 6.43805V19.3142ZM19.9098 10.9189C19.7139 11.1121 19.4656 11.2022 19.2174 11.2022C18.9692 11.2022 18.721 11.1121 18.525 10.9189L16.3433 8.76863V19.3142C16.3433 19.8421 15.8991 20.2799 15.3635 20.2799C14.8279 20.2799 14.3837 19.8421 14.3837 19.3142V6.43805C14.3837 6.30929 14.4098 6.19341 14.4621 6.06465C14.5666 5.83288 14.7495 5.63974 14.9977 5.53673C15.2328 5.43372 15.5072 5.43372 15.7423 5.53673C15.8599 5.58823 15.9644 5.65261 16.0559 5.74274L19.9098 9.5412C20.2887 9.92748 20.2887 10.5455 19.9098 10.9189Z"
@@ -91,7 +91,7 @@ export const SwapIcon: React.FC<IconProps> = React.memo(
 SwapIcon.displayName = "SwapIcon";
 
 /* ------------------------------------------------------------------
-   WalletIcon
+   WalletIcon  (UI icon — default 24 px)
    ------------------------------------------------------------------ */
 export const WalletIcon: React.FC<IconProps> = React.memo(
     ({ size = 24, color = DEFAULT_COLOR, className = "" }) => (
@@ -101,7 +101,7 @@ export const WalletIcon: React.FC<IconProps> = React.memo(
             viewBox="0 0 24 24"
             fill="none"
             xmlns="http://www.w3.org/2000/svg"
-            className={`shrink-0 transition-colors duration-200 ${className}`}
+            className={`shrink-0 max-sm:scale-90 transition-colors duration-200 ${className}`}
             role="img"
             aria-label="Wallet"
         >
@@ -119,79 +119,90 @@ export const WalletIcon: React.FC<IconProps> = React.memo(
 WalletIcon.displayName = "WalletIcon";
 
 /* ------------------------------------------------------------------
-   InfoIcon
+   InfoIcon  (small UI icon — default 12 px)
    ------------------------------------------------------------------ */
 export const InfoIcon: React.FC<IconProps> = React.memo(
-    ({ size = 12, color = DEFAULT_COLOR, className = "" }) => (
-        <svg
-            width={size}
-            height={size}
-            viewBox="0 0 12 12"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-            className={`mr-1.5 shrink-0 ${className}`}
-            role="img"
-            aria-label="Info"
-        >
-            <g clipPath="url(#clip0_info)">
-                <path
-                    d="M6 0C2.68661 0 0 2.68661 0 6C0 9.31339 2.68661 12 6 12C9.31339 12 12 9.31339 12 6C12 2.68661 9.31339 0 6 0ZM6 10.9821C3.24911 10.9821 1.01786 8.75089 1.01786 6C1.01786 3.24911 3.24911 1.01786 6 1.01786C8.75089 1.01786 10.9821 3.24911 10.9821 6C10.9821 8.75089 8.75089 10.9821 6 10.9821Z"
-                    fill={color}
-                />
-                <path
-                    d="M5.35714 3.64286C5.35714 3.81335 5.42487 3.97687 5.54543 4.09743C5.66599 4.21799 5.8295 4.28571 6 4.28571C6.1705 4.28571 6.33401 4.21799 6.45457 4.09743C6.57513 3.97687 6.64286 3.81335 6.64286 3.64286C6.64286 3.47236 6.57513 3.30885 6.45457 3.18829C6.33401 3.06773 6.1705 3 6 3C5.8295 3 5.66599 3.06773 5.54543 3.18829C5.42487 3.30885 5.35714 3.47236 5.35714 3.64286ZM6.32143 5.14286H5.67857C5.61964 5.14286 5.57143 5.19107 5.57143 5.25V8.89286C5.57143 8.95179 5.61964 9 5.67857 9H6.32143C6.38036 9 6.42857 8.95179 6.42857 8.89286V5.25C6.42857 5.19107 6.38036 5.14286 6.32143 5.14286Z"
-                    fill={color}
-                />
-            </g>
-            <defs>
-                <clipPath id="clip0_info">
-                    <rect width="12" height="12" fill="white" />
-                </clipPath>
-            </defs>
-        </svg>
-    ),
+    ({ size = 12, color = DEFAULT_COLOR, className = "" }) => {
+        const uid = useId();
+        const clipId = `clip_info_${uid}`;
+
+        return (
+            <svg
+                width={size}
+                height={size}
+                viewBox="0 0 12 12"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+                className={`mr-1.5 shrink-0 ${className}`}
+                role="img"
+                aria-label="Information"
+            >
+                <g clipPath={`url(#${clipId})`}>
+                    <path
+                        d="M6 0C2.68661 0 0 2.68661 0 6C0 9.31339 2.68661 12 6 12C9.31339 12 12 9.31339 12 6C12 2.68661 9.31339 0 6 0ZM6 10.9821C3.24911 10.9821 1.01786 8.75089 1.01786 6C1.01786 3.24911 3.24911 1.01786 6 1.01786C8.75089 1.01786 10.9821 3.24911 10.9821 6C10.9821 8.75089 8.75089 10.9821 6 10.9821Z"
+                        fill={color}
+                    />
+                    <path
+                        d="M5.35714 3.64286C5.35714 3.81335 5.42487 3.97687 5.54543 4.09743C5.66599 4.21799 5.8295 4.28571 6 4.28571C6.1705 4.28571 6.33401 4.21799 6.45457 4.09743C6.57513 3.97687 6.64286 3.81335 6.64286 3.64286C6.64286 3.47236 6.57513 3.30885 6.45457 3.18829C6.33401 3.06773 6.1705 3 6 3C5.8295 3 5.66599 3.06773 5.54543 3.18829C5.42487 3.30885 5.35714 3.47236 5.35714 3.64286ZM6.32143 5.14286H5.67857C5.61964 5.14286 5.57143 5.19107 5.57143 5.25V8.89286C5.57143 8.95179 5.61964 9 5.67857 9H6.32143C6.38036 9 6.42857 8.95179 6.42857 8.89286V5.25C6.42857 5.19107 6.38036 5.14286 6.32143 5.14286Z"
+                        fill={color}
+                    />
+                </g>
+                <defs>
+                    <clipPath id={clipId}>
+                        <rect width="12" height="12" fill="white" />
+                    </clipPath>
+                </defs>
+            </svg>
+        );
+    },
 );
 InfoIcon.displayName = "InfoIcon";
 
 /* ------------------------------------------------------------------
-   EthereumIcon
+   EthereumIcon  (chain icon — default 27 px)
    ------------------------------------------------------------------ */
 export const EthereumIcon: React.FC<IconProps> = React.memo(
-    ({ size = 27, className = "" }) => (
-        <svg
-            width={size}
-            height={size}
-            viewBox="0 0 27 27"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-            xmlnsXlink="http://www.w3.org/1999/xlink"
-            className={`shrink-0 ${className}`}
-            role="img"
-            aria-label="Ethereum"
-        >
-            <circle
-                cx="13.3435"
-                cy="13.3435"
-                r="13.3435"
-                fill="url(#pattern0_ethereum)"
-            />
-            <defs>
-                <pattern
-                    id="pattern0_ethereum"
-                    patternContentUnits="objectBoundingBox"
-                    width="1"
-                    height="1"
-                >
-                    <use xlinkHref="#image0_ethereum" transform="scale(0.0004)" />
-                </pattern>
-            </defs>
-        </svg>
-    ),
+    ({ size = 27, className = "" }) => {
+        const uid = useId();
+        const patternId = `pattern_eth_${uid}`;
+        const imageId = `image_eth_${uid}`;
+
+        return (
+            <svg
+                width={size}
+                height={size}
+                viewBox="0 0 27 27"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+                xmlnsXlink="http://www.w3.org/1999/xlink"
+                className={`shrink-0 max-sm:scale-90 ${className}`}
+                role="img"
+                aria-label="Ethereum"
+            >
+                <circle
+                    cx="13.3435"
+                    cy="13.3435"
+                    r="13.3435"
+                    fill={`url(#${patternId})`}
+                />
+                <defs>
+                    <pattern
+                        id={patternId}
+                        patternContentUnits="objectBoundingBox"
+                        width="1"
+                        height="1"
+                    >
+                        <use xlinkHref={`#${imageId}`} transform="scale(0.0004)" />
+                    </pattern>
+                </defs>
+            </svg>
+        );
+    },
 );
 EthereumIcon.displayName = "EthereumIcon";
 
 /* ------------------------------------------------------------------
-   ArbitrumIcon
+   ArbitrumIcon  (chain icon — default 27 px)
    ------------------------------------------------------------------ */
 export const ArbitrumIcon: React.FC<IconProps> = React.memo(
     ({ size = 27, className = "" }) => (
@@ -200,14 +211,16 @@ export const ArbitrumIcon: React.FC<IconProps> = React.memo(
             alt="Arbitrum logo"
             height={size}
             width={size}
-            className={`shrink-0 ${className}`}
+            className={`shrink-0 max-sm:scale-90 ${className}`}
+            role="img"
+            aria-label="Arbitrum"
         />
     ),
 );
 ArbitrumIcon.displayName = "ArbitrumIcon";
 
 /* ------------------------------------------------------------------
-   NovaCidadeIcon
+   NovaCidadeIcon  (chain icon — default 27 px)
    ------------------------------------------------------------------ */
 export const NovaCidadeIcon: React.FC<IconProps> = React.memo(
     ({ size = 27, className = "" }) => (
@@ -216,92 +229,111 @@ export const NovaCidadeIcon: React.FC<IconProps> = React.memo(
             alt="Nova Cidade logo"
             height={size}
             width={size}
-            className={`shrink-0 ${className}`}
+            className={`shrink-0 max-sm:scale-90 ${className}`}
+            role="img"
+            aria-label="Nova Cidade"
         />
     ),
 );
 NovaCidadeIcon.displayName = "NovaCidadeIcon";
 
 /* ------------------------------------------------------------------
-   BnbIcon
+   BnbIcon  (chain icon — default 27 px)
    ------------------------------------------------------------------ */
 export const BnbIcon: React.FC<IconProps> = React.memo(
-    ({ size = 27, className = "" }) => (
-        <svg
-            width={size}
-            height={size}
-            viewBox="0 0 27 27"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-            xmlnsXlink="http://www.w3.org/1999/xlink"
-            className={`shrink-0 ${className}`}
-            role="img"
-            aria-label="BNB"
-        >
-            <circle cx="13.3435" cy="13.3435" r="13.3435" fill="url(#pattern0_bnb)" />
-            <defs>
-                <pattern
-                    id="pattern0_bnb"
-                    patternContentUnits="objectBoundingBox"
-                    width="1"
-                    height="1"
-                >
-                    <use xlinkHref="#image0_bnb" transform="scale(0.00357143)" />
-                </pattern>
-            </defs>
-        </svg>
-    ),
+    ({ size = 27, className = "" }) => {
+        const uid = useId();
+        const patternId = `pattern_bnb_${uid}`;
+        const imageId = `image_bnb_${uid}`;
+
+        return (
+            <svg
+                width={size}
+                height={size}
+                viewBox="0 0 27 27"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+                xmlnsXlink="http://www.w3.org/1999/xlink"
+                className={`shrink-0 max-sm:scale-90 ${className}`}
+                role="img"
+                aria-label="BNB"
+            >
+                <circle cx="13.3435" cy="13.3435" r="13.3435" fill={`url(#${patternId})`} />
+                <defs>
+                    <pattern
+                        id={patternId}
+                        patternContentUnits="objectBoundingBox"
+                        width="1"
+                        height="1"
+                    >
+                        <use xlinkHref={`#${imageId}`} transform="scale(0.00357143)" />
+                    </pattern>
+                </defs>
+            </svg>
+        );
+    },
 );
 BnbIcon.displayName = "BnbIcon";
 
 /* ------------------------------------------------------------------
-   TokenIcon
+   TokenIcon  (composite: circle + token name + dropdown caret)
    ------------------------------------------------------------------ */
 interface TokenIconProps extends IconProps {
     tokenName: string;
 }
 
 export const TokenIcon: React.FC<TokenIconProps> = React.memo(
-    ({ tokenName, color = DEFAULT_COLOR, className = "" }) => (
-        <svg
-            width="95"
-            height="30"
-            viewBox="0 0 95 30"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-            xmlnsXlink="http://www.w3.org/1999/xlink"
-            className={`shrink-0 ${className}`}
-            role="img"
-            aria-label={`Token: ${tokenName}`}
-        >
-            <text
-                fill={color}
-                xmlSpace="preserve"
-                style={{ whiteSpace: "pre" }}
-                fontFamily="Inter, Segoe UI, sans-serif"
-                fontSize="16"
-                letterSpacing="0em"
+    ({ tokenName, size, color = DEFAULT_COLOR, className = "" }) => {
+        const uid = useId();
+        const patternId = `pattern_token_${uid}`;
+        const imageId = `image_token_${uid}`;
+
+        /* Scale the fixed 95x30 viewBox proportionally when a custom size is
+           provided. The default renders at the original dimensions. */
+        const width = size ? Math.round((95 / 30) * size) : 95;
+        const height = size ?? 30;
+
+        return (
+            <svg
+                width={width}
+                height={height}
+                viewBox="0 0 95 30"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+                xmlnsXlink="http://www.w3.org/1999/xlink"
+                className={`shrink-0 max-sm:scale-90 origin-left ${className}`}
+                role="img"
+                aria-label={`Token: ${tokenName}`}
             >
-                <tspan x="29" y="23.197">
-                    {tokenName}
-                </tspan>
-            </text>
-            <path
-                d="M93.8125 13H92.6406C92.561 13 92.486 13.0391 92.4391 13.1031L88 19.2219L83.561 13.1031C83.5141 13.0391 83.4391 13 83.3594 13H82.1875C82.086 13 82.0266 13.1156 82.086 13.1984L87.5953 20.7937C87.7953 21.0687 88.2047 21.0687 88.4031 20.7937L93.9125 13.1984C93.9735 13.1156 93.9141 13 93.8125 13Z"
-                fill={color}
-            />
-            <circle cx="12.5" cy="17.5" r="11.5" fill="url(#pattern0_token)" />
-            <defs>
-                <pattern
-                    id="pattern0_token"
-                    patternContentUnits="objectBoundingBox"
-                    width="1"
-                    height="1"
+                <text
+                    fill={color}
+                    xmlSpace="preserve"
+                    style={{ whiteSpace: "pre" }}
+                    fontFamily="Inter, Segoe UI, sans-serif"
+                    fontSize="16"
+                    letterSpacing="0em"
                 >
-                    <use xlinkHref="#image0_token" transform="scale(0.00333333)" />
-                </pattern>
-            </defs>
-        </svg>
-    ),
+                    <tspan x="29" y="23.197">
+                        {tokenName}
+                    </tspan>
+                </text>
+                <path
+                    d="M93.8125 13H92.6406C92.561 13 92.486 13.0391 92.4391 13.1031L88 19.2219L83.561 13.1031C83.5141 13.0391 83.4391 13 83.3594 13H82.1875C82.086 13 82.0266 13.1156 82.086 13.1984L87.5953 20.7937C87.7953 21.0687 88.2047 21.0687 88.4031 20.7937L93.9125 13.1984C93.9735 13.1156 93.9141 13 93.8125 13Z"
+                    fill={color}
+                />
+                <circle cx="12.5" cy="17.5" r="11.5" fill={`url(#${patternId})`} />
+                <defs>
+                    <pattern
+                        id={patternId}
+                        patternContentUnits="objectBoundingBox"
+                        width="1"
+                        height="1"
+                    >
+                        <use xlinkHref={`#${imageId}`} transform="scale(0.00333333)" />
+                    </pattern>
+                </defs>
+            </svg>
+        );
+    },
 );
 TokenIcon.displayName = "TokenIcon";
