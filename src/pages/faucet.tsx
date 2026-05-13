@@ -223,7 +223,7 @@ export default function Faucet() {
                       Request ETH
                     </span>
                     <span className="ml-auto text-[11px] text-gray-600 font-mono">
-                      0.001 ETH / request
+                      0.01 ETH / request
                     </span>
                   </div>
 
@@ -329,7 +329,7 @@ export default function Faucet() {
                               <p className="text-[11px] sm:text-xs text-gray-500 leading-relaxed">
                                 You can request{" "}
                                 <span className="text-gray-400 font-medium">
-                                  0.001 ETH
+                                  0.01 ETH
                                 </span>{" "}
                                 once per hour per address on the Nova Cidade L3
                                 testnet.
