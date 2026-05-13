@@ -26,8 +26,8 @@ const novaCidade = defineChain({
   },
 });
 
-const FAUCET_AMOUNT = "0.001"; // ETH per request
-const MIN_FAUCET_BALANCE = parseEther("0.002"); // stop if faucet wallet runs too low
+const FAUCET_AMOUNT = "0.01"; // ETH per request
+const MIN_FAUCET_BALANCE = parseEther("0.02"); // stop if faucet wallet runs too low
 
 export default async function handler(
   req: NextApiRequest,
