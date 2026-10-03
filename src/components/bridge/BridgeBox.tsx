@@ -1,16 +1,14 @@
-"use client";
-import React, { useEffect, useState, useCallback, useMemo } from "react";
-import { ArrowDownUp, Wallet, AlertCircle, Check, ArrowRight, Clock, Shield } from "lucide-react";
-import { useAccount, useConfig } from "wagmi";
+import React, { useState, useCallback, useMemo } from "react";
+import { ArrowDownUp, Wallet, AlertCircle, ArrowRight, Clock, Shield } from "lucide-react";
+import { useAccount, useBalance, useConfig } from "wagmi";
+import { parseEther } from "viem";
 import { motion, AnimatePresence } from "motion/react";
 import Image from "next/image";
 
 import { baseChain, defaultChain } from "@/config/chains";
 import { formatBalance } from "@/utils/utils";
-import { SkeletonBlock, SkeletonLine } from "@/components/ui/Skeleton";
 import NetworkSelector from "./NetworkSelector";
 import SubmitButton from "./SubmitButton";
-import { l1Provider, l2Provider } from "@/config/providers";
 import { useEthPrice } from "@/hooks/useEthPrice";
 
 /* ------------------------------------------------------------------ */
@@ -19,25 +17,12 @@ import { useEthPrice } from "@/hooks/useEthPrice";
 
 type QuickAmount = (typeof QUICK_AMOUNTS)[number];
 
-interface BridgeStep {
-  readonly id: number;
-  readonly label: string;
-}
-
 /* ------------------------------------------------------------------ */
 /*  Constants                                                          */
 /* ------------------------------------------------------------------ */
 
 /** Quick-pick preset amounts in ETH */
 const QUICK_AMOUNTS = ["0.001", "0.01", "0.05", "0.1"] as const;
-
-/** Bridge step indicator */
-const BRIDGE_STEPS: readonly BridgeStep[] = [
-  { id: 1, label: "Enter Amount" },
-  { id: 2, label: "Confirm" },
-  { id: 3, label: "Bridge" },
-  { id: 4, label: "Complete" },
-] as const;
 
 const ZERO = BigInt(0);
 
@@ -79,7 +64,7 @@ const directionPulseTransition = { duration: 2, repeat: Infinity, ease: "easeInO
 
 export const BridgeBox: React.FC = () => {
   const { chains } = useConfig();
-  const { address, isConnected } = useAccount();
+  const { address } = useAccount();
   const ethPrice = useEthPrice();
 
   const [selectedOriginNetwork, setSelectedOriginNetwork] = useState<number>(baseChain.id);
@@ -88,11 +73,13 @@ export const BridgeBox: React.FC = () => {
   const [depositAmount, setDepositAmount] = useState<bigint>(ZERO);
   const [inputDisplayValue, setInputDisplayValue] = useState<string>("");
 
-  const [originBalance, setOriginBalance] = useState<bigint | undefined>();
-  const [destinationBalance, setDestinationBalance] = useState<bigint | undefined>();
-
   const [swapRotation, setSwapRotation] = useState(0);
-  const [initialLoading, setInitialLoading] = useState(true);
+
+  const isDeposit = selectedOriginNetwork === baseChain.id;
+  const { data: parentBalance } = useBalance({ address, chainId: baseChain.id });
+  const { data: childBalance } = useBalance({ address, chainId: defaultChain.id });
+  const originBalance = (isDeposit ? parentBalance : childBalance)?.value;
+  const destinationBalance = (isDeposit ? childBalance : parentBalance)?.value;
 
   /* ----- Network handlers ----------------------------------------- */
 
@@ -125,21 +112,9 @@ export const BridgeBox: React.FC = () => {
 
   const handleAmountChange = useCallback((inputValue: string) => {
     setInputDisplayValue(inputValue);
-
-    const normalizedValue = inputValue.replace(/,/g, "").trim();
-
-    if (!normalizedValue || isNaN(Number(normalizedValue))) {
-      setDepositAmount(ZERO);
-      return;
-    }
-
     try {
-      const parts = normalizedValue.split(".");
-      const integerPart = BigInt(parts[0]) * BigInt(10 ** 18);
-      const fractionalPart = parts[1]
-        ? BigInt(parts[1].padEnd(18, "0").slice(0, 18))
-        : ZERO;
-      setDepositAmount(integerPart + fractionalPart);
+      const wei = parseEther(inputValue.replace(/,/g, "").trim());
+      setDepositAmount(wei > ZERO ? wei : ZERO);
     } catch {
       setDepositAmount(ZERO);
     }
@@ -168,8 +143,6 @@ export const BridgeBox: React.FC = () => {
     () => (originBalance !== undefined ? originBalance >= depositAmount : false),
     [originBalance, depositAmount]
   );
-
-  const isDeposit = selectedOriginNetwork === baseChain.id;
 
   const estimatedTime = useMemo(
     () => (isDeposit ? "~10 min" : "~7 days"),
@@ -208,12 +181,6 @@ export const BridgeBox: React.FC = () => {
     [hasEnoughBalance, depositAmount, originBalance]
   );
 
-  // Determine which bridge step the user is at
-  const currentStep = useMemo(
-    () => (depositAmount > ZERO && hasEnoughBalance ? 2 : 1),
-    [depositAmount, hasEnoughBalance]
-  );
-
   const directionLabel = useMemo(
     () => (isDeposit ? "Deposit" : "Withdraw"),
     [isDeposit]
@@ -224,98 +191,10 @@ export const BridgeBox: React.FC = () => {
     [inputDisplayValue]
   );
 
-  /* ----- Balance fetching ----------------------------------------- */
-
-  const fetchBalances = useCallback(async () => {
-    if (!address) {
-      setOriginBalance(undefined);
-      setDestinationBalance(undefined);
-      return;
-    }
-
-    try {
-      if (selectedOriginNetwork === baseChain.id) {
-        const l1Balance = await l1Provider.getBalance(address);
-        const l2Balance = await l2Provider.getBalance(address);
-        setOriginBalance(BigInt(l1Balance.toString()));
-        setDestinationBalance(BigInt(l2Balance.toString()));
-      } else {
-        const l1Balance = await l1Provider.getBalance(address);
-        const l2Balance = await l2Provider.getBalance(address);
-        setOriginBalance(BigInt(l2Balance.toString()));
-        setDestinationBalance(BigInt(l1Balance.toString()));
-      }
-    } catch (error) {
-      console.error("Error fetching balances:", error);
-    }
-  }, [address, selectedOriginNetwork]);
-
-  useEffect(() => {
-    fetchBalances().finally(() => setInitialLoading(false));
-  }, [fetchBalances]);
-
-  /* ----- Skeleton (initial load, disconnected) -------------------- */
-
-  if (initialLoading && !isConnected) {
-    return (
-      <div className="space-y-4 w-full">
-        <SkeletonLine width="30%" height="0.875rem" />
-        <SkeletonBlock height="6rem" rounded="xl" />
-        <div className="flex justify-center">
-          <SkeletonBlock width="3rem" height="3rem" rounded="xl" />
-        </div>
-        <SkeletonLine width="20%" height="0.875rem" />
-        <SkeletonBlock height="6rem" rounded="xl" />
-        <SkeletonBlock height="4rem" rounded="xl" />
-        <SkeletonBlock height="3rem" rounded="xl" />
-      </div>
-    );
-  }
-
   /* ----- Render --------------------------------------------------- */
 
   return (
     <div className="space-y-3 sm:space-y-4 w-full max-w-full">
-      {/* ---- Step Indicator ---- */}
-      <div className="flex items-center justify-between mb-1 sm:mb-2 px-0.5 sm:px-1">
-        {BRIDGE_STEPS.map((step, idx) => (
-          <React.Fragment key={step.id}>
-            <div className="flex flex-col items-center gap-0.5 sm:gap-1">
-              <div
-                className={`
-                  w-6 h-6 sm:w-7 sm:h-7 rounded-full flex items-center justify-center
-                  text-[10px] sm:text-xs font-bold transition-all duration-300
-                  ${step.id < currentStep
-                    ? "bg-emerald-500 text-white"
-                    : step.id === currentStep
-                      ? "bg-emerald-500/20 text-emerald-400 ring-2 ring-emerald-500/40"
-                      : "bg-white/5 text-gray-600"
-                  }
-                `}
-              >
-                {step.id < currentStep ? <Check size={12} /> : step.id}
-              </div>
-              <span
-                className={`
-                  text-[9px] sm:text-[10px] font-medium whitespace-nowrap
-                  ${step.id <= currentStep ? "text-gray-300" : "text-gray-600"}
-                `}
-              >
-                {step.label}
-              </span>
-            </div>
-            {idx < BRIDGE_STEPS.length - 1 && (
-              <div
-                className={`
-                  flex-1 h-px mx-0.5 sm:mx-1 mb-4 transition-colors duration-300
-                  ${step.id < currentStep ? "bg-emerald-500/50" : "bg-white/10"}
-                `}
-              />
-            )}
-          </React.Fragment>
-        ))}
-      </div>
-
       {/* ---- Direction Badge ---- */}
       <div className="flex items-center justify-center">
         <motion.div

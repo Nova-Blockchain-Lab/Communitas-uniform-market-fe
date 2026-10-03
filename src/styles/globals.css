@@ -1,12 +1,9 @@
-@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap");
 @import "tailwindcss";
 
 /* ============================================
    Tailwind v4 Theme Configuration
    ============================================ */
 @theme {
-	--font-family-base: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-	--font-family-mono: "JetBrains Mono", "Fira Code", monospace;
 	--background-image-gradient-radial: radial-gradient(var(--tw-gradient-stops));
 	--background-image-gradient-conic: conic-gradient(from 180deg at 50% 50%, var(--tw-gradient-stops));
 }
@@ -15,10 +12,6 @@
    CSS Custom Properties (Design Tokens)
    ============================================ */
 :root {
-	/* ---- Typography ---- */
-	--font-base: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-	--font-mono: "JetBrains Mono", "Fira Code", monospace;
-
 	/* ---- Color: Primary Blue ---- */
 	--color-primary-50: #eef4ff;
 	--color-primary-100: #d9e5ff;
@@ -181,7 +174,7 @@
 
 	body {
 		min-height: 100%;
-		font-family: var(--font-base);
+		font-family: var(--font-base, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif);
 		font-size: 1rem;
 		line-height: 1.6;
 		background-color: var(--color-bg-dark);
@@ -209,7 +202,7 @@
 	}
 
 	pre, code {
-		font-family: var(--font-mono);
+		font-family: var(--font-mono, ui-monospace, monospace);
 	}
 
 	code {

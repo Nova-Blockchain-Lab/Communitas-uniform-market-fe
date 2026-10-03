@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect, useMemo } from "react";
+import React, { useState, useCallback, useEffect, useMemo, useSyncExternalStore } from "react";
 import { DayPicker, DateRange } from "react-day-picker";
 import { motion, AnimatePresence } from "motion/react";
 import "react-day-picker/dist/style.css";
@@ -12,6 +12,7 @@ interface DateTimePickerProps {
 }
 
 const HOURS = Array.from({ length: 24 }, (_, i) => i);
+const noopSubscribe = () => () => {};
 
 const DateTimePicker: React.FC<DateTimePickerProps> = ({
   onChange,
@@ -23,8 +24,7 @@ const DateTimePicker: React.FC<DateTimePickerProps> = ({
   // Track whether we've mounted on the client. Server output renders nothing
   // for this subtree so SSR markup never depends on `new Date()`, avoiding
   // React #418 (text content mismatch between server and client).
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
+  const mounted = useSyncExternalStore(noopSubscribe, () => true, () => false);
 
   // Range mode state
   const [dateRange, setDateRange] = useState<DateRange | undefined>({

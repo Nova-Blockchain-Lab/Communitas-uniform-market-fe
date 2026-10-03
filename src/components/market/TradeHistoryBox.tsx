@@ -1,36 +1,20 @@
-import React, { useEffect, useState, useCallback, useMemo } from "react";
+import React, { useState, useCallback, useMemo } from "react";
+import { useAccount } from "wagmi";
 import { ArrowLeftRight, TrendingUp, BarChart3, ShoppingCart, Store } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { SkeletonBlock, SkeletonLine } from "@/components/ui/Skeleton";
-import {
-  createPublicClient,
-  http,
-  parseAbiItem,
-  decodeAbiParameters,
-  keccak256,
-  type PublicClient,
-} from "viem";
 
-import { defaultChain } from "@/config/chains";
 import { useAppContext } from "@/context/AppContext";
 import DateNavigationBar from "@/components/common/DateNavigationBar";
 import { Card, CardHeader } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { wattsToKWh, pricePerWattToPerKWh } from "@/utils/units";
-import { getTimestampsForDay, formatTime, truncateAddress } from "@/utils/dateHelpers";
-import { fetchLogsFromBlockscout, type BlockscoutLog } from "@/utils/blockscoutApi";
+import { formatTime, truncateAddress } from "@/utils/dateHelpers";
+import { type Trade, useTradeData } from "@/hooks/useTradeData";
 import { useEthPrice } from "@/hooks/useEthPrice";
 
 /* ---------- Types ---------- */
-
-interface Trade {
-  hour: bigint;
-  buyer: string;
-  seller: string;
-  amount: bigint;
-  clearingPrice: bigint;
-}
 
 interface TradeItemProps {
   trade: Trade;
@@ -46,10 +30,6 @@ interface TradeSummary {
 }
 
 /* ---------- Constants ---------- */
-
-const ENERGY_TRADED_EVENT = parseAbiItem(
-  "event EnergyTraded(uint256 indexed hour, address indexed buyer, address indexed seller, uint256 amount, uint256 clearingPrice)"
-);
 
 const SKELETON_COUNT = 3;
 
@@ -211,119 +191,9 @@ const TradeHistoryBox: React.FC = () => {
   const { energyMarketAddress } = useAppContext();
   const ethPrice = useEthPrice();
 
-  // Standalone viem client -- works without wallet connection
-  const client = useMemo<PublicClient>(
-    () =>
-      createPublicClient({
-        chain: defaultChain,
-        transport: http(),
-      }),
-    []
-  );
-
+  const { address } = useAccount();
   const [selectedDay, setSelectedDay] = useState<Date>(new Date());
-  const [trades, setTrades] = useState<Trade[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-
-  const handleDayChange = useCallback((day: Date) => {
-    setSelectedDay(day);
-  }, []);
-
-  const fetchTrades = useCallback(async () => {
-    if (!energyMarketAddress) return;
-
-    const timestamps = getTimestampsForDay(selectedDay);
-    const dayStart = BigInt(timestamps[0]);
-    const dayEnd = BigInt(timestamps[timestamps.length - 1]);
-
-    setIsLoading(true);
-    try {
-      // Compute the EnergyTraded event topic0
-      const topic0 = keccak256(
-        new TextEncoder().encode("EnergyTraded(uint256,address,address,uint256,uint256)")
-      );
-
-      let allTrades: Trade[] = [];
-      let usedBlockscout = false;
-
-      // --- Primary: Blockscout API ---
-      try {
-        const logs = await fetchLogsFromBlockscout({
-          address: energyMarketAddress,
-          topic0,
-        });
-
-        const parseBlockscoutLog = (log: BlockscoutLog): Trade | null => {
-          // Decode indexed topics: topic1=hour, topic2=buyer, topic3=seller
-          const hour = BigInt(log.topics[1]);
-          const buyer = ("0x" + log.topics[2].slice(26)) as string;
-          const seller = ("0x" + log.topics[3].slice(26)) as string;
-
-          // Decode non-indexed data: (uint256 amount, uint256 clearingPrice)
-          const [amount, clearingPrice] = decodeAbiParameters(
-            [
-              { name: "amount", type: "uint256" },
-              { name: "clearingPrice", type: "uint256" },
-            ],
-            log.data as `0x${string}`
-          );
-
-          if (hour < dayStart || hour > dayEnd) return null;
-
-          return { hour, buyer, seller, amount, clearingPrice };
-        };
-
-        for (const log of logs) {
-          const trade = parseBlockscoutLog(log);
-          if (trade) allTrades.push(trade);
-        }
-
-        usedBlockscout = true;
-      } catch (blockscoutError) {
-        console.warn("Blockscout API failed, falling back to RPC getLogs:", blockscoutError);
-      }
-
-      // --- Fallback: RPC getLogs with bounded fromBlock ---
-      if (!usedBlockscout) {
-        const currentBlock = await client.getBlockNumber();
-        const secondsAgo = Math.floor(Date.now() / 1000) - timestamps[0];
-        const fromBlock = BigInt(Math.max(0, Number(currentBlock) - secondsAgo - 86400));
-
-        const logs = await client.getLogs({
-          address: energyMarketAddress,
-          event: ENERGY_TRADED_EVENT,
-          fromBlock,
-          toBlock: "latest",
-        });
-
-        for (const log of logs) {
-          const hour = log.args.hour!;
-          if (hour >= dayStart && hour <= dayEnd) {
-            allTrades.push({
-              hour,
-              buyer: log.args.buyer!,
-              seller: log.args.seller!,
-              amount: log.args.amount!,
-              clearingPrice: log.args.clearingPrice!,
-            });
-          }
-        }
-      }
-
-      // Sort by hour
-      allTrades.sort((a, b) => Number(a.hour) - Number(b.hour));
-      setTrades(allTrades);
-    } catch (error) {
-      console.error("Failed to fetch trades:", error);
-      setTrades([]);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [client, energyMarketAddress, selectedDay]);
-
-  useEffect(() => {
-    fetchTrades();
-  }, [fetchTrades]);
+  const { trades, isLoading } = useTradeData(selectedDay, energyMarketAddress);
 
   // Memoised summaries -- recomputed only when trades change
   const { totalVolume, totalValueETH, avgPrice }: TradeSummary = useMemo(() => {
@@ -358,7 +228,7 @@ const TradeHistoryBox: React.FC = () => {
           icon={<ArrowLeftRight size={20} />}
         />
 
-        <DateNavigationBar selectedDay={selectedDay} onDayChange={handleDayChange} />
+        <DateNavigationBar selectedDay={selectedDay} onDayChange={setSelectedDay} />
 
         {isLoading ? (
           <div className="space-y-4">
@@ -446,6 +316,7 @@ const TradeHistoryBox: React.FC = () => {
                     trade={trade}
                     ethPrice={ethPrice}
                     index={i}
+                    userAddress={address}
                   />
                 ))}
               </AnimatePresence>

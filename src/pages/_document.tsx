@@ -16,10 +16,6 @@ export default function Document() {
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="format-detection" content="telephone=no" />
 
-        {/* Font preconnects — before any font CSS loads */}
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-
         {/* DNS prefetch for RPC & explorer used at runtime */}
         <link rel="dns-prefetch" href="https://testnet.novaims.unl.pt" />
         <link rel="dns-prefetch" href="https://testnet.explorer.novaims.unl.pt" />

@@ -1,13 +1,6 @@
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import {
-  createPublicClient,
-  http,
-  parseAbiItem,
-  decodeAbiParameters,
-  keccak256,
-  type PublicClient,
-} from "viem";
+import { createPublicClient, decodeEventLog, http, parseAbiItem, toEventSelector } from "viem";
 
 import { defaultChain } from "@/config/chains";
 import { getTimestampsForDay } from "@/utils/dateHelpers";
@@ -30,30 +23,18 @@ const ENERGY_TRADED_EVENT = parseAbiItem(
   "event EnergyTraded(uint256 indexed hour, address indexed buyer, address indexed seller, uint256 amount, uint256 clearingPrice)"
 );
 
-const ENERGY_TRADED_TOPIC0 = keccak256(
-  new TextEncoder().encode("EnergyTraded(uint256,address,address,uint256,uint256)")
-);
+const ENERGY_TRADED_TOPIC0 = toEventSelector(ENERGY_TRADED_EVENT);
 
-// Module-level singleton client — chain config never changes at runtime
-const publicClient: PublicClient = createPublicClient({
-  chain: defaultChain,
-  transport: http(),
-});
+// Reads without a wallet, so it has its own client
+const publicClient = createPublicClient({ chain: defaultChain, transport: http() });
 
 function parseBlockscoutLog(log: BlockscoutLog): Trade {
-  const hour = BigInt(log.topics[1]);
-  const buyer = ("0x" + log.topics[2].slice(26)) as string;
-  const seller = ("0x" + log.topics[3].slice(26)) as string;
-
-  const [amount, clearingPrice] = decodeAbiParameters(
-    [
-      { name: "amount", type: "uint256" },
-      { name: "clearingPrice", type: "uint256" },
-    ],
-    log.data as `0x${string}`
-  );
-
-  return { hour, buyer, seller, amount, clearingPrice };
+  const { args } = decodeEventLog({
+    abi: [ENERGY_TRADED_EVENT],
+    data: log.data as `0x${string}`,
+    topics: log.topics as [`0x${string}`, ...`0x${string}`[]],
+  });
+  return args;
 }
 
 async function fetchTradesForDay(

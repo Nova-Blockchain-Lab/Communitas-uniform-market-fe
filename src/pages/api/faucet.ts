@@ -10,22 +10,7 @@ import {
 import { privateKeyToAccount } from "viem/accounts";
 import { defineChain } from "viem";
 import { arbitrumSepolia } from "viem/chains";
-
-/* ── Nova Cidade L3 chain definition (server-side) ── */
-const novaCidade = defineChain({
-  id: 93735000855,
-  name: "Nova Cidade Chain",
-  nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 },
-  rpcUrls: {
-    default: { http: ["https://testnet.novaims.unl.pt/"] },
-  },
-  blockExplorers: {
-    default: {
-      name: "Blockscout",
-      url: "https://testnet.explorer.novaims.unl.pt/",
-    },
-  },
-});
+import { novaCidadeMainnet as novaCidade } from "@/config/chains";
 
 /* ── Arbitrum Sepolia (parent chain, server-side) ──
  * Server-only var: a server request carries no Origin header, so the browser's
@@ -39,7 +24,7 @@ const arbitrumSepoliaChain = arbSepoliaRpc
   : arbitrumSepolia;
 
 const ARB_EXPLORER = "https://sepolia.arbiscan.io";
-const NOVA_EXPLORER = "https://testnet.explorer.novaims.unl.pt";
+const NOVA_EXPLORER = novaCidade.blockExplorers.default.url.replace(/\/$/, "");
 
 /* ── Amounts ── */
 // Nova Cidade L3: covers every market test (bids, asks, claims, clearing).

@@ -1,6 +1,7 @@
 import "@/styles/globals.css";
 import type { AppProps } from "next/app";
 import Head from "next/head";
+import { Inter, JetBrains_Mono } from "next/font/google";
 import { WagmiProvider } from "wagmi";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { createAppKit } from "@reown/appkit/react";
@@ -12,6 +13,10 @@ import { wagmiAdapter, wagmiConfig, projectId, metadata, networks } from "@/conf
 import { defaultChain } from "@/config/chains";
 import { AppProvider } from "@/context/AppContext";
 import { ErrorBoundary } from "@/components/ui/ErrorBoundary";
+
+// Self-hosted by next/font, so no request to Google at runtime
+const inter = Inter({ subsets: ["latin"] });
+const jetbrainsMono = JetBrains_Mono({ subsets: ["latin"] });
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -50,6 +55,12 @@ export default function App({ Component, pageProps }: AppProps) {
         />
         <title>WattSwap | Community Energy Trading</title>
       </Head>
+      <style jsx global>{`
+        :root {
+          --font-base: ${inter.style.fontFamily}, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+          --font-mono: ${jetbrainsMono.style.fontFamily}, "Fira Code", monospace;
+        }
+      `}</style>
 
       <WagmiProvider config={wagmiConfig}>
         <QueryClientProvider client={queryClient}>
