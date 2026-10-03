@@ -3,6 +3,7 @@ import {
     ChildToParentMessageReader,
     ChildToParentMessageStatus,
     ChildTransactionReceipt,
+    EthDepositMessageStatus,
     EventFetcher,
     getArbitrumNetwork,
     ParentEthDepositTransactionReceipt
@@ -44,7 +45,7 @@ export interface ETHDepositOrWithdrawalMessage {
     token: string;
     from: Chain;
     to: Chain;
-    status: MessageStatusType;
+    status: BridgeStatus;
     hash: string;
     type: MessageType;
 }
@@ -113,12 +114,14 @@ export async function getOutgoingMessageState(
 // Fetch the state of a parent to child message
 export async function getDepositMessageState(
     txHash: string,
-    l1Provider: Provider
+    l1Provider: Provider,
+    l2Provider: Provider
 ) {
     const receipt = await l1Provider.getTransactionReceipt(txHash);
     const l1Receipt = new ParentEthDepositTransactionReceipt(receipt);
 
-    const messages = await l1Receipt.getEthDeposits(l1Provider);
+    // The deposit lands on the child chain, so its status is read there.
+    const messages = await l1Receipt.getEthDeposits(l2Provider);
     const parentToChildMsg = messages[0];
 
     return parentToChildMsg.status();
@@ -198,7 +201,7 @@ export const getDepositMessagesFromEventLogs = async (
 
     return Promise.all(
         deposits.map(async (event) => {
-            const state = await getDepositMessageState(event.txHash, l1Provider);
+            const state = await getDepositMessageState(event.txHash, l1Provider, l2Provider);
             return {...event, state};
         })
     );
@@ -308,36 +311,19 @@ export const getETHDepositsInfo = async (receiver: string, l1Provider: Provider,
 }
 
 
-interface MessageStatusType {
-    status: string;
-    color: string;
+export type BridgeStatus = "pending" | "claimable" | "completed";
+
+// Keyed by the SDK enums: ChildToParentMessageStatus starts at 0, EthDepositMessageStatus at 1.
+export const WITHDRAWAL_STATUS: Record<ChildToParentMessageStatus, BridgeStatus> = {
+    [ChildToParentMessageStatus.UNCONFIRMED]: "pending",
+    [ChildToParentMessageStatus.CONFIRMED]: "claimable",
+    [ChildToParentMessageStatus.EXECUTED]: "completed",
 }
 
-export const WITHDRAWAL_STATUS: MessageStatusType[] = [
-    /**
-     * ArbSys.sendTxToL1 called, but assertion not yet confirmed
-     */
-    {status: "Pending", color: "yellow"},
-    /**
-     * Assertion for outgoing message confirmed, but message not yet executed
-     */
-    {status: "Claimable", color: "green"},
-    /**
-     * Outgoing message executed (terminal state)
-     */
-    {status: "Success", color: "gray"}
-]
-
-export const DEPOSIT_STATUS: MessageStatusType[] = [
-    /**
-     * ETH is not deposited on Chain yet
-     */
-    {status: "Pending", color: "yellow"},
-    /**
-     * ETH is deposited successfully on Chain
-     */
-    {status: "Deposited", color: "black"}
-]
+export const DEPOSIT_STATUS: Record<EthDepositMessageStatus, BridgeStatus> = {
+    [EthDepositMessageStatus.PENDING]: "pending",
+    [EthDepositMessageStatus.DEPOSITED]: "completed",
+}
 
 export const getTxExpectedDeadlineTimestamp = async (l2Provider: Provider, hash: string) => {
     const timestamp = await getTxTimestamp(l2Provider, hash)

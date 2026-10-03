@@ -9,7 +9,7 @@ import {
   WITHDRAWAL_STATUS,
 } from "@/utils/executeMessageL2ToL1Helper";
 import { baseChain, defaultChain } from "@/config";
-import { ChildToParentMessageStatus, ChildTransactionReceipt } from "@arbitrum/sdk";
+import { ChildTransactionReceipt } from "@arbitrum/sdk";
 import { useAccount, useSwitchChain } from "wagmi";
 import { useEthersSigner } from "@/utils/ethersHelper";
 import { useAppContext } from "@/context/AppContext";
@@ -47,7 +47,8 @@ const MessageHistoryRow: React.FC<MessageHistoryRowProps> = ({ message, refetchM
 
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [remainingTime, setRemainingTime] = useState<number | undefined>(undefined);
-  const [isWaitingForConfirmation, setIsWaitingForConfirmation] = useState<boolean>(false);
+  // Local copy so polling can update it without mutating the prop.
+  const [status, setStatus] = useState(message.status);
 
   // Modal state
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -56,7 +57,8 @@ const MessageHistoryRow: React.FC<MessageHistoryRowProps> = ({ message, refetchM
   const [txHash, setTxHash] = useState<string | undefined>();
 
   const isDeposit = message.type === MessageType.DEPOSIT;
-  const isSuccess = message.status.status === "Success";
+  const isSuccess = status === "completed";
+  const isWaitingForConfirmation = status === "pending";
 
   const closeModal = useCallback(() => {
     setIsModalOpen(false);
@@ -95,6 +97,7 @@ const MessageHistoryRow: React.FC<MessageHistoryRowProps> = ({ message, refetchM
       await tx.wait(1);
 
       setTxStatus("success");
+      setStatus("completed");
       refetchMessages();
     } catch (error: any) {
       console.error("Bridge execution failed:", error);
@@ -125,14 +128,13 @@ const MessageHistoryRow: React.FC<MessageHistoryRowProps> = ({ message, refetchM
       if (!l1Provider || !l2Provider) return;
       setIsLoading(true);
       const state = await getOutgoingMessageState(message.hash, l1Provider, l2Provider);
-      message.status = WITHDRAWAL_STATUS[state];
-      setIsWaitingForConfirmation(state === ChildToParentMessageStatus.UNCONFIRMED);
+      setStatus(WITHDRAWAL_STATUS[state]);
       setIsLoading(false);
     };
     const interval = setInterval(updateWithdrawalStatus, 60 * 1_000);
     updateWithdrawalStatus();
     return () => clearInterval(interval);
-  }, []);
+  }, [message.type, message.hash, l1Provider, l2Provider]);
 
   useEffect(() => {
     if (!l2Provider || message.type === MessageType.DEPOSIT) return;
@@ -146,7 +148,7 @@ const MessageHistoryRow: React.FC<MessageHistoryRowProps> = ({ message, refetchM
     fetchAndSetRemainingTime();
     const interval = setInterval(fetchAndSetRemainingTime, 60 * 1000);
     return () => clearInterval(interval);
-  }, []);
+  }, [message.type, message.hash, l2Provider]);
 
   const statusMeta = useMemo((): StatusMeta => {
     if (isSuccess) {
