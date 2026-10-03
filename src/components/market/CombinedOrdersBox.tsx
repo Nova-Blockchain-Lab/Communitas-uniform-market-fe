@@ -699,6 +699,11 @@ const CombinedOrdersBox: React.FC = () => {
     error: confirmError,
   } = useWaitForTransactionReceipt({ hash });
 
+  // Separate writer for "Cancel Active" so its sequential txs do not drive the
+  // single-order toasts above.
+  const { writeContractAsync } = useWriteContract();
+  const [cancelProgress, setCancelProgress] = useState<string | null>(null);
+
   const refetchAll = useCallback(() => {
     refetchBids();
     refetchAsks();
@@ -815,16 +820,49 @@ const CombinedOrdersBox: React.FC = () => {
     [energyMarketAddress, writeContract, resetWrite],
   );
 
-  const handleCancelFirstActive = useCallback(() => {
-    for (let i = 0; i < userBidsByHour.length; i++) {
-      for (const bid of userBidsByHour[i]) {
-        if (!bid.canceled && !bid.settled) {
-          handleCancelBid(timestamps[i], bid.globalIndex);
-          return;
-        }
+  /** Bids that can still be canceled: same rule as the per-order Cancel button */
+  const activeBids = useMemo(
+    () =>
+      userBidsByHour.flatMap((hourBids, i) =>
+        cleared?.[i]?.result
+          ? []
+          : hourBids
+              .filter((bid) => !bid.canceled && !bid.settled)
+              .map((bid) => [timestamps[i], bid.globalIndex] as const),
+      ),
+    [userBidsByHour, cleared, timestamps],
+  );
+
+  // No batch cancel in the contract, so one cancelBid tx per bid, each awaited.
+  const handleCancelAllActive = useCallback(async () => {
+    if (!energyMarketAddress || !publicClient) return;
+    const total = activeBids.length;
+    let done = 0;
+    try {
+      for (const [hour, index] of activeBids) {
+        setCancelProgress(`${done + 1}/${total}`);
+        const txHash = await writeContractAsync({
+          abi: EnergyBiddingMarketAbi as AbiFunction[],
+          address: energyMarketAddress,
+          functionName: "cancelBid",
+          args: [hour, index],
+        });
+        const receipt = await publicClient.waitForTransactionReceipt({ hash: txHash });
+        if (receipt.status !== "success") throw new Error("Cancel transaction reverted");
+        done++;
       }
+      toast.success(`Canceled ${done} bid${done === 1 ? "" : "s"}`);
+    } catch (err) {
+      const e = err as { shortMessage?: string; message?: string };
+      toast.error(
+        done ? `Canceled ${done} of ${total} bids` : "Cancel failed",
+        e.shortMessage ?? e.message,
+      );
+    } finally {
+      setCancelProgress(null);
+      refetchAll();
     }
-  }, [userBidsByHour, timestamps, handleCancelBid]);
+  }, [activeBids, energyMarketAddress, publicClient, writeContractAsync, toast, refetchAll]);
 
   const toggleSortMode = useCallback(
     () => setSortMode((prev) => (prev === "time" ? "amount" : "time")),
@@ -891,10 +929,7 @@ const CombinedOrdersBox: React.FC = () => {
     [asks],
   );
 
-  const hasActiveBids = useMemo(
-    () => userBidsByHour.some((hourBids) => hourBids.some((bid) => !bid.canceled && !bid.settled)),
-    [userBidsByHour],
-  );
+  const hasActiveBids = activeBids.length > 0;
 
   const statusFilters: StatusFilter[] = useMemo(
     () => ["all", "active", "settled", "canceled"],
@@ -1009,14 +1044,21 @@ const CombinedOrdersBox: React.FC = () => {
           size="sm"
           variant="danger"
           icon={<Trash2 size={14} />}
-          disabled={isWritePending || isConfirming}
-          onClick={handleCancelFirstActive}
+          disabled={isWritePending || isConfirming || cancelProgress !== null}
+          loading={cancelProgress !== null}
+          onClick={handleCancelAllActive}
         >
-          <span className="hidden sm:inline">Cancel Active</span>
-          <span className="inline sm:hidden">Cancel</span>
+          {cancelProgress ? (
+            `Canceling ${cancelProgress}`
+          ) : (
+            <>
+              <span className="hidden sm:inline">Cancel Active ({activeBids.length})</span>
+              <span className="inline sm:hidden">Cancel ({activeBids.length})</span>
+            </>
+          )}
         </Button>
       ) : undefined,
-    [bidCount, hasActiveBids, isWritePending, isConfirming, handleCancelFirstActive],
+    [bidCount, hasActiveBids, isWritePending, isConfirming, cancelProgress, activeBids.length, handleCancelAllActive],
   );
 
   /* ---- Render helpers ---- */
