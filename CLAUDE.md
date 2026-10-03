@@ -49,7 +49,11 @@ constants/      addresses.json (per-chain, per-region contract addresses),
 
 ## Commands
 
-Package manager is npm (`package-lock.json`; there is no pnpm lockfile).
+Package manager is npm (`package-lock.json`; there is no pnpm lockfile). Node.js 24.x,
+pinned in `package.json` `engines`: Vercel stopped building with Node 20, and `engines`
+overrides the project setting on both Vercel projects (`communitas-bidding-market` serves
+wattswap.vercel.app, `communitas-uniform-market-fe` is a second deploy of the same repo).
+wattswap.novaims.unl.pt 301-redirects to wattswap.vercel.app (nginx on the urbanlab server).
 
 ```bash
 npm install
