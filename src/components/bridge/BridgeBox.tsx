@@ -137,6 +137,7 @@ export const BridgeBox: React.FC = () => {
         <div className="flex items-center justify-between gap-2">
           <span className="text-xs sm:text-sm font-medium text-gray-400">From</span>
           <NetworkSelector
+            label="From network"
             selectedNetwork={originNetwork}
             onSelectNetwork={setOriginNetwork}
           />
@@ -271,6 +272,7 @@ export const BridgeBox: React.FC = () => {
         <div className="flex items-center justify-between gap-2">
           <span className="text-xs sm:text-sm font-medium text-gray-400">To</span>
           <NetworkSelector
+            label="To network"
             selectedNetwork={destinationNetwork}
             onSelectNetwork={(id) => setOriginNetwork(id === baseChain.id ? defaultChain.id : baseChain.id)}
           />

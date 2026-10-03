@@ -6,7 +6,7 @@ import {
   useReadContracts,
   useSwitchChain,
 } from "wagmi";
-import { Image as ImageIcon, RefreshCw, Plus, AlertCircle, Grid3X3, LayoutList } from "lucide-react";
+import { Image as ImageIcon, RefreshCw, Plus, AlertCircle } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 
 import { contractAddresses } from "@/config/constants";
@@ -24,12 +24,6 @@ import { TransactionModal } from "@/components/ui/TransactionModal";
 import { useTransactionFeedback } from "@/hooks/useTransactionFeedback";
 import { AbiFunction } from "viem";
 import { NFTData } from "@/utils/executeMessageL2ToL1Helper";
-
-/* ------------------------------------------------------------------ */
-/*  Types                                                              */
-/* ------------------------------------------------------------------ */
-
-type ViewMode = "grid" | "list";
 
 /* ------------------------------------------------------------------ */
 /*  Skeleton components                                                */
@@ -52,23 +46,6 @@ const NFTCardSkeleton: React.FC<{ index: number }> = ({ index }) => (
   </motion.div>
 );
 
-/** List-view skeleton row */
-const NFTListSkeleton: React.FC<{ index: number }> = ({ index }) => (
-  <motion.div
-    initial={{ opacity: 0, x: -8 }}
-    animate={{ opacity: 1, x: 0 }}
-    transition={{ delay: index * 0.04 }}
-    className="flex items-center gap-4 rounded-xl border border-white/10 bg-white/[0.03] p-3"
-  >
-    <SkeletonBlock width="3.5rem" height="3.5rem" rounded="lg" />
-    <div className="flex-1 space-y-2">
-      <SkeletonBlock height="0.875rem" width="40%" rounded="md" />
-      <SkeletonBlock height="0.75rem" width="65%" rounded="md" />
-    </div>
-    <SkeletonBlock width="5rem" height="2rem" rounded="lg" />
-  </motion.div>
-);
-
 /* ------------------------------------------------------------------ */
 /*  Main component                                                     */
 /* ------------------------------------------------------------------ */
@@ -81,7 +58,6 @@ const NFTBox: React.FC = () => {
 
   const [nfts, setNfts] = useState<NFTData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [viewMode, setViewMode] = useState<ViewMode>("grid");
 
   // Get NFT contract address based on chain
   const nftContractAddress = useMemo(
@@ -182,10 +158,6 @@ const NFTBox: React.FC = () => {
     }
   }, [otherChainId, switchChain]);
 
-  const toggleViewMode = useCallback(() => {
-    setViewMode((prev) => (prev === "grid" ? "list" : "grid"));
-  }, []);
-
   const fetchNFTData = useCallback(async () => {
     if (!tokenIdsOwned || !tokenUris || tokenIdsOwned.length !== tokenUris.length) {
       setNfts([]);
@@ -278,9 +250,6 @@ const NFTBox: React.FC = () => {
   const gridClasses =
     "grid grid-cols-1 min-[480px]:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-5";
 
-  /** List-view class string */
-  const listClasses = "flex flex-col gap-3 sm:gap-4";
-
   // ---- Render ---------------------------------------------------------
 
   return (
@@ -293,15 +262,6 @@ const NFTBox: React.FC = () => {
           action={
             !needsConnection && (
               <div className="flex items-center gap-1.5 sm:gap-2">
-                {/* View toggle */}
-                <button
-                  onClick={toggleViewMode}
-                  className="p-2.5 sm:p-2 rounded-lg bg-white/5 hover:bg-white/10 active:bg-white/15 text-gray-400 hover:text-white transition-colors touch-manipulation"
-                  title={viewMode === "grid" ? "Switch to list view" : "Switch to grid view"}
-                  aria-label={viewMode === "grid" ? "Switch to list view" : "Switch to grid view"}
-                >
-                  {viewMode === "grid" ? <LayoutList size={16} /> : <Grid3X3 size={16} />}
-                </button>
                 {/* Refresh */}
                 <button
                   onClick={refetchAll}
@@ -399,19 +359,11 @@ const NFTBox: React.FC = () => {
                   transition={{ duration: 0.15 }}
                 >
                   <CardSection title="Loading...">
-                    {viewMode === "grid" ? (
-                      <div className={gridClasses}>
-                        {Array.from({ length: skeletonCount }).map((_, i) => (
-                          <NFTCardSkeleton key={`skel-${i}`} index={i} />
-                        ))}
-                      </div>
-                    ) : (
-                      <div className={listClasses}>
-                        {Array.from({ length: skeletonCount }).map((_, i) => (
-                          <NFTListSkeleton key={`skel-list-${i}`} index={i} />
-                        ))}
-                      </div>
-                    )}
+                    <div className={gridClasses}>
+                      {Array.from({ length: skeletonCount }).map((_, i) => (
+                        <NFTCardSkeleton key={`skel-${i}`} index={i} />
+                      ))}
+                    </div>
                   </CardSection>
                 </motion.div>
               ) : nftCount === 0 ? (
@@ -447,7 +399,7 @@ const NFTBox: React.FC = () => {
               ) : (
                 /* ---------- NFT gallery ---------- */
                 <motion.div
-                  key={`gallery-${viewMode}`}
+                  key="gallery"
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
@@ -456,7 +408,7 @@ const NFTBox: React.FC = () => {
                   <CardSection
                     title={`${isL2 ? "Nova Cidade" : "Arbitrum"} Collection`}
                   >
-                    <div className={viewMode === "grid" ? gridClasses : listClasses}>
+                    <div className={gridClasses}>
                       {sortedNfts.map((nft, index) => (
                         <motion.div
                           key={nft.tokenId}

@@ -314,7 +314,7 @@ const MobileDrawer: React.FC<MobileDrawerProps> = ({
               >
                 Region
               </p>
-              <RegionDropdownList dropUp />
+              <RegionDropdownList />
             </div>
 
             {/* Bridge & Faucet links */}
