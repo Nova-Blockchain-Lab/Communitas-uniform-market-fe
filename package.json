@@ -8,6 +8,9 @@
 		"start": "next start",
 		"lint": "eslint ."
 	},
+	"engines": {
+		"node": "24.x"
+	},
 	"dependencies": {
 		"@arbitrum/sdk": "^4.0.4",
 		"@reown/appkit-adapter-wagmi": "^1.8.18",
