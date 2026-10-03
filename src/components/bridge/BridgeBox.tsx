@@ -97,7 +97,7 @@ export const BridgeBox: React.FC = () => {
 
   const hasEnoughBalance = originBalance !== undefined && originBalance >= depositAmount;
   const showInsufficientBalance = !hasEnoughBalance && depositAmount > ZERO && originBalance !== undefined;
-  const estimatedTime = isDeposit ? "~10 min" : "~7 days";
+  const estimatedTime = isDeposit ? "~10 min" : "~1 hour";
   const originNetworkName = isDeposit ? "Arbitrum" : "Nova Cidade";
   const destinationNetworkName = isDeposit ? "Nova Cidade" : "Arbitrum";
   const directionLabel = isDeposit ? "Deposit" : "Withdraw";

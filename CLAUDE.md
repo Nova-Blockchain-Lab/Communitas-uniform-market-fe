@@ -316,9 +316,11 @@ its calldata recorded.
 9. **The region reset to the geo-detected country** whenever `RegionDropdownList` remounted.
 10. The Orders filter row used an undefined `no-scrollbar` class (now `scrollbar-none`).
 
-Open: the withdrawal panel in `SubmitButton.tsx` still says withdrawals take ~7 days, while
-this chain's claim window is about 70 minutes (`CONFIRMATION_BUFFER_MINUTES`). The test
-wallet `0x7502…1081` has two claimable withdrawals (26 and 30 Aug 2026, 0.0101 ETH total).
+11. **Withdrawal texts said ~7 days** (BridgeBox, SubmitButton, TransactionModal); this chain's
+    claim window is about 70 minutes (`CONFIRMATION_BUFFER_MINUTES`), so they now say about an hour.
+
+Open: the test wallet `0x7502…1081` has two claimable withdrawals (26 and 30 Aug 2026,
+0.0101 ETH total).
 
 ## Verified end to end
 

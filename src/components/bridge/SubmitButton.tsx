@@ -150,7 +150,7 @@ const SubmitButton: React.FC<SubmitButtonProps> = ({ originNetwork, amount, hasE
       {isWithdrawal && (
         <div className="flex items-center gap-2 px-3 py-2 bg-amber-500/10 border border-amber-500/20 rounded-lg text-xs text-amber-400">
           <Clock size={14} className="shrink-0" />
-          <span>Withdrawals take ~7 days due to the challenge period</span>
+          <span>Withdrawals take about an hour due to the challenge period</span>
         </div>
       )}
 

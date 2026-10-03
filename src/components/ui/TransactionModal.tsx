@@ -144,7 +144,7 @@ const typeConfig: Record<TransactionType, { icon: React.ReactNode; label: string
   bridge_withdraw: {
     icon: <ArrowDown size={24} />,
     label: "Bridge Withdrawal",
-    successMessage: "Withdrawal initiated! It will complete in ~7 days.",
+    successMessage: "Withdrawal initiated! It can be claimed in about an hour.",
   },
   bridge_nft_l1: {
     icon: <ArrowUpDown size={24} />,
