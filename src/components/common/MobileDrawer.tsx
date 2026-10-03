@@ -7,6 +7,7 @@ import { useAccount } from "wagmi";
 
 import { tabs, type TabItem } from "./Slider";
 import RegionDropdownList from "./RegionDropdownList";
+import { truncateAddress } from "@/utils/dateHelpers";
 
 interface MobileDrawerProps {
   isOpen: boolean;
@@ -28,10 +29,6 @@ const tabMap = new Map<number, TabItem>(tabs.map((t) => [t.id, t]));
 const SWIPE_CLOSE_VELOCITY = 300;
 /** Distance threshold for swipe-to-close (px) */
 const SWIPE_CLOSE_DISTANCE = 80;
-
-function truncateAddress(address: string): string {
-  return `${address.slice(0, 6)}...${address.slice(-4)}`;
-}
 
 const MobileDrawer: React.FC<MobileDrawerProps> = ({
   isOpen,

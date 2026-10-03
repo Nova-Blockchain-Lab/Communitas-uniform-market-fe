@@ -13,6 +13,3 @@ export const pricePerWattToPerKWh = (pricePerWatt: bigint): number =>
 /** Convert price-per-kWh in ETH to price-per-Watt in wei (bigint for contract) */
 export const pricePerKWhToPerWattWei = (pricePerKWhETH: number): bigint =>
   BigInt(Math.round((pricePerKWhETH * 10 ** DECIMALS) / WATTS_PER_KWH));
-
-/** Convert wei (bigint) to ETH */
-export const weiToEth = (wei: bigint): number => Number(wei) / 10 ** DECIMALS;

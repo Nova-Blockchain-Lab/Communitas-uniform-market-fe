@@ -17,13 +17,6 @@ export const formatTime = (timestamp: number): string => {
   });
 };
 
-export const formatDate = (timestamp: number): string => {
-  return new Date(timestamp * 1000).toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-  });
-};
-
 export const truncateAddress = (address: string): string => {
   return `${address.slice(0, 6)}...${address.slice(-4)}`;
 };
