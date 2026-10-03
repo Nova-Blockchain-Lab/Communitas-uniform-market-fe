@@ -27,8 +27,10 @@ const novaCidade = defineChain({
   },
 });
 
-/* ── Arbitrum Sepolia (parent chain, server-side) ── */
-const arbSepoliaRpc = process.env.NEXT_PUBLIC_INFURA_RPC;
+/* ── Arbitrum Sepolia (parent chain, server-side) ──
+ * Server-only var: a server request carries no Origin header, so the browser's
+ * domain-restricted key would be rejected here. Unset: viem's public RPC. */
+const arbSepoliaRpc = process.env.ARBITRUM_SEPOLIA_RPC_URL;
 const arbitrumSepoliaChain = arbSepoliaRpc
   ? defineChain({
       ...arbitrumSepolia,

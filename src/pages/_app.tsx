@@ -11,8 +11,8 @@ import {
   metadata,
   defaultChain,
   novaCidadeMainnet,
+  baseChain,
 } from "@/config";
-import { customArbitrumSepolia } from "@/config/chains";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { createAppKit } from "@reown/appkit/react";
 import { Analytics } from "@vercel/analytics/react";
@@ -47,7 +47,7 @@ const queryClient = new QueryClient({
 // ---------------------------------------------------------------------------
 const appKitNetworks: [AppKitNetwork, ...AppKitNetwork[]] = [
   novaCidadeMainnet as AppKitNetwork,
-  customArbitrumSepolia as AppKitNetwork,
+  baseChain as AppKitNetwork,
 ];
 
 if (projectId) {

@@ -6,6 +6,7 @@ import { mapOrbitConfigToOrbitChain } from "@/utils/mapOrbitConfigToOrbitChain";
 import { registerCustomArbitrumNetwork } from "@arbitrum/sdk";
 import outputInfo from "@/../constants/outputInfo.json";
 import { getProviderForChainId } from "@/utils/utils";
+import { ARBITRUM_SEPOLIA_RPC } from "@/config/chains";
 
 // Constants
 const ETH_PRICE_REFRESH_INTERVAL = 5 * 60 * 1000; // 5 minutes
@@ -41,7 +42,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
     try {
       const l1chain = wagmiConfig.chains.filter((c: { id: number }) => c.id !== defaultChain.id)[0];
-      const newL1Provider = getProviderForChainId(l1chain.id, process.env.NEXT_PUBLIC_INFURA_RPC!);
+      const newL1Provider = getProviderForChainId(l1chain.id, ARBITRUM_SEPOLIA_RPC);
       const newL2Provider = getProviderForChainId(defaultChain.id, defaultChain.rpcUrls.default.http[0]);
       setL1Provider(newL1Provider);
       setL2Provider(newL2Provider);

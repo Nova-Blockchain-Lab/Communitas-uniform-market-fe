@@ -26,24 +26,18 @@ export const defaultChain = novaCidadeMainnet;
 // so it is only ever a backup behind the keyed endpoint — never the primary.
 export const ARBITRUM_SEPOLIA_PUBLIC_RPC = "https://sepolia-rollup.arbitrum.io/rpc";
 
-// Custom Arbitrum Sepolia with your Alchemy RPC
-const customRpcUrl = process.env.NEXT_PUBLIC_INFURA_RPC;
+// Keyed Arbitrum Sepolia endpoint for browser reads. NEXT_PUBLIC_ means it ships in the
+// client bundle, so it must hold a key restricted by domain allowlist. Unset: public RPC.
+const keyedRpc = process.env.NEXT_PUBLIC_ARBITRUM_SEPOLIA_RPC_URL;
+export const ARBITRUM_SEPOLIA_RPC = keyedRpc || ARBITRUM_SEPOLIA_PUBLIC_RPC;
+export const arbitrumSepoliaRpcUrls = keyedRpc
+  ? [keyedRpc, ARBITRUM_SEPOLIA_PUBLIC_RPC]
+  : [ARBITRUM_SEPOLIA_PUBLIC_RPC];
 
-export const arbitrumSepoliaRpcUrls = [customRpcUrl, ARBITRUM_SEPOLIA_PUBLIC_RPC].filter(
-  (u): u is string => Boolean(u)
-);
-
-export const customArbitrumSepolia = customRpcUrl
-  ? defineChain({
-      ...arbitrumSepolia,
-      rpcUrls: {
-        default: { http: arbitrumSepoliaRpcUrls },
-      },
-    })
-  : arbitrumSepolia;
-
-// Base chain is Arbitrum Sepolia (L1/L2)
-export const baseChain = customArbitrumSepolia;
+// Stock chain on purpose: AppKit and wagmi hand `rpcUrls.default` to the wallet in
+// wallet_addEthereumChain, and a domain-restricted key fails from a wallet. The keyed URL
+// is used only through the wagmi transport and AppContext's providers.
+export const baseChain = arbitrumSepolia;
 
 // All supported chains
-export const supportedChains = [defaultChain, customArbitrumSepolia] as const;
+export const supportedChains = [defaultChain, arbitrumSepolia] as const;

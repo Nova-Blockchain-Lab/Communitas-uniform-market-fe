@@ -4,7 +4,7 @@
 
 import { http, fallback, cookieStorage, createStorage } from "wagmi";
 import { WagmiAdapter } from "@reown/appkit-adapter-wagmi";
-import { novaCidadeMainnet, customArbitrumSepolia, arbitrumSepoliaRpcUrls } from "./chains";
+import { novaCidadeMainnet, baseChain, arbitrumSepoliaRpcUrls } from "./chains";
 import type { AppKitNetwork } from "@reown/appkit/networks";
 
 // Reown project ID (formerly Web3Modal)
@@ -21,7 +21,7 @@ export const metadata = {
 // Networks for the adapter
 const networks: [AppKitNetwork, ...AppKitNetwork[]] = [
   novaCidadeMainnet as AppKitNetwork,
-  customArbitrumSepolia as AppKitNetwork,
+  baseChain as AppKitNetwork,
 ];
 
 // Create WagmiAdapter with SSR support
@@ -35,7 +35,7 @@ export const wagmiAdapter = new WagmiAdapter({
     // back to; a list here would just be the same box twice.
     [novaCidadeMainnet.id]: http(),
     // Keyed endpoint first, public RPC only if it fails.
-    [customArbitrumSepolia.id]: fallback(arbitrumSepoliaRpcUrls.map((url) => http(url))),
+    [baseChain.id]: fallback(arbitrumSepoliaRpcUrls.map((url) => http(url))),
   },
 });
 

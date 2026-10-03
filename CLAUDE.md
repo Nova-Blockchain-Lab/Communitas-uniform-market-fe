@@ -65,26 +65,32 @@ npm run lint               # eslint .
   `https://testnet.novaims.unl.pt/`, explorer `https://testnet.explorer.novaims.unl.pt/`.
   Defined in `src/config/chains.ts` from `constants/outputInfo.json`. Hosts every
   `EnergyBiddingMarket` contract.
-- **Arbitrum Sepolia (parent)**: chainId `421614`, RPC from `NEXT_PUBLIC_INFURA_RPC`
-  (an Alchemy endpoint). Origin chain for the deposit flow.
+- **Arbitrum Sepolia (parent)**: chainId `421614`. Origin chain for the deposit flow.
+  `baseChain` is viem's stock `arbitrumSepolia` (its `rpcUrls.default` is the public RPC).
 
-Every parent-chain call in the browser must read `NEXT_PUBLIC_INFURA_RPC`. Next.js only
-inlines `NEXT_PUBLIC_*` into the client bundle, so a plain `process.env.FOO` in client code
-is `undefined` at runtime and silently falls back. `utils/mapOrbitConfigToOrbitChain.ts`
-used to read `process.env.L1RPC` and fell through to the public
-`sepolia-rollup.arbitrum.io/rpc`, which rate-limits per IP. Fixed 2026-08-26 and `L1RPC`
-removed from `.env`. That was a latent fault, not the cause of the Aug-2026 bridge failure
-described below.
+All browser-side Arbitrum Sepolia RPC use goes through `ARBITRUM_SEPOLIA_RPC` /
+`arbitrumSepoliaRpcUrls` in `src/config/chains.ts`, which read
+`NEXT_PUBLIC_ARBITRUM_SEPOLIA_RPC_URL` and fall back to the public
+`https://sepolia-rollup.arbitrum.io/rpc` when it is unset. Do not read `process.env` for an
+RPC anywhere else in client code. Next.js only inlines `NEXT_PUBLIC_*` into the client
+bundle, so a plain `process.env.FOO` in client code is `undefined` at runtime.
+
+The keyed URL is deliberately kept out of the chain definition. AppKit's `switchNetwork`
+and wagmi's injected connector pass `chain.rpcUrls.default.http[0]` to the wallet in
+`wallet_addEthereumChain`, and a domain-restricted key fails from a wallet (no matching
+`Origin`). So the key lives only in the wagmi transport and `AppContext`'s providers.
 
 ### Which RPC each surface uses
 
 | Surface | Path | Endpoint |
 |---|---|---|
 | Reads on Nova Cidade (market, NFT tab `useReadContract`) | wagmi transport | `https://testnet.novaims.unl.pt/` |
-| Reads on Arbitrum Sepolia | wagmi transport | `fallback([Alchemy, public arb RPC])` |
-| Bridge and NFT bridge `l1Provider` | `AppContext` ethers | `NEXT_PUBLIC_INFURA_RPC` (Alchemy), no fallback |
+| Reads on Arbitrum Sepolia | wagmi transport | `fallback([keyed, public arb RPC])`, AppKit appends Reown's RPC |
+| Bridge and NFT bridge `l1Provider` | `AppContext` ethers | `ARBITRUM_SEPOLIA_RPC` (keyed, else public), no failover |
 | Bridge and NFT bridge `l2Provider` | `AppContext` ethers | `https://testnet.novaims.unl.pt/` |
-| Orbit SDK registration | `mapOrbitConfigToOrbitChain` | `NEXT_PUBLIC_INFURA_RPC`, defaults `confirmPeriodBlocks` to 150 on failure |
+| Orbit SDK registration | `mapOrbitConfigToOrbitChain` | `ARBITRUM_SEPOLIA_RPC`, defaults `confirmPeriodBlocks` to 150 on failure |
+| Market trade history | `useTradeData`, `TradeHistoryBox` viem clients | `https://testnet.novaims.unl.pt/` |
+| Faucet API (server) | `api/faucet.ts` | `ARBITRUM_SEPOLIA_RPC_URL` (server-only), else public; Nova via `testnet.novaims.unl.pt` |
 | Sending a transaction | the user's wallet | MetaMask's own RPC, not the app's |
 
 ### Bridge deposit failed with `-32005 Request is being rate limited` (Aug 2026)
@@ -109,10 +115,12 @@ but a withdrawal signs on Nova Cidade, where MetaMask uses our own node rather t
 public endpoint. Left as-is.
 
 Notes:
-- The Alchemy key is public by design (it ships in the client bundle). Restrict it by origin
-  in the Alchemy dashboard rather than trying to hide it. The same key is used by the nitro
-  node and by Blockscout's `INDEXER_ARBITRUM_L1_RPC`; the indexer's `eth_getLogs` sweeps are
-  the heavy consumer.
+- The browser key is public by design (it ships in the client bundle). Restrict it by domain
+  allowlist in the Alchemy dashboard (`wattswap.vercel.app`, `wattswap.novaims.unl.pt`)
+  rather than trying to hide it, and never share it with a server: Alchemy rejects requests
+  without a matching `Origin` header once a domain allowlist is set, and a shared key lets
+  the public bundle exhaust the server's quota. The nitro node and Blockscout's
+  `INDEXER_ARBITRUM_L1_RPC` need their own keys.
 - `testnet.novaims.unl.pt` and `wattswap.novaims.unl.pt` are split-horizon: `10.10.2.57` on
   campus, `193.136.119.39` publicly. Both are the same box, so there is no second Nova Cidade
   endpoint to fall back to. `wagmi.ts` therefore uses a bare `http()` transport for Nova
@@ -123,9 +131,24 @@ Notes:
 
 ## Environment variables
 
-`.env` (see `.env.example`): `NEXT_PUBLIC_PROJECT_ID` (Reown), `NEXT_PUBLIC_INFURA_RPC`
-(Alchemy Arbitrum Sepolia), `FAUCET_PASSWORD`, `FAUCET_PRIVATE_KEY`. The two faucet vars are
-server-side only, deliberately without the `NEXT_PUBLIC_` prefix.
+`.env` locally, Vercel project settings in production (see `.env.example`):
+
+| Variable | Side | Holds |
+|---|---|---|
+| `NEXT_PUBLIC_PROJECT_ID` | browser | Reown project ID (public, restrict domains in Reown) |
+| `NEXT_PUBLIC_ARBITRUM_SEPOLIA_RPC_URL` | browser | Arbitrum Sepolia RPC with a domain-restricted key. Optional, unset uses the public RPC |
+| `ARBITRUM_SEPOLIA_RPC_URL` | server | Arbitrum Sepolia RPC for `/api/faucet`, a key without a domain allowlist. Optional |
+| `FAUCET_PASSWORD` | server | `/faucet` password |
+| `FAUCET_PRIVATE_KEY` | server | faucet wallet key (also the batch poster) |
+
+Server-side vars must never carry the `NEXT_PUBLIC_` prefix. `NEXT_PUBLIC_INFURA_RPC` and
+`SKIP_PREFLIGHT_CHECK` are no longer read; delete them from Vercel and `.env`.
+
+Key exposure (Oct 2026): the old Alchemy key (`4Thn...`) was served in the client bundle via
+`NEXT_PUBLIC_INFURA_RPC` and was also committed in `.env` in `5336860` (on the public remote
+branch `claude/increase-faucet-payout-fYOfQ`). An Infura key (`cf29...`) was hardcoded in
+`AppContext` in Jan 2025 (`ac0e484`, removed in `d166205`, both in `main`). Treat both as
+burned. Older remote branches still track a `.env` holding only `NEXT_PUBLIC_PROJECT_ID`.
 
 ## Faucet (`/faucet`)
 

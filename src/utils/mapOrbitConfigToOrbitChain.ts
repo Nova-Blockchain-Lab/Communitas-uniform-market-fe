@@ -1,6 +1,7 @@
 import { RollupAdminLogic__factory } from '@arbitrum/sdk/dist/lib/abi/factories/RollupAdminLogic__factory'
 import { StaticJsonRpcProvider } from '@ethersproject/providers'
 import {ArbitrumNetwork} from "@arbitrum/sdk";
+import {ARBITRUM_SEPOLIA_RPC} from "@/config/chains";
 
 
 type OrbitConfig = {
@@ -41,7 +42,7 @@ export const mapOrbitConfigToOrbitChain = async (
 ): Promise<ArbitrumNetwork> => {
     const rollup = RollupAdminLogic__factory.connect(
         data.coreContracts.rollup,
-        new StaticJsonRpcProvider(process.env.NEXT_PUBLIC_INFURA_RPC ?? "https://sepolia-rollup.arbitrum.io/rpc", data.chainInfo.parentChainId)
+        new StaticJsonRpcProvider(ARBITRUM_SEPOLIA_RPC, data.chainInfo.parentChainId)
     )
     // ponytail: the parent-chain read is the only network call here, and a throttled
     // or down L1 RPC used to take the whole bridge with it (registerCustomArbitrumNetwork
