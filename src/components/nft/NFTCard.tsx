@@ -87,32 +87,6 @@ const NFTCard: React.FC<NFTCardProps> = memo(function NFTCard({
 
         {/* Gradient overlay for text readability */}
         <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-black/60 via-black/20 to-transparent pointer-events-none" />
-
-        {/* Hover quick-action overlay (desktop only) */}
-        <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300 hidden md:flex items-center justify-center gap-3 z-[5]">
-          {!isPendingMessage && !isL3 && (
-            <div className="flex flex-col gap-2 px-4 w-full">
-              <BridgeNFTL1ToL2Button
-                tokenId={nft.tokenId}
-                refetchNFTs={refetchNFTs}
-              />
-              <ViewOnOpenseaButton tokenId={nft.tokenId} />
-            </div>
-          )}
-          {!isPendingMessage && isL3 && (
-            <div className="px-4 w-full">
-              <BridgeNFTL2ToL1Button nft={nft} refetchNFTs={refetchNFTs} />
-            </div>
-          )}
-          {isPendingMessage && (
-            <div className="px-4 w-full">
-              <BridgeNFTL2ToL1ExecuteButton
-                nft={nft as NFTDataWithStatus}
-                refetchNFTs={refetchNFTs}
-              />
-            </div>
-          )}
-        </div>
       </div>
 
       {/* Content */}
@@ -129,46 +103,30 @@ const NFTCard: React.FC<NFTCardProps> = memo(function NFTCard({
           </p>
         )}
 
-        {/* Mobile action buttons -- touch-friendly sizing */}
-        <div className="pt-2 mt-auto space-y-2 md:hidden">
-          {/* On L1 - Bridge to L2 or view on OpenSea */}
+        {/* Actions, mounted once: below the text on mobile, a hover/focus overlay
+            on the image square from md up. */}
+        <div
+          className="
+            pt-2 mt-auto flex flex-col gap-2
+            md:absolute md:inset-x-0 md:top-0 md:aspect-square md:z-[5] md:m-0 md:px-4 md:pt-0
+            md:justify-center md:bg-black/50 md:opacity-0 md:transition-opacity md:duration-300
+            md:group-hover:opacity-100 md:focus-within:opacity-100
+          "
+        >
           {!isPendingMessage && !isL3 && (
-            <div className="flex flex-col gap-2">
-              <div className="min-h-[44px] flex items-stretch">
-                <div className="w-full">
-                  <BridgeNFTL1ToL2Button
-                    tokenId={nft.tokenId}
-                    refetchNFTs={refetchNFTs}
-                  />
-                </div>
-              </div>
-              <div className="min-h-[44px] flex items-stretch">
-                <div className="w-full">
-                  <ViewOnOpenseaButton tokenId={nft.tokenId} />
-                </div>
-              </div>
-            </div>
+            <>
+              <BridgeNFTL1ToL2Button tokenId={nft.tokenId} refetchNFTs={refetchNFTs} />
+              <ViewOnOpenseaButton tokenId={nft.tokenId} />
+            </>
           )}
-
-          {/* On L2 - Bridge to L1 */}
           {!isPendingMessage && isL3 && (
-            <div className="min-h-[44px] flex items-stretch">
-              <div className="w-full">
-                <BridgeNFTL2ToL1Button nft={nft} refetchNFTs={refetchNFTs} />
-              </div>
-            </div>
+            <BridgeNFTL2ToL1Button nft={nft} refetchNFTs={refetchNFTs} />
           )}
-
-          {/* Pending - Execute bridge */}
           {isPendingMessage && (
-            <div className="min-h-[44px] flex items-stretch">
-              <div className="w-full">
-                <BridgeNFTL2ToL1ExecuteButton
-                  nft={nft as NFTDataWithStatus}
-                  refetchNFTs={refetchNFTs}
-                />
-              </div>
-            </div>
+            <BridgeNFTL2ToL1ExecuteButton
+              nft={nft as NFTDataWithStatus}
+              refetchNFTs={refetchNFTs}
+            />
           )}
         </div>
       </div>
