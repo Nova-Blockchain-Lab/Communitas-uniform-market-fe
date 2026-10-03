@@ -43,9 +43,9 @@ const MessageHistoryRow: React.FC<MessageHistoryRowProps> = ({ message, refetchM
     minute: "2-digit",
   });
 
-  // Share of the confirmation wait that has passed, for open withdrawals
+  // Share of the confirmation wait that has passed, while a withdrawal is pending
   const progressPct =
-    !isDeposit && status !== "completed" && deadline !== undefined
+    !isDeposit && status === "pending" && deadline !== undefined
       ? 100 * (1 - Math.min(1, secondsUntil(deadline) / WAIT_SECONDS))
       : undefined;
 

@@ -137,9 +137,13 @@ export async function getETHWithdrawalsInfo(receiver: string): Promise<ETHDeposi
     }));
 }
 
-/** ETH deposits to `receiver` through the Nova Cidade inbox over the last month (~4 Arbitrum blocks per second). */
+/**
+ * ETH deposits to `receiver` through the Nova Cidade inbox over about the last 26 days
+ * (~4 Arbitrum Sepolia blocks per second). The public Arbitrum RPC rejects eth_getLogs
+ * spanning more than 10,000,000 blocks, so the window stays under that.
+ */
 export async function getETHDepositsInfo(receiver: string): Promise<ETHDepositOrWithdrawalMessage[]> {
-    const fromBlock = (await l1Provider.getBlockNumber()) - 10_368_000;
+    const fromBlock = (await l1Provider.getBlockNumber()) - 9_000_000;
     const events = await new EventFetcher(l1Provider).getEvents(
         Inbox__factory,
         (contract) => contract.filters.InboxMessageDelivered(),

@@ -66,11 +66,15 @@ const BridgeHistory: React.FC = () => {
   const { data: messages = [], isFetching: isLoading, refetch } = useQuery({
     queryKey: ["bridgeHistory", address],
     queryFn: async () => {
-      const [withdrawals, deposits] = await Promise.all([
+      // One side failing (e.g. a throttled RPC) still shows the other.
+      const results = await Promise.allSettled([
         getETHWithdrawalsInfo(address!),
         getETHDepositsInfo(address!),
       ]);
-      return [...withdrawals, ...deposits].sort((a, b) => b.time - a.time);
+      results.forEach((r) => r.status === "rejected" && console.error("Bridge history:", r.reason));
+      return results
+        .flatMap((r) => (r.status === "fulfilled" ? r.value : []))
+        .sort((a, b) => b.time - a.time);
     },
     enabled: !!address,
   });

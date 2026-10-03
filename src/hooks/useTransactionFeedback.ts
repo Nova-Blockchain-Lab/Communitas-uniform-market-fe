@@ -5,12 +5,14 @@ import type { TransactionStatus } from "@/components/ui/TransactionModal";
 
 type TxPatch = { status?: TransactionStatus; hash?: string };
 
+const REJECTED = "Transaction was rejected in your wallet";
+
 /** Short, user-facing message for a wallet, viem or ethers error. */
 export function txErrorMessage(err: unknown): string {
   const e = (err ?? {}) as { shortMessage?: string; reason?: string; message?: string; code?: unknown };
   const raw = e.shortMessage ?? e.reason ?? e.message ?? "Something went wrong. Please try again.";
   if (e.code === 4001 || e.code === "ACTION_REJECTED" || /user (rejected|denied)/i.test(raw)) {
-    return "Transaction was rejected in your wallet";
+    return REJECTED;
   }
   if (/insufficient funds/i.test(raw)) return "Insufficient funds for this transaction";
   return raw.length > 150 ? `${raw.slice(0, 150)}...` : raw;
@@ -37,8 +39,9 @@ export function useTransactionFeedback() {
       setTx((t) => ({ ...t, status: "success" }));
       return true;
     } catch (err) {
-      console.error(err);
-      setTx((t) => ({ ...t, status: "error", error: txErrorMessage(err) }));
+      const error = txErrorMessage(err);
+      if (error !== REJECTED) console.error(err);
+      setTx((t) => ({ ...t, status: "error", error }));
       return false;
     }
   }, []);
