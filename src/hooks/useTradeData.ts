@@ -4,7 +4,7 @@ import { createPublicClient, decodeEventLog, http, parseAbiItem, toEventSelector
 
 import { defaultChain } from "@/config/chains";
 import { getTimestampsForDay } from "@/utils/dateHelpers";
-import { fetchLogsFromBlockscout, type BlockscoutLog } from "@/utils/blockscoutApi";
+import { fetchBlockByTime, fetchLogsFromBlockscout, type BlockscoutLog } from "@/utils/blockscoutApi";
 
 export interface Trade {
   hour: bigint;
@@ -24,6 +24,9 @@ const ENERGY_TRADED_EVENT = parseAbiItem(
 );
 
 const ENERGY_TRADED_TOPIC0 = toEventSelector(ENERGY_TRADED_EVENT);
+
+// Query past the day's end, since an hour's trades are logged when it clears (max lag seen 1.1 h)
+const CLEARING_MARGIN_S = 6 * 3600;
 
 // Reads without a wallet, so it has its own client
 const publicClient = createPublicClient({ chain: defaultChain, transport: http() });
@@ -48,9 +51,17 @@ async function fetchTradesForDay(
   let usedBlockscout = false;
 
   try {
+    // Blockscout's getLogs returns at most 1000 logs, oldest first, so the query must be
+    // bounded to the day. EnergyTraded is emitted when an hour clears.
+    const [fromBlock, toBlock] = await Promise.all([
+      fetchBlockByTime(timestamps[0], "before"),
+      fetchBlockByTime(timestamps[timestamps.length - 1] + 3600 + CLEARING_MARGIN_S, "after"),
+    ]);
     const logs = await fetchLogsFromBlockscout({
       address: energyMarketAddress,
       topic0: ENERGY_TRADED_TOPIC0,
+      fromBlock,
+      toBlock,
     });
 
     for (const log of logs) {
@@ -66,14 +77,12 @@ async function fetchTradesForDay(
   }
 
   if (!usedBlockscout) {
-    const currentBlock = await publicClient.getBlockNumber();
-    const secondsAgo = Math.floor(Date.now() / 1000) - timestamps[0];
-    const fromBlock = BigInt(Math.max(0, Number(currentBlock) - secondsAgo - 86400));
-
+    // Nova Cidade only makes blocks on activity, so a block number cannot be derived from a
+    // time without an indexer. The RPC has no log cap, so scan from genesis and filter below.
     const logs = await publicClient.getLogs({
       address: energyMarketAddress as `0x${string}`,
       event: ENERGY_TRADED_EVENT,
-      fromBlock,
+      fromBlock: 0n,
       toBlock: "latest",
     });
 

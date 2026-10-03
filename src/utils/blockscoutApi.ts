@@ -18,6 +18,25 @@ interface BlockscoutResponse {
 
 export type { BlockscoutLog };
 
+/** Block number closest to a unix time (Etherscan-style getblocknobytime). */
+export async function fetchBlockByTime(timestamp: number, closest: "before" | "after"): Promise<number> {
+  const params = new URLSearchParams({
+    module: "block",
+    action: "getblocknobytime",
+    timestamp: String(timestamp),
+    closest,
+  });
+  const response = await fetch(`${BLOCKSCOUT_PROXY}?${params.toString()}`);
+  if (!response.ok) {
+    throw new Error(`Blockscout returned HTTP ${response.status}`);
+  }
+  const data = await response.json();
+  if (data.status !== "1") {
+    throw new Error(`Blockscout error: ${data.message}`);
+  }
+  return Number(data.result.blockNumber);
+}
+
 export async function fetchLogsFromBlockscout({
   address,
   fromBlock = 0,

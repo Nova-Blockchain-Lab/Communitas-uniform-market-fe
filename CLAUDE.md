@@ -356,12 +356,13 @@ its calldata recorded.
 Open: the test wallet `0x7502…1081` has two claimable withdrawals (26 and 30 Aug 2026,
 0.0101 ETH total).
 
-Open: **trade lines and the Trades tab miss recent trades.** `fetchLogsFromBlockscout`
-asks Blockscout's `getLogs` from block 0, and Blockscout returns at most 1000 logs, oldest
-first. On 2026-10-03 Denmark had 9,835 `EnergyTraded` logs and Blockscout returned only
-those up to 2026-04-24; Spain and Italy are past 1000 too. `useTradeData` only falls back to
-RPC `getLogs` when Blockscout fails, so recent days show no trade lines. Passing a
-`fromBlock` near the selected day (or paging) would fix it.
+Fixed 2026-10-03: **trade lines and the Trades tab missed recent trades.** `useTradeData`
+asked Blockscout's `getLogs` from block 0, and Blockscout returns at most 1000 logs, oldest
+first (Denmark had 9,835 `EnergyTraded` logs; only those up to 2026-04-24 came back). It now
+bounds the query with Blockscout `getblocknobytime`: from the day's start to 6 h after its end
+(`EnergyTraded` is emitted when an hour clears, max lag seen 1.1 h). Checked against a full RPC
+scan for Denmark on 2026-10-01, 09-29 and 08-15: identical counts (105, 3, 6). The RPC fallback
+scans from genesis, since blocks are made on activity and cannot be derived from time.
 
 ## Verified end to end
 
