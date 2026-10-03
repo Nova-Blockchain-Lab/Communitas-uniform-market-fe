@@ -9,7 +9,6 @@ const eslintConfig = [
       "build/**",
       "node_modules/**",
       "next-env.d.ts",
-      "remotion/**",
     ],
   },
 ];

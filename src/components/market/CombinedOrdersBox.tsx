@@ -1048,7 +1048,7 @@ const CombinedOrdersBox: React.FC = () => {
               <span className="hidden sm:inline">Status:</span>
             </div>
             {/* Filter buttons - scrollable on mobile */}
-            <div className="flex gap-1 overflow-x-auto no-scrollbar">
+            <div className="flex gap-1 overflow-x-auto scrollbar-none">
               {statusFilters.map((filter) => (
                 <button
                   key={filter}

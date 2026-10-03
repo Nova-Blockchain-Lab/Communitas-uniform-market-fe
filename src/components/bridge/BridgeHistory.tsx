@@ -49,7 +49,7 @@ function groupByDate(messages: ETHDepositOrWithdrawalMessage[]): DateGroup[] {
 
 /** Skeleton placeholder matching the card-based layout */
 const HistorySkeleton: React.FC = () => (
-  <div className="space-y-3 animate-in fade-in duration-300">
+  <div className="space-y-3">
     <div className="flex items-center justify-between px-1 mb-4">
       <SkeletonLine width="6rem" height="0.75rem" />
       <SkeletonLine width="3rem" height="0.75rem" />
