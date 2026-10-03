@@ -1,7 +1,7 @@
 import Head from "next/head";
 import Image from "next/image";
 import Link from "next/link";
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { ArrowRight, Droplets, Menu } from "lucide-react";
 
@@ -43,11 +43,8 @@ export default function Home() {
   const [selected, setSelected] = useState(1);
   const [drawerOpen, setDrawerOpen] = useState(false);
 
-  const openDrawer = useCallback(() => setDrawerOpen(true), []);
   const closeDrawer = useCallback(() => setDrawerOpen(false), []);
-
-  /** Resolve the active tab component once per selection change */
-  const ActiveTabComponent = useMemo(() => TAB_COMPONENTS[selected] ?? null, [selected]);
+  const ActiveTabComponent = TAB_COMPONENTS[selected];
 
   return (
     <>
@@ -131,7 +128,7 @@ export default function Home() {
 
             {/* Hamburger (mobile only) */}
             <button
-              onClick={openDrawer}
+              onClick={() => setDrawerOpen(true)}
               className="md:hidden p-1.5 sm:p-2 rounded-lg text-gray-500 hover:text-white hover:bg-white/[0.06] transition-all duration-200"
               aria-label="Open menu"
             >

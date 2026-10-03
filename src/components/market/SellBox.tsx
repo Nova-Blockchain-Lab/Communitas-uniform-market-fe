@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from "react";
+import React, { useState, useMemo } from "react";
 import { useAccount, useReadContract } from "wagmi";
 import { TrendingUp, Info, Clock, AlertTriangle, AlertCircle } from "lucide-react";
 import { motion } from "motion/react";
@@ -121,56 +121,35 @@ const SellBox: React.FC = () => {
 
   const canSubmit = !validationError && energy > 0 && !isLoading && !isNotWhitelisted;
 
-  /** Watts equivalent for the summary panel */
-  const wattsEquivalent = useMemo(
-    () => kWhToWatts(energy).toLocaleString(),
-    [energy],
-  );
-
-  /** Pre-computed input className to avoid inline ternary on every render */
-  const energyInputClassName = useMemo(
-    () => `${INPUT_BASE} ${validationError ? INPUT_ERROR : INPUT_VALID}`,
-    [validationError],
-  );
-
-  /** Stable transaction details object for the modal */
-  const txDetails = useMemo<TransactionDetails>(
-    () => ({ type: "sell", amount: energy }),
-    [energy],
-  );
-
-  /** Button label derived from current transaction state */
-  const submitLabel = useMemo((): string => {
-    if (isWhitelistLoading) return "Checking authorization...";
-    if (tx.status === "pending") return "Confirm in wallet...";
-    if (tx.status === "confirming") return "Confirming on-chain...";
-    return "List Energy for Sale";
-  }, [isWhitelistLoading, tx.status]);
+  const wattsEquivalent = kWhToWatts(energy).toLocaleString();
+  const energyInputClassName = `${INPUT_BASE} ${validationError ? INPUT_ERROR : INPUT_VALID}`;
+  const txDetails: TransactionDetails = { type: "sell", amount: energy };
+  const submitLabel = isWhitelistLoading
+    ? "Checking authorization..."
+    : tx.status === "pending"
+      ? "Confirm in wallet..."
+      : tx.status === "confirming"
+        ? "Confirming on-chain..."
+        : "List Energy for Sale";
 
   // ---------------------------------------------------------------------------
-  // Handlers (stable references via useCallback)
+  // Handlers
   // ---------------------------------------------------------------------------
 
-  const handleEnergyChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      const raw = e.target.value;
-      setEnergyDisplay(raw);
-      const parsed = parseFloat(raw);
-      setEnergy(isNaN(parsed) || parsed < 0 ? 0 : parsed);
-    },
-    [],
-  );
+  const handleEnergyChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setEnergyDisplay(e.target.value);
+    const parsed = parseFloat(e.target.value);
+    setEnergy(isNaN(parsed) || parsed < 0 ? 0 : parsed);
+  };
 
-  const handleEnergyBlur = useCallback(() => {
-    setEnergyDisplay(String(energy));
-  }, [energy]);
+  const handleEnergyBlur = () => setEnergyDisplay(String(energy));
 
-  const handleQuickAmount = useCallback((value: number) => {
+  const handleQuickAmount = (value: number) => {
     setEnergy(value);
     setEnergyDisplay(String(value));
-  }, []);
+  };
 
-  const handleSell = useCallback(async () => {
+  const handleSell = async () => {
     if (energy <= 0) {
       toast.error("Invalid Amount", "Please enter a positive energy amount.");
       return;
@@ -191,7 +170,7 @@ const SellBox: React.FC = () => {
       }),
     );
     if (ok) toast.success("Energy Listed Successfully!", `You've listed ${energy} kWh for sale.`);
-  }, [energy, energyMarketAddress, address, tx, toast]);
+  };
 
   // Clear the form once the user closes a successful listing.
   const handleModalClose = () => {

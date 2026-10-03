@@ -1,6 +1,6 @@
 import Head from "next/head";
 import Link from "next/link";
-import { useCallback, useMemo, useState } from "react";
+import { useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { ArrowLeft, ArrowLeftRight, ArrowRight, Clock, Droplets, Layers } from "lucide-react";
 
@@ -49,14 +49,6 @@ const tabContentTransition = { duration: 0.2, ease: "easeInOut" } as const;
 export default function Bridge() {
   const [activeTab, setActiveTab] = useState<TabId>("bridge");
 
-  const handleTabChange = useCallback((id: TabId) => {
-    setActiveTab(id);
-  }, []);
-
-  const tabContent = useMemo(
-    () => (activeTab === "bridge" ? <BridgeBox /> : <BridgeHistory />),
-    [activeTab],
-  );
 
   return (
     <>
@@ -149,7 +141,7 @@ export default function Bridge() {
                   role="tab"
                   aria-selected={isActive}
                   aria-controls={`tabpanel-${tab.id}`}
-                  onClick={() => handleTabChange(tab.id)}
+                  onClick={() => setActiveTab(tab.id)}
                   className={`
                     flex-1 flex items-center justify-center gap-2
                     px-3 sm:px-4 min-h-[44px] py-3
@@ -190,7 +182,7 @@ export default function Bridge() {
                 exit="exit"
                 transition={tabContentTransition}
               >
-                {tabContent}
+                {activeTab === "bridge" ? <BridgeBox /> : <BridgeHistory />}
               </motion.div>
             </AnimatePresence>
           </div>

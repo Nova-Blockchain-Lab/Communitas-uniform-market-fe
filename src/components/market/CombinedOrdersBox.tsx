@@ -99,6 +99,9 @@ interface FlatAsk {
 
 const NO_REFUNDS = new Set<string>();
 
+/** Per-hour reads, in the order their results come back */
+const READS = ["getBidsByHour", "getAsksByAddress", "isMarketCleared", "getClearingPrice"] as const;
+
 const formatKWh = (kWh: number): string =>
   kWh % 1 === 0 ? kWh.toString() : kWh.toFixed(3);
 
@@ -637,55 +640,27 @@ const CombinedOrdersBox: React.FC = () => {
 
   const timestamps = useMemo(() => getTimestampsForDay(selectedDay), [selectedDay]);
 
-  /* ---- Contract read configs ---- */
+  /* ---- Contract reads: four per hour of the day, in one multicall ---- */
 
-  const createContractConfig = useCallback(
-    (functionName: string, args: unknown[]) => ({
-      abi: EnergyBiddingMarketAbi as AbiFunction[],
-      address: energyMarketAddress,
-      functionName,
-      args,
-    }),
-    [energyMarketAddress],
+  const contracts = useMemo(
+    () =>
+      chainId === defaultChain.id
+        ? READS.flatMap((functionName) =>
+            timestamps.map((ts) => ({
+              abi: EnergyBiddingMarketAbi as AbiFunction[],
+              address: energyMarketAddress,
+              functionName,
+              args: functionName === "getAsksByAddress" ? [ts, address] : [ts],
+            })),
+          )
+        : [],
+    [chainId, timestamps, energyMarketAddress, address],
   );
-
-  const bidsConfig = useMemo(
-    () => timestamps.map((ts) => createContractConfig("getBidsByHour", [ts])),
-    [timestamps, createContractConfig],
+  const { data: reads, isPending: isLoading, refetch: refetchReads } = useReadContracts({ contracts });
+  const [bids, asks, cleared, prices] = useMemo(
+    () => READS.map((_, k) => reads?.slice(k * timestamps.length, (k + 1) * timestamps.length)),
+    [reads, timestamps.length],
   );
-  const asksConfig = useMemo(
-    () => timestamps.map((ts) => createContractConfig("getAsksByAddress", [ts, address])),
-    [timestamps, address, createContractConfig],
-  );
-  const clearedConfig = useMemo(
-    () => timestamps.map((ts) => createContractConfig("isMarketCleared", [ts])),
-    [timestamps, createContractConfig],
-  );
-  const priceConfig = useMemo(
-    () => timestamps.map((ts) => createContractConfig("getClearingPrice", [ts])),
-    [timestamps, createContractConfig],
-  );
-
-  const {
-    data: bids,
-    isPending: isBidsLoading,
-    refetch: refetchBids,
-  } = useReadContracts({
-    contracts: chainId === defaultChain.id ? bidsConfig : [],
-  });
-  const {
-    data: asks,
-    isPending: isAsksLoading,
-    refetch: refetchAsks,
-  } = useReadContracts({
-    contracts: chainId === defaultChain.id ? asksConfig : [],
-  });
-  const { data: cleared, refetch: refetchCleared } = useReadContracts({
-    contracts: chainId === defaultChain.id ? clearedConfig : [],
-  });
-  const { data: prices, refetch: refetchPrices } = useReadContracts({
-    contracts: chainId === defaultChain.id ? priceConfig : [],
-  });
 
   /* ---- Write contract for actions ---- */
 
@@ -716,12 +691,9 @@ const CombinedOrdersBox: React.FC = () => {
   });
 
   const refetchAll = useCallback(() => {
-    refetchBids();
-    refetchAsks();
-    refetchCleared();
-    refetchPrices();
+    refetchReads();
     refetchRefunds();
-  }, [refetchBids, refetchAsks, refetchCleared, refetchPrices, refetchRefunds]);
+  }, [refetchReads, refetchRefunds]);
 
   /* ---- Filter user bids, preserving global indices ---- */
 
@@ -880,7 +852,6 @@ const CombinedOrdersBox: React.FC = () => {
 
   /* ---- Derived state ---- */
 
-  const isLoading = isBidsLoading || isAsksLoading;
   const needsConnection = !isConnected || (chainId !== undefined && defaultChain.id !== chainId);
 
   const bidCount = useMemo(

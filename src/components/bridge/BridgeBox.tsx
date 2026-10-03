@@ -1,6 +1,6 @@
-import React, { useState, useCallback, useMemo } from "react";
+import React, { useState } from "react";
 import { ArrowDownUp, Wallet, AlertCircle, ArrowRight, Clock, Shield } from "lucide-react";
-import { useAccount, useBalance, useConfig } from "wagmi";
+import { useAccount, useBalance } from "wagmi";
 import { parseEther } from "viem";
 import { motion, AnimatePresence } from "motion/react";
 import Image from "next/image";
@@ -10,12 +10,6 @@ import { formatBalance } from "@/utils/utils";
 import NetworkSelector from "./NetworkSelector";
 import SubmitButton from "./SubmitButton";
 import { useEthPrice } from "@/hooks/useEthPrice";
-
-/* ------------------------------------------------------------------ */
-/*  Types                                                              */
-/* ------------------------------------------------------------------ */
-
-type QuickAmount = (typeof QUICK_AMOUNTS)[number];
 
 /* ------------------------------------------------------------------ */
 /*  Constants                                                          */
@@ -63,54 +57,29 @@ const directionPulseTransition = { duration: 2, repeat: Infinity, ease: "easeInO
 /* ------------------------------------------------------------------ */
 
 export const BridgeBox: React.FC = () => {
-  const { chains } = useConfig();
   const { address } = useAccount();
   const ethPrice = useEthPrice();
 
-  const [selectedOriginNetwork, setSelectedOriginNetwork] = useState<number>(baseChain.id);
-  const [selectedDestinationNetwork, setSelectedDestinationNetwork] = useState<number>(defaultChain.id);
+  // Two chains, so the destination is always the other one.
+  const [originNetwork, setOriginNetwork] = useState<number>(baseChain.id);
+  const isDeposit = originNetwork === baseChain.id;
+  const destinationNetwork = isDeposit ? defaultChain.id : baseChain.id;
 
   const [depositAmount, setDepositAmount] = useState<bigint>(ZERO);
   const [inputDisplayValue, setInputDisplayValue] = useState<string>("");
-
   const [swapRotation, setSwapRotation] = useState(0);
 
-  const isDeposit = selectedOriginNetwork === baseChain.id;
   const { data: parentBalance } = useBalance({ address, chainId: baseChain.id });
   const { data: childBalance } = useBalance({ address, chainId: defaultChain.id });
   const originBalance = (isDeposit ? parentBalance : childBalance)?.value;
   const destinationBalance = (isDeposit ? childBalance : parentBalance)?.value;
 
-  /* ----- Network handlers ----------------------------------------- */
-
-  const handleOriginNetworkChange = useCallback(
-    (id: number) => {
-      setSelectedOriginNetwork(id);
-      setSelectedDestinationNetwork(
-        chains.find((c) => c.id !== id)?.id || defaultChain.id
-      );
-    },
-    [chains]
-  );
-
-  const handleDestinationNetworkChange = useCallback(
-    (id: number) => {
-      setSelectedDestinationNetwork(id);
-      setSelectedOriginNetwork(
-        chains.find((c) => c.id !== id)?.id || baseChain.id
-      );
-    },
-    [chains]
-  );
-
-  const switchNetworks = useCallback(() => {
+  const switchNetworks = () => {
     setSwapRotation((r) => r + 180);
-    handleDestinationNetworkChange(selectedOriginNetwork);
-  }, [handleDestinationNetworkChange, selectedOriginNetwork]);
+    setOriginNetwork(destinationNetwork);
+  };
 
-  /* ----- Amount handlers ------------------------------------------ */
-
-  const handleAmountChange = useCallback((inputValue: string) => {
+  const handleAmountChange = (inputValue: string) => {
     setInputDisplayValue(inputValue);
     try {
       const wei = parseEther(inputValue.replace(/,/g, "").trim());
@@ -118,78 +87,22 @@ export const BridgeBox: React.FC = () => {
     } catch {
       setDepositAmount(ZERO);
     }
-  }, []);
+  };
 
-  const setMaxAmount = useCallback(() => {
-    if (originBalance) {
-      const formatted = formatBalance(originBalance);
-      if (formatted) {
-        setInputDisplayValue(formatted.replace(/\s*ETH$/, ""));
-        setDepositAmount(originBalance);
-      }
-    }
-  }, [originBalance]);
+  const setMaxAmount = () => {
+    if (!originBalance) return;
+    setInputDisplayValue(formatBalance(originBalance).replace(/\s*ETH$/, ""));
+    setDepositAmount(originBalance);
+  };
 
-  const handleQuickAmount = useCallback(
-    (amount: QuickAmount) => {
-      handleAmountChange(amount);
-    },
-    [handleAmountChange]
-  );
-
-  /* ----- Computed / memoised values ------------------------------- */
-
-  const hasEnoughBalance = useMemo(
-    () => (originBalance !== undefined ? originBalance >= depositAmount : false),
-    [originBalance, depositAmount]
-  );
-
-  const estimatedTime = useMemo(
-    () => (isDeposit ? "~10 min" : "~7 days"),
-    [isDeposit]
-  );
-
-  const originNetworkName = useMemo(
-    () => (selectedOriginNetwork === defaultChain.id ? "Nova Cidade" : "Arbitrum"),
-    [selectedOriginNetwork]
-  );
-
-  const destinationNetworkName = useMemo(
-    () => (selectedDestinationNetwork === defaultChain.id ? "Nova Cidade" : "Arbitrum"),
-    [selectedDestinationNetwork]
-  );
-
-  const eurValue = useMemo(() => {
-    if (!inputDisplayValue || !ethPrice) return "";
-    const ethNum = parseFloat(inputDisplayValue);
-    if (isNaN(ethNum)) return "";
-    return (ethNum * ethPrice).toFixed(2);
-  }, [inputDisplayValue, ethPrice]);
-
-  const formattedOriginBalance = useMemo(
-    () => formatBalance(originBalance) || "0 ETH",
-    [originBalance]
-  );
-
-  const formattedDestinationBalance = useMemo(
-    () => formatBalance(destinationBalance) || "0 ETH",
-    [destinationBalance]
-  );
-
-  const showInsufficientBalance = useMemo(
-    () => !hasEnoughBalance && depositAmount > ZERO && originBalance !== undefined,
-    [hasEnoughBalance, depositAmount, originBalance]
-  );
-
-  const directionLabel = useMemo(
-    () => (isDeposit ? "Deposit" : "Withdraw"),
-    [isDeposit]
-  );
-
-  const receiveDisplay = useMemo(
-    () => inputDisplayValue || "0.0",
-    [inputDisplayValue]
-  );
+  const hasEnoughBalance = originBalance !== undefined && originBalance >= depositAmount;
+  const showInsufficientBalance = !hasEnoughBalance && depositAmount > ZERO && originBalance !== undefined;
+  const estimatedTime = isDeposit ? "~10 min" : "~7 days";
+  const originNetworkName = isDeposit ? "Arbitrum" : "Nova Cidade";
+  const destinationNetworkName = isDeposit ? "Nova Cidade" : "Arbitrum";
+  const directionLabel = isDeposit ? "Deposit" : "Withdraw";
+  const ethNum = parseFloat(inputDisplayValue);
+  const eurValue = ethPrice && !isNaN(ethNum) ? (ethNum * ethPrice).toFixed(2) : "";
 
   /* ----- Render --------------------------------------------------- */
 
@@ -224,8 +137,8 @@ export const BridgeBox: React.FC = () => {
         <div className="flex items-center justify-between gap-2">
           <span className="text-xs sm:text-sm font-medium text-gray-400">From</span>
           <NetworkSelector
-            selectedNetwork={selectedOriginNetwork}
-            onSelectNetwork={handleOriginNetworkChange}
+            selectedNetwork={originNetwork}
+            onSelectNetwork={setOriginNetwork}
           />
         </div>
 
@@ -236,7 +149,7 @@ export const BridgeBox: React.FC = () => {
             <div className="flex items-center gap-2">
               <Wallet size={13} className="text-gray-500 shrink-0" />
               <span className={balanceValueClasses}>
-                {formattedOriginBalance}
+                {formatBalance(originBalance)}
               </span>
               {originBalance && originBalance > ZERO && (
                 <button
@@ -296,7 +209,7 @@ export const BridgeBox: React.FC = () => {
               key={amount}
               whileHover={quickBtnHover}
               whileTap={quickBtnTap}
-              onClick={() => handleQuickAmount(amount)}
+              onClick={() => handleAmountChange(amount)}
               className={`
                 py-2.5 sm:py-2 text-xs sm:text-sm font-medium rounded-lg border
                 transition-colors touch-manipulation
@@ -358,8 +271,8 @@ export const BridgeBox: React.FC = () => {
         <div className="flex items-center justify-between gap-2">
           <span className="text-xs sm:text-sm font-medium text-gray-400">To</span>
           <NetworkSelector
-            selectedNetwork={selectedDestinationNetwork}
-            onSelectNetwork={handleDestinationNetworkChange}
+            selectedNetwork={destinationNetwork}
+            onSelectNetwork={(id) => setOriginNetwork(id === baseChain.id ? defaultChain.id : baseChain.id)}
           />
         </div>
 
@@ -370,14 +283,14 @@ export const BridgeBox: React.FC = () => {
             <div className="flex items-center gap-2">
               <Wallet size={13} className="text-gray-500 shrink-0" />
               <span className={balanceValueClasses}>
-                {formattedDestinationBalance}
+                {formatBalance(destinationBalance)}
               </span>
             </div>
           </div>
 
           <div className="flex items-center justify-between gap-2 mb-2">
             <span className="text-[16px] sm:text-2xl font-semibold text-gray-400 truncate min-w-0">
-              {receiveDisplay}
+              {inputDisplayValue || "0.0"}
             </span>
             <div className={ethBadgeClasses}>
               <Image src="/eth.png" alt="ETH" width={20} height={20} />
@@ -427,7 +340,7 @@ export const BridgeBox: React.FC = () => {
 
       {/* ---- Submit Button ---- */}
       <SubmitButton
-        originNetwork={selectedOriginNetwork}
+        originNetwork={originNetwork}
         amount={depositAmount}
         hasEnoughBalance={hasEnoughBalance}
       />
