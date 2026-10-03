@@ -14,7 +14,8 @@ carries an NFT tab, and serves a `/faucet` route. Deployed at https://wattswap.v
   the NFT bridge and the read providers in `src/config/providers.ts`
 - @tanstack/react-query 5 for every async read that is not a wagmi hook
 - Tailwind 4, lucide-react, motion 12, react-day-picker (hour picker on the Buy tab),
-  d3 (dashboard bubble chart), date-fns, next/font (Inter, JetBrains Mono, self-hosted)
+  d3-force (layout only for the dashboard bubble chart), date-fns, next/font (Inter,
+  JetBrains Mono, self-hosted)
 
 ## Directory map
 
@@ -237,8 +238,32 @@ burned. Older remote branches still track a `.env` holding only `NEXT_PUBLIC_PRO
   `SubmitButton.tsx`. Do not remove them, see the 2026-05-20 bug below.
 - Region and bridge network pickers are transparent native `<select>`s over a styled pill;
   the date bar opens the browser's date picker (`input.showPicker()`).
-- Lint: `npm run lint` reports one warning (BubbleVisualization uses `this` in a d3
-  callback, so the React Compiler skips it). Keep it at zero errors.
+- Lint: `npm run lint` reports no errors and no warnings. Keep it that way.
+
+## Dashboard bubble chart (`BubbleVisualization.tsx`)
+
+- React renders the SVG (bubbles, labels, trade lines). `d3-force` only computes positions:
+  `layoutBubbles()` runs the simulation to completion synchronously (about 340 ticks,
+  clamped to the chart each tick), memoised on hour data and width. No d3 DOM code, no
+  zoom, pan or drag (the old chart had none either).
+- The box is measured with a callback ref plus `ResizeObserver`, so it is measured every
+  time it mounts. Below 380 px of chart width the participants show as a card list.
+- Intro animations, hover dimming transitions and the focus ring are CSS in
+  `globals.css` (`.bubble`, `.bubble-main`, `.bubble-glow`, `.trade-line`); the global
+  reduced-motion rule shortens them. Which bubbles and lines dim is computed in React from
+  the active bubble or trade.
+- Mouse hover shows the tooltip, a tap or click toggles it, keyboard focus (each bubble has
+  `tabIndex=0`, `role="img"` and a full `aria-label`) shows it at the bubble, Escape and a
+  tap on the background close it. A pinned tooltip closes when the hour changes. Trades are
+  also listed in an `sr-only` list.
+- The tooltip is portalled to `<body>` and positioned in page coordinates (below the point
+  in the top half of the viewport, above it in the bottom half), so the chart box cannot
+  clip it. Its upward shift goes through motion's `y`: motion owns `transform`.
+- Layout cost grows faster than the order count: about 12 ms for 20 orders, 100 ms for 100,
+  275 ms for 200 (Node on the dev Mac). Busy hours on the testnet have about 20.
+- Test data with trades: Denmark 2026-10-01 09:00 (19 bubbles, 17 trades), Italy
+  2026-09-25 10:00, Spain 2026-09-29 18:00; Portugal 2026-10-01 is empty. Hours are local
+  time (Europe/Lisbon).
 
 ## Test cases
 
@@ -319,8 +344,24 @@ its calldata recorded.
 11. **Withdrawal texts said ~7 days** (BridgeBox, SubmitButton, TransactionModal); this chain's
     claim window is about 70 minutes (`CONFIRMATION_BUFFER_MINUTES`), so they now say about an hour.
 
+12. **Dashboard chart (rewritten without d3 DOM code).** The old chart measured its box
+    once on mount; when the first hour shown was empty the box did not exist yet, so it
+    stayed at the 800x500 default and was scaled to fit (1084x677 on desktop, a tiny
+    330x250 chart instead of the card list on phones). A tap showed and then hid the
+    tooltip (touchstart opened it, the emulated click toggled it off). Every resize and
+    the arrival of trade data restarted the intro animation. Tooltips were cut off by the
+    chart box (8 of 9 measured on Italy 2026-09-25 10:00), partly because motion dropped
+    their `translateY(-100%)`. Bubbles were not reachable by keyboard.
+
 Open: the test wallet `0x7502…1081` has two claimable withdrawals (26 and 30 Aug 2026,
 0.0101 ETH total).
+
+Open: **trade lines and the Trades tab miss recent trades.** `fetchLogsFromBlockscout`
+asks Blockscout's `getLogs` from block 0, and Blockscout returns at most 1000 logs, oldest
+first. On 2026-10-03 Denmark had 9,835 `EnergyTraded` logs and Blockscout returned only
+those up to 2026-04-24; Spain and Italy are past 1000 too. `useTradeData` only falls back to
+RPC `getLogs` when Blockscout fails, so recent days show no trade lines. Passing a
+`fromBlock` near the selected day (or paging) would fix it.
 
 ## Verified end to end
 
