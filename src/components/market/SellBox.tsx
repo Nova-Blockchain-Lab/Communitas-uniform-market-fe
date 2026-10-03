@@ -5,7 +5,8 @@ import { motion } from "motion/react";
 import Image from "next/image";
 
 import EnergyBiddingMarketAbi from "@/../abi/EnergyBiddingMarket.json";
-import { defaultChain, WATTS_PER_KWH } from "@/config";
+import { defaultChain } from "@/config";
+import { kWhToWatts } from "@/utils/units";
 import { useAppContext } from "@/context/AppContext";
 import { useMarketToast } from "@/hooks/useMarketToast";
 import ConnectAndSwitchNetworkButton from "@/components/common/ConnectAndSwitchNetworkButton";
@@ -141,6 +142,7 @@ const SellBox: React.FC = () => {
   /** Inline validation message (null = valid) */
   const validationError = useMemo((): string | null => {
     if (energy < 0) return "Amount cannot be negative";
+    if (energy > 0 && kWhToWatts(energy) === 0n) return "Minimum amount is 0.001 kWh (1 W)";
     // Only show "must be greater than 0" once the user has typed something
     if (energyDisplay !== "0" && energyDisplay !== "" && energy === 0) return "Amount must be greater than 0";
     return null;
@@ -150,7 +152,7 @@ const SellBox: React.FC = () => {
 
   /** Watts equivalent for the summary panel */
   const wattsEquivalent = useMemo(
-    () => (energy * WATTS_PER_KWH).toLocaleString(),
+    () => kWhToWatts(energy).toLocaleString(),
     [energy],
   );
 
@@ -182,7 +184,7 @@ const SellBox: React.FC = () => {
     (e: React.ChangeEvent<HTMLInputElement>) => {
       const raw = e.target.value;
       setEnergyDisplay(raw);
-      const parsed = parseInt(raw, 10);
+      const parsed = parseFloat(raw);
       setEnergy(isNaN(parsed) || parsed < 0 ? 0 : parsed);
     },
     [],
@@ -208,12 +210,12 @@ const SellBox: React.FC = () => {
       return;
     }
 
-    // Convert kWh to Watts for contract
+    // The contract takes whole Watts
     writeContract({
       abi: EnergyBiddingMarketAbi,
       address: energyMarketAddress,
       functionName: "placeAsk",
-      args: [energy * WATTS_PER_KWH, address],
+      args: [kWhToWatts(energy), address],
     });
   }, [energy, energyMarketAddress, address, writeContract, toast]);
 
@@ -308,7 +310,8 @@ const SellBox: React.FC = () => {
             {/* Number input */}
             <input
               type="number"
-              inputMode="numeric"
+              inputMode="decimal"
+              step="any"
               value={energyDisplay}
               onChange={handleEnergyChange}
               onBlur={handleEnergyBlur}

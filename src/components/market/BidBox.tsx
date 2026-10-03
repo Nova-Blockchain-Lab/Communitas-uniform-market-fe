@@ -17,7 +17,8 @@ import {
 import Image from "next/image";
 
 import EnergyBiddingMarketAbi from "@/../abi/EnergyBiddingMarket.json";
-import { DECIMALS, defaultChain, WATTS_PER_KWH } from "@/config";
+import { defaultChain } from "@/config";
+import { kWhToWatts, pricePerKWhToPerWattWei } from "@/utils/units";
 import { useAppContext } from "@/context/AppContext";
 import { useMarketToast } from "@/hooks/useMarketToast";
 import DateTimePicker from "@/components/common/DateTimePicker";
@@ -206,8 +207,8 @@ const BidBox: React.FC = () => {
 
   /* ---- Validation ------------------------------------------------ */
   const validateBid = useCallback((): boolean => {
-    if (energy <= 0) {
-      toast.error("Invalid Energy Amount", "Please enter a positive energy amount.");
+    if (kWhToWatts(energy) <= 0n) {
+      toast.error("Invalid Energy Amount", "Please enter at least 0.001 kWh.");
       return false;
     }
     if (bidTimestamps.length === 0) {
@@ -231,17 +232,15 @@ const BidBox: React.FC = () => {
     resetWrite();
     if (!validateBid()) return;
 
-    const energyInWatts = energy * WATTS_PER_KWH;
-    const pricePerWattInWei = BigInt(
-      Math.round((priceDerived.priceInETH * 10 ** DECIMALS) / WATTS_PER_KWH),
-    );
+    const energyInWatts = kWhToWatts(energy);
+    const pricePerWattInWei = pricePerKWhToPerWattWei(priceDerived.priceInETH);
 
     if (bidTimestamps.length === 1) {
       writeContract({
         abi: EnergyBiddingMarketAbi,
         address: energyMarketAddress!,
         functionName: "placeBid",
-        value: BigInt(energyInWatts) * pricePerWattInWei,
+        value: energyInWatts * pricePerWattInWei,
         args: [bidTimestamps[0], energyInWatts],
       });
     } else {
@@ -249,10 +248,7 @@ const BidBox: React.FC = () => {
         abi: EnergyBiddingMarketAbi,
         address: energyMarketAddress!,
         functionName: "placeMultipleBids",
-        value:
-          BigInt(energyInWatts) *
-          pricePerWattInWei *
-          BigInt(bidTimestamps.length),
+        value: energyInWatts * pricePerWattInWei * BigInt(bidTimestamps.length),
         args: [bidTimestamps, energyInWatts],
       });
     }
