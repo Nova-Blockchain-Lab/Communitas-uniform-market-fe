@@ -1,11 +1,12 @@
-import React, { useCallback, useEffect, useState } from "react";
-import { useAccount, useWaitForTransactionReceipt, useWriteContract } from "wagmi";
+import React from "react";
+import { useAccount } from "wagmi";
+import { ArrowUpDown } from "lucide-react";
 import CommunitasNFTL2 from "@/../abi/CommunitasNFTL2.json";
 import { contractAddresses } from "@/config/constants";
 import { NFTData } from "@/utils/executeMessageL2ToL1Helper";
+import { useTransactionFeedback } from "@/hooks/useTransactionFeedback";
 import { Button } from "@/components/ui/Button";
-import { TransactionModal, TransactionStatus } from "@/components/ui/TransactionModal";
-import { ArrowUpDown } from "lucide-react";
+import { TransactionModal } from "@/components/ui/TransactionModal";
 
 interface BridgeNFTL2ToL1ButtonProps {
   nft: NFTData;
@@ -13,76 +14,22 @@ interface BridgeNFTL2ToL1ButtonProps {
 }
 
 const BridgeNFTL2ToL1Button: React.FC<BridgeNFTL2ToL1ButtonProps> = ({ nft, refetchNFTs }) => {
-  const { isConnected, address, chain } = useAccount();
+  const { isConnected, chain } = useAccount();
+  const tx = useTransactionFeedback();
+  const nftContractAddress = chain ? contractAddresses[chain.id]?.CommunitasNFT?.General : undefined;
 
-  // Modal state
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [txStatus, setTxStatus] = useState<TransactionStatus>("idle");
-  const [txError, setTxError] = useState<string | undefined>();
-
-  const nftContractAddress = chain ? contractAddresses[chain.id]?.["CommunitasNFT"]?.["General"] : undefined;
-
-  const {
-    data: hash,
-    isPending: isWritePending,
-    error: writeError,
-    writeContract,
-    reset: resetWrite,
-  } = useWriteContract();
-
-  const { isLoading: isConfirming, isSuccess: isConfirmed, error: confirmError } = useWaitForTransactionReceipt({ hash });
-
-  // Update modal status based on transaction state
-  useEffect(() => {
-    if (isWritePending) {
-      setTxStatus("pending");
-    } else if (isConfirming) {
-      setTxStatus("confirming");
-    } else if (isConfirmed) {
-      setTxStatus("success");
-      refetchNFTs();
-    } else if (writeError || confirmError) {
-      setTxStatus("error");
-      const err = writeError || confirmError;
-      if (err) {
-        let message = err.message;
-        if (message.includes("User rejected") || message.includes("user rejected")) {
-          message = "Transaction was rejected in your wallet";
-        } else if (message.includes("insufficient funds")) {
-          message = "Insufficient funds for this transaction";
-        } else if (message.length > 150) {
-          message = message.substring(0, 150) + "...";
-        }
-        setTxError(message);
-      }
-    }
-  }, [isWritePending, isConfirming, isConfirmed, writeError, confirmError, refetchNFTs]);
-
-  const handleBridge = useCallback(async () => {
-    if (!isConnected || !chain || !address || !nftContractAddress) return;
-
-    setIsModalOpen(true);
-    setTxStatus("idle");
-    setTxError(undefined);
-    resetWrite();
-
-    writeContract({
-      abi: CommunitasNFTL2.abi,
-      address: nftContractAddress,
-      functionName: "bridgeToL1",
-      args: [nft.tokenId],
-    });
-  }, [isConnected, chain, address, nftContractAddress, nft.tokenId, writeContract, resetWrite]);
-
-  const closeModal = useCallback(() => {
-    setIsModalOpen(false);
-    setTimeout(() => {
-      setTxStatus("idle");
-      setTxError(undefined);
-    }, 300);
-  }, []);
-
-  const isLoading = isWritePending || isConfirming;
+  const handleBridge = async () => {
+    if (!nftContractAddress) return;
+    const ok = await tx.send(() =>
+      tx.writeContractAsync({
+        abi: CommunitasNFTL2.abi,
+        address: nftContractAddress,
+        functionName: "bridgeToL1",
+        args: [nft.tokenId],
+      }),
+    );
+    if (ok) refetchNFTs();
+  };
 
   return (
     <>
@@ -91,24 +38,21 @@ const BridgeNFTL2ToL1Button: React.FC<BridgeNFTL2ToL1ButtonProps> = ({ nft, refe
         size="sm"
         fullWidth
         onClick={handleBridge}
-        loading={isLoading}
-        disabled={isLoading || !isConnected}
+        loading={tx.isBusy}
+        disabled={tx.isBusy || !isConnected}
         icon={<ArrowUpDown size={16} />}
         className="min-h-[44px]"
       >
         Bridge to L1
       </Button>
 
-      {/* Transaction Modal */}
       <TransactionModal
-        isOpen={isModalOpen}
-        status={txStatus}
-        hash={hash}
-        error={txError}
-        details={{
-          type: "bridge_nft_l2",
-        }}
-        onClose={closeModal}
+        isOpen={tx.isOpen}
+        status={tx.status}
+        hash={tx.hash}
+        error={tx.error}
+        details={{ type: "bridge_nft_l2" }}
+        onClose={tx.close}
         onRetry={handleBridge}
       />
     </>

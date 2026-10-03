@@ -1,4 +1,5 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Clock, AlertTriangle } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { ChildToParentMessageStatus } from "@arbitrum/sdk";
@@ -9,10 +10,9 @@ import { Badge } from "@/components/ui/Badge";
 import { Card, CardHeader } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { SkeletonBlock, SkeletonLine } from "@/components/ui/Skeleton";
-import { l1Provider, l2Provider } from "@/config/providers";
 
 interface PendingNFTsBoxProps {
-  refetchNFTs: () => {};
+  refetchNFTs: () => void;
 }
 
 /** Map ChildToParentMessageStatus to human-readable labels and progress % */
@@ -90,33 +90,16 @@ BridgeProgressIndicator.displayName = "BridgeProgressIndicator";
 const PendingNFTs: React.FC<PendingNFTsBoxProps> = ({ refetchNFTs }) => {
   const { address } = useAccount();
 
-  const [pendingNFTs, setPendingNFTs] = useState<NFTDataWithStatus[]>([]);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [hasError, setHasError] = useState<boolean>(false);
+  const { data: pendingNFTs = [], isLoading, isError: hasError, refetch } = useQuery({
+    queryKey: ["pendingNfts", address],
+    queryFn: () => getPendingOutgoingNftsFromEventLogs(address!),
+    enabled: !!address,
+  });
 
-  const fetchPendingNFTs = useCallback(async () => {
-    if (!address) return;
-    setIsLoading(true);
-    setHasError(false);
-    try {
-      const nfts = await getPendingOutgoingNftsFromEventLogs(address, l1Provider, l2Provider);
-      setPendingNFTs(nfts);
-    } catch (error) {
-      console.error("Error fetching pending NFTs:", error);
-      setHasError(true);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [address]);
-
-  const refetchAllNfts = useCallback(async () => {
+  const refetchAllNfts = useCallback(() => {
     refetchNFTs();
-    fetchPendingNFTs();
-  }, [refetchNFTs, fetchPendingNFTs]);
-
-  useEffect(() => {
-    fetchPendingNFTs();
-  }, [fetchPendingNFTs]);
+    refetch();
+  }, [refetchNFTs, refetch]);
 
   const actionableCount = useMemo(
     () => pendingNFTs.filter(needsAction).length,

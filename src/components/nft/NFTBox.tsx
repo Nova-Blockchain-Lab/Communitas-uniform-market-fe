@@ -5,8 +5,6 @@ import {
   useReadContract,
   useReadContracts,
   useSwitchChain,
-  useWriteContract,
-  useWaitForTransactionReceipt,
 } from "wagmi";
 import { Image as ImageIcon, RefreshCw, Plus, AlertCircle, Grid3X3, LayoutList } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
@@ -22,8 +20,8 @@ import { Card, CardHeader, CardSection } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { SkeletonBlock } from "@/components/ui/Skeleton";
-import { type TransactionStatus } from "@/components/ui/TransactionModal";
 import { TransactionModal } from "@/components/ui/TransactionModal";
+import { useTransactionFeedback } from "@/hooks/useTransactionFeedback";
 import { AbiFunction } from "viem";
 import { NFTData } from "@/utils/executeMessageL2ToL1Helper";
 
@@ -84,11 +82,6 @@ const NFTBox: React.FC = () => {
   const [nfts, setNfts] = useState<NFTData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [viewMode, setViewMode] = useState<ViewMode>("grid");
-
-  // Modal state
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [txStatus, setTxStatus] = useState<TransactionStatus>("idle");
-  const [txError, setTxError] = useState<string | undefined>();
 
   // Get NFT contract address based on chain
   const nftContractAddress = useMemo(
@@ -164,68 +157,24 @@ const NFTBox: React.FC = () => {
 
   // ---- Mint NFT -------------------------------------------------------
 
-  const {
-    data: hash,
-    writeContract: mintNFT,
-    isPending: isMinting,
-    error: writeError,
-    reset: resetWrite,
-  } = useWriteContract();
-  const {
-    isLoading: isConfirming,
-    isSuccess: isConfirmed,
-    error: confirmError,
-  } = useWaitForTransactionReceipt({ hash });
-
-  // Update modal status based on transaction state
-  useEffect(() => {
-    if (isMinting) {
-      setTxStatus("pending");
-    } else if (isConfirming) {
-      setTxStatus("confirming");
-    } else if (isConfirmed) {
-      setTxStatus("success");
-      refetchAll();
-    } else if (writeError || confirmError) {
-      setTxStatus("error");
-      const err = writeError || confirmError;
-      if (err) {
-        let message = err.message;
-        if (message.includes("User rejected") || message.includes("user rejected")) {
-          message = "Transaction was rejected in your wallet";
-        } else if (message.includes("insufficient funds")) {
-          message = "Insufficient funds for this transaction";
-        } else if (message.length > 150) {
-          message = message.substring(0, 150) + "...";
-        }
-        setTxError(message);
-      }
-    }
-  }, [isMinting, isConfirming, isConfirmed, writeError, confirmError]);
+  const tx = useTransactionFeedback();
 
   // ---- Handlers -------------------------------------------------------
 
-  const handleMint = useCallback(() => {
+  const handleMint = useCallback(async () => {
     if (!nftContractAddress) return;
-    setIsModalOpen(true);
-    setTxStatus("idle");
-    setTxError(undefined);
-    resetWrite();
-
-    mintNFT({
-      abi: CommunitasNFTAbi.abi,
-      address: nftContractAddress,
-      functionName: "mint",
-    });
-  }, [nftContractAddress, mintNFT, resetWrite]);
-
-  const closeModal = useCallback(() => {
-    setIsModalOpen(false);
-    setTimeout(() => {
-      setTxStatus("idle");
-      setTxError(undefined);
-    }, 300);
-  }, []);
+    const ok = await tx.send(() =>
+      tx.writeContractAsync({
+        abi: CommunitasNFTAbi.abi,
+        address: nftContractAddress,
+        functionName: "mint",
+      }),
+    );
+    if (ok) {
+      toast.success("NFT Minted!", "Your new NFT has been minted successfully.");
+      refetchBalance();
+    }
+  }, [nftContractAddress, tx, toast, refetchBalance]);
 
   const handleSwitchChain = useCallback(() => {
     if (otherChainId) {
@@ -283,14 +232,6 @@ const NFTBox: React.FC = () => {
   }, [refetchBalance]);
 
   // ---- Effects --------------------------------------------------------
-
-  useEffect(() => {
-    if (isConfirmed) {
-      toast.success("NFT Minted!", "Your new NFT has been minted successfully.");
-      refetchAll();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isConfirmed, refetchAll]);
 
   useEffect(() => {
     if (isConnected && nftContractAddress) {
@@ -437,8 +378,8 @@ const NFTBox: React.FC = () => {
                 <Button
                   variant="primary"
                   onClick={handleMint}
-                  loading={isMinting}
-                  disabled={isMinting}
+                  loading={tx.isBusy}
+                  disabled={tx.isBusy}
                   icon={<Plus size={18} />}
                 >
                   Mint Test NFT
@@ -493,8 +434,8 @@ const NFTBox: React.FC = () => {
                         <Button
                           variant="primary"
                           onClick={handleMint}
-                          loading={isMinting}
-                          disabled={isMinting}
+                          loading={tx.isBusy}
+                          disabled={tx.isBusy}
                           icon={<Plus size={16} />}
                         >
                           Mint Test NFT
@@ -546,11 +487,13 @@ const NFTBox: React.FC = () => {
 
       {/* Transaction Modal */}
       <TransactionModal
-        isOpen={isModalOpen}
-        onClose={closeModal}
-        status={txStatus}
-        error={txError}
-        hash={hash}
+        isOpen={tx.isOpen}
+        onClose={tx.close}
+        status={tx.status}
+        error={tx.error}
+        hash={tx.hash}
+        details={{ type: "mint" }}
+        onRetry={handleMint}
       />
 
       {/* Pending NFTs Section */}

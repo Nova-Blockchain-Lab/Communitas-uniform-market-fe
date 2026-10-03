@@ -1,11 +1,7 @@
 import React, { useEffect, useState, useCallback, useMemo } from "react";
-import {
-  useAccount,
-  usePublicClient,
-  useReadContracts,
-  useWaitForTransactionReceipt,
-  useWriteContract,
-} from "wagmi";
+import { useAccount, useConfig, usePublicClient, useReadContracts, useWriteContract } from "wagmi";
+import { waitForTransactionReceipt } from "wagmi/actions";
+import { useQuery } from "@tanstack/react-query";
 import {
   ClipboardList,
   Check,
@@ -34,7 +30,8 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { SkeletonBlock } from "@/components/ui/Skeleton";
 import { getTimestampsForDay, formatTime } from "@/utils/dateHelpers";
 import { wattsToKWh, pricePerWattToPerKWh } from "@/utils/units";
-import { AbiFunction } from "viem";
+import type { Abi, AbiFunction } from "viem";
+import { txErrorMessage } from "@/hooks/useTransactionFeedback";
 import { useEthPrice } from "@/hooks/useEthPrice";
 
 /* ------------------------------------------------------------------ */
@@ -99,6 +96,8 @@ interface FlatAsk {
 /* ------------------------------------------------------------------ */
 /*  Helpers                                                            */
 /* ------------------------------------------------------------------ */
+
+const NO_REFUNDS = new Set<string>();
 
 const formatKWh = (kWh: number): string =>
   kWh % 1 === 0 ? kWh.toString() : kWh.toFixed(3);
@@ -632,8 +631,6 @@ const CombinedOrdersBox: React.FC = () => {
   const toast = useMarketToast();
 
   const [selectedDay, setSelectedDay] = useState<Date>(new Date());
-  const [activeOrderIndex, setActiveOrderIndex] = useState<string | null>(null);
-  const [refundedBidKeys, setRefundedBidKeys] = useState<Set<string>>(new Set());
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [sortMode, setSortMode] = useState<SortMode>("time");
   const [mobileTab, setMobileTab] = useState<MobileTab>("buy");
@@ -692,30 +689,39 @@ const CombinedOrdersBox: React.FC = () => {
 
   /* ---- Write contract for actions ---- */
 
-  const {
-    data: hash,
-    isPending: isWritePending,
-    writeContract,
-    error: writeError,
-    reset: resetWrite,
-  } = useWriteContract();
-  const {
-    isLoading: isConfirming,
-    isSuccess: isConfirmed,
-    error: confirmError,
-  } = useWaitForTransactionReceipt({ hash });
-
-  // Separate writer for "Cancel Active" so its sequential txs do not drive the
-  // single-order toasts above.
+  const config = useConfig();
   const { writeContractAsync } = useWriteContract();
+  /** Action in flight: `bid-<hour>-<index>`, `clear-<hour>` or `all` */
+  const [busyKey, setBusyKey] = useState<string | null>(null);
   const [cancelProgress, setCancelProgress] = useState<string | null>(null);
+
+  /* ---- BidRefunded events (all hours) ---- */
+  const { data: refundedBidKeys = NO_REFUNDS, refetch: refetchRefunds } = useQuery({
+    queryKey: ["bidRefunds", energyMarketAddress, address],
+    queryFn: async () => {
+      const events = await publicClient!.getContractEvents({
+        address: energyMarketAddress,
+        abi: EnergyBiddingMarketAbi as Abi,
+        eventName: "BidRefunded",
+        args: { bidder: address },
+      });
+      return new Set(
+        events.map((e) => {
+          const { hour, index } = (e as unknown as { args: { hour: bigint; index: bigint } }).args;
+          return `${hour}-${index}`;
+        }),
+      );
+    },
+    enabled: !!publicClient && !!energyMarketAddress && !!address,
+  });
 
   const refetchAll = useCallback(() => {
     refetchBids();
     refetchAsks();
     refetchCleared();
     refetchPrices();
-  }, [refetchBids, refetchAsks, refetchCleared, refetchPrices]);
+    refetchRefunds();
+  }, [refetchBids, refetchAsks, refetchCleared, refetchPrices, refetchRefunds]);
 
   /* ---- Filter user bids, preserving global indices ---- */
 
@@ -738,92 +744,52 @@ const CombinedOrdersBox: React.FC = () => {
     });
   }, [bids, address]);
 
-  /* ---- Fetch BidRefunded events ---- */
-
-  useEffect(() => {
-    if (!publicClient || !energyMarketAddress || !address) return;
-
-    const fetchRefundedBids = async () => {
-      try {
-        const events = await publicClient.getContractEvents({
-          address: energyMarketAddress,
-          abi: EnergyBiddingMarketAbi as any,
-          eventName: "BidRefunded",
-          args: { bidder: address },
-        });
-        const keys = new Set(
-          events.map((e: any) => `${e.args.hour}-${e.args.index}`),
-        );
-        setRefundedBidKeys(keys);
-      } catch (err) {
-        console.error("Failed to fetch BidRefunded events:", err);
-      }
-    };
-
-    fetchRefundedBids();
-  }, [publicClient, energyMarketAddress, address, isConfirmed, selectedDay]);
-
   useEffect(() => {
     if (isConnected) refetchAll();
   }, [isConnected, selectedDay, refetchAll]);
 
-  /* ---- Success effect ---- */
-  useEffect(() => {
-    if (isConfirmed) {
-      toast.success("Transaction Successful");
-      setActiveOrderIndex(null);
-      refetchAll();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isConfirmed, refetchAll]);
-
-  /* ---- Error effect ---- */
-  useEffect(() => {
-    const err = writeError || confirmError;
-    if (!err) return;
-
-    let message = err.message;
-    if (message.includes("User rejected") || message.includes("user rejected")) {
-      message = "Transaction was rejected in your wallet";
-    } else if (message.includes("insufficient funds")) {
-      message = "Insufficient funds for this transaction";
-    } else if (message.length > 150) {
-      message = message.substring(0, 150) + "...";
-    }
-    toast.error("Transaction Failed", message);
-    setActiveOrderIndex(null);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [writeError, confirmError]);
-
   /* ---- Action handlers ---- */
 
-  const handleCancelBid = useCallback(
-    (timestamp: number, globalIndex: number) => {
-      if (!energyMarketAddress) return;
-      setActiveOrderIndex(`bid-${timestamp}-${globalIndex}`);
-      writeContract({
+  /** Submit one market transaction and wait for it; throws on rejection or revert. */
+  const sendTx = useCallback(
+    async (functionName: "cancelBid" | "clearMarket", args: readonly number[]) => {
+      const hash = await writeContractAsync({
         abi: EnergyBiddingMarketAbi as AbiFunction[],
-        address: energyMarketAddress,
-        functionName: "cancelBid",
-        args: [timestamp, globalIndex],
+        address: energyMarketAddress!,
+        functionName,
+        args,
       });
+      await waitForTransactionReceipt(config, { hash });
     },
-    [energyMarketAddress, writeContract],
+    [writeContractAsync, energyMarketAddress, config],
+  );
+
+  const runAction = useCallback(
+    async (key: string, action: () => Promise<void>) => {
+      if (!energyMarketAddress) return;
+      setBusyKey(key);
+      try {
+        await action();
+        toast.success("Transaction Successful");
+      } catch (err) {
+        toast.error("Transaction Failed", txErrorMessage(err));
+      } finally {
+        setBusyKey(null);
+        refetchAll();
+      }
+    },
+    [energyMarketAddress, toast, refetchAll],
+  );
+
+  const handleCancelBid = useCallback(
+    (timestamp: number, globalIndex: number) =>
+      runAction(`bid-${timestamp}-${globalIndex}`, () => sendTx("cancelBid", [timestamp, globalIndex])),
+    [runAction, sendTx],
   );
 
   const handleClearMarket = useCallback(
-    (timestamp: number) => {
-      if (!energyMarketAddress) return;
-      setActiveOrderIndex(`clear-${timestamp}`);
-      resetWrite();
-      writeContract({
-        abi: EnergyBiddingMarketAbi as AbiFunction[],
-        address: energyMarketAddress,
-        functionName: "clearMarket",
-        args: [timestamp],
-      });
-    },
-    [energyMarketAddress, writeContract, resetWrite],
+    (timestamp: number) => runAction(`clear-${timestamp}`, () => sendTx("clearMarket", [timestamp])),
+    [runAction, sendTx],
   );
 
   /** Bids that can still be canceled: same rule as the per-order Cancel button */
@@ -841,34 +807,25 @@ const CombinedOrdersBox: React.FC = () => {
 
   // No batch cancel in the contract, so one cancelBid tx per bid, each awaited.
   const handleCancelAllActive = useCallback(async () => {
-    if (!energyMarketAddress || !publicClient) return;
+    if (!energyMarketAddress) return;
     const total = activeBids.length;
     let done = 0;
+    setBusyKey("all");
     try {
       for (const [hour, index] of activeBids) {
         setCancelProgress(`${done + 1}/${total}`);
-        const txHash = await writeContractAsync({
-          abi: EnergyBiddingMarketAbi as AbiFunction[],
-          address: energyMarketAddress,
-          functionName: "cancelBid",
-          args: [hour, index],
-        });
-        const receipt = await publicClient.waitForTransactionReceipt({ hash: txHash });
-        if (receipt.status !== "success") throw new Error("Cancel transaction reverted");
+        await sendTx("cancelBid", [hour, index]);
         done++;
       }
       toast.success(`Canceled ${done} bid${done === 1 ? "" : "s"}`);
     } catch (err) {
-      const e = err as { shortMessage?: string; message?: string };
-      toast.error(
-        done ? `Canceled ${done} of ${total} bids` : "Cancel failed",
-        e.shortMessage ?? e.message,
-      );
+      toast.error(done ? `Canceled ${done} of ${total} bids` : "Cancel failed", txErrorMessage(err));
     } finally {
+      setBusyKey(null);
       setCancelProgress(null);
       refetchAll();
     }
-  }, [activeBids, energyMarketAddress, publicClient, writeContractAsync, toast, refetchAll]);
+  }, [activeBids, energyMarketAddress, sendTx, toast, refetchAll]);
 
   const toggleSortMode = useCallback(
     () => setSortMode((prev) => (prev === "time" ? "amount" : "time")),
@@ -965,9 +922,7 @@ const CombinedOrdersBox: React.FC = () => {
           onCancel={() => handleCancelBid(timestamps[i], bid.globalIndex)}
           onClearMarket={() => handleClearMarket(timestamps[i])}
           isLoading={
-            (isWritePending || isConfirming) &&
-            (activeOrderIndex === `bid-${timestamps[i]}-${bid.globalIndex}` ||
-              activeOrderIndex === `clear-${timestamps[i]}`)
+            busyKey === `bid-${timestamps[i]}-${bid.globalIndex}` || busyKey === `clear-${timestamps[i]}`
           }
         />
       )),
@@ -980,9 +935,7 @@ const CombinedOrdersBox: React.FC = () => {
       ethPrice,
       handleCancelBid,
       handleClearMarket,
-      isWritePending,
-      isConfirming,
-      activeOrderIndex,
+      busyKey,
     ],
   );
 
@@ -1000,10 +953,7 @@ const CombinedOrdersBox: React.FC = () => {
           clearingPrice={prices?.[i]?.result as bigint}
           ethPrice={ethPrice}
           onClearMarket={() => handleClearMarket(timestamps[i])}
-          isLoading={
-            (isWritePending || isConfirming) &&
-            activeOrderIndex === `clear-${timestamps[i]}`
-          }
+          isLoading={busyKey === `clear-${timestamps[i]}`}
         />
       )),
     [
@@ -1013,9 +963,7 @@ const CombinedOrdersBox: React.FC = () => {
       prices,
       ethPrice,
       handleClearMarket,
-      isWritePending,
-      isConfirming,
-      activeOrderIndex,
+      busyKey,
     ],
   );
 
@@ -1050,8 +998,8 @@ const CombinedOrdersBox: React.FC = () => {
           size="sm"
           variant="danger"
           icon={<Trash2 size={14} />}
-          disabled={isWritePending || isConfirming || cancelProgress !== null}
-          loading={cancelProgress !== null}
+          disabled={busyKey !== null}
+          loading={busyKey === "all"}
           onClick={handleCancelAllActive}
         >
           {cancelProgress ? (
@@ -1064,7 +1012,7 @@ const CombinedOrdersBox: React.FC = () => {
           )}
         </Button>
       ) : undefined,
-    [bidCount, hasActiveBids, isWritePending, isConfirming, cancelProgress, activeBids.length, handleCancelAllActive],
+    [bidCount, hasActiveBids, busyKey, cancelProgress, activeBids.length, handleCancelAllActive],
   );
 
   /* ---- Render helpers ---- */

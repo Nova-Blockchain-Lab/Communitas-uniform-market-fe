@@ -9,7 +9,7 @@ import { baseChain, defaultChain } from "@/config/chains";
 import { formatBalance } from "@/utils/utils";
 import { SkeletonBlock, SkeletonLine } from "@/components/ui/Skeleton";
 import NetworkSelector from "./NetworkSelector";
-import { SubmitButton } from "./SubmitButton";
+import SubmitButton from "./SubmitButton";
 import { l1Provider, l2Provider } from "@/config/providers";
 import { useEthPrice } from "@/hooks/useEthPrice";
 

@@ -1,10 +1,5 @@
-import React, { useEffect, useState, useCallback, useMemo } from "react";
-import {
-  useAccount,
-  useBalance,
-  useWaitForTransactionReceipt,
-  useWriteContract,
-} from "wagmi";
+import React, { useState, useCallback, useMemo } from "react";
+import { useAccount, useBalance } from "wagmi";
 import {
   Zap,
   ArrowLeftRight,
@@ -26,6 +21,7 @@ import ConnectAndSwitchNetworkButton from "@/components/common/ConnectAndSwitchN
 import { Card, CardHeader, CardSection } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { useEthPrice } from "@/hooks/useEthPrice";
+import { useTransactionFeedback } from "@/hooks/useTransactionFeedback";
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
@@ -70,18 +66,6 @@ const QUICK_BTN_ACTIVE =
 
 const QUICK_BTN_INACTIVE =
   `${QUICK_BTN_BASE} bg-white/5 text-gray-400 hover:bg-white/10 hover:text-white`;
-
-/** Extract a short human-readable message from a contract / wallet error. */
-function formatTxError(error: Error): string {
-  const msg = error.message ?? String(error);
-  /* Wagmi / viem often wrap the actual reason in a verbose string.
-     Try to pull out the "shortMessage" or "reason" when available. */
-  const shortMatch = msg.match(/shortMessage"?:\s*"([^"]+)"/);
-  if (shortMatch) return shortMatch[1];
-  /* Fall back to the first sentence (capped at 120 chars). */
-  const first = msg.split(/[.\n]/)[0];
-  return first.length > 120 ? `${first.slice(0, 117)}...` : first;
-}
 
 /* ------------------------------------------------------------------ */
 /*  Quick-amount button (extracted to avoid inline closures)           */
@@ -133,18 +117,10 @@ const BidBox: React.FC = () => {
   const [bidTimestamps, setBidTimestamps] = useState<number[]>([]);
 
   /* ---- Contract interactions ------------------------------------- */
-  const {
-    data: hash,
-    isPending: isWritePending,
-    writeContract,
-    error: writeError,
-    reset: resetWrite,
-  } = useWriteContract();
-  const {
-    isLoading: isConfirming,
-    isSuccess: isConfirmed,
-    error: confirmError,
-  } = useWaitForTransactionReceipt({ hash });
+  const tx = useTransactionFeedback();
+  const isConfirmed = tx.status === "success";
+  /* Shown inline under the form until dismissed or the next submit */
+  const txErrorMessage = tx.isOpen && tx.status === "error" ? tx.error : undefined;
 
   const {
     data: balance,
@@ -163,7 +139,7 @@ const BidBox: React.FC = () => {
     return { priceInETH, priceInEUR, totalCostETH, totalCostEUR };
   }, [energy, pricePerKwh, isPriceInEUR, ethPrice, bidTimestamps.length]);
 
-  const isLoading = isWritePending || isConfirming;
+  const isLoading = tx.isBusy;
   const needsConnection = !isConnected || (chainId != null && defaultChain.id !== chainId);
   const isDataLoading = isBalanceLoading;
 
@@ -193,20 +169,13 @@ const BidBox: React.FC = () => {
       : `${priceDerived.priceInEUR.toFixed(2)} EUR`;
   }, [ethPrice, isPriceInEUR, priceDerived.priceInETH, priceDerived.priceInEUR]);
 
-  /* Human-readable transaction error */
-  const txErrorMessage = useMemo<string | null>(() => {
-    const err = writeError ?? confirmError;
-    if (!err) return null;
-    return formatTxError(err);
-  }, [writeError, confirmError]);
-
   /* Button label */
   const buttonLabel = useMemo<string>(() => {
-    if (isConfirming) return "Confirming...";
-    if (isWritePending) return "Waiting for wallet...";
+    if (tx.status === "confirming") return "Confirming...";
+    if (tx.status === "pending") return "Waiting for wallet...";
     if (isConfirmed) return "Bid Submitted!";
     return "Submit Bid";
-  }, [isConfirming, isWritePending, isConfirmed]);
+  }, [tx.status, isConfirmed]);
 
   /* ---- Validation ------------------------------------------------ */
   const validateBid = useCallback((): boolean => {
@@ -230,32 +199,34 @@ const BidBox: React.FC = () => {
   }, [energy, bidTimestamps.length, energyMarketAddress, toast]);
 
   /* ---- Handlers -------------------------------------------------- */
-  const handleBid = useCallback(() => {
-    /* Clear any stale error before submitting */
-    resetWrite();
+  const handleBid = useCallback(async () => {
     if (!validateBid()) return;
 
     const energyInWatts = kWhToWatts(energy);
     const pricePerWattInWei = pricePerKWhToPerWattWei(priceDerived.priceInETH);
 
-    if (bidTimestamps.length === 1) {
-      writeContract({
-        abi: EnergyBiddingMarketAbi,
-        address: energyMarketAddress!,
-        functionName: "placeBid",
-        value: energyInWatts * pricePerWattInWei,
-        args: [bidTimestamps[0], energyInWatts],
-      });
-    } else {
-      writeContract({
-        abi: EnergyBiddingMarketAbi,
-        address: energyMarketAddress!,
-        functionName: "placeMultipleBids",
-        value: energyInWatts * pricePerWattInWei * BigInt(bidTimestamps.length),
-        args: [bidTimestamps, energyInWatts],
-      });
+    const ok = await tx.send(() =>
+      bidTimestamps.length === 1
+        ? tx.writeContractAsync({
+            abi: EnergyBiddingMarketAbi,
+            address: energyMarketAddress!,
+            functionName: "placeBid",
+            value: energyInWatts * pricePerWattInWei,
+            args: [bidTimestamps[0], energyInWatts],
+          })
+        : tx.writeContractAsync({
+            abi: EnergyBiddingMarketAbi,
+            address: energyMarketAddress!,
+            functionName: "placeMultipleBids",
+            value: energyInWatts * pricePerWattInWei * BigInt(bidTimestamps.length),
+            args: [bidTimestamps, energyInWatts],
+          }),
+    );
+    if (ok) {
+      refetchBalance();
+      toast.success("Bid Placed Successfully!", "Your energy bid has been submitted.");
     }
-  }, [validateBid, resetWrite, energy, priceDerived.priceInETH, bidTimestamps, writeContract, energyMarketAddress]);
+  }, [validateBid, energy, priceDerived.priceInETH, bidTimestamps, tx, energyMarketAddress, refetchBalance, toast]);
 
   const handleTimestampsChange = useCallback((timestamps: number[]) => {
     setBidTimestamps(timestamps);
@@ -307,19 +278,8 @@ const BidBox: React.FC = () => {
     setEnergyDisplay(String(value));
   }, []);
 
-  const handleDismissError = useCallback(() => {
-    resetWrite();
-  }, [resetWrite]);
 
   /* ---- Effects --------------------------------------------------- */
-  useEffect(() => {
-    if (isConnected && isConfirmed) {
-      refetchBalance();
-      toast.success("Bid Placed Successfully!", "Your energy bid has been submitted.");
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isConfirmed, isConnected, refetchBalance]);
-
   /* ---- Computed classes ------------------------------------------ */
   const energyInputClassName = useMemo(
     () =>
@@ -538,7 +498,7 @@ const BidBox: React.FC = () => {
             </div>
             <button
               type="button"
-              onClick={handleDismissError}
+              onClick={tx.close}
               className="shrink-0 p-1 min-h-[28px] min-w-[28px] rounded-md text-red-400/60 hover:text-red-400 hover:bg-red-500/10 transition-colors"
               aria-label="Dismiss error"
             >

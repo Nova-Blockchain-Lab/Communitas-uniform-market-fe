@@ -1,10 +1,6 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
-import {
-  useAccount,
-  useReadContract,
-  useWaitForTransactionReceipt,
-  useWriteContract,
-} from "wagmi";
+import React, { useCallback, useMemo, useState } from "react";
+import { useAccount, useReadContract } from "wagmi";
+import { isAddress } from "viem";
 import { Wallet, Coins, ArrowDown, Info, RefreshCw, CheckCircle2, XCircle, PartyPopper } from "lucide-react";
 import { Switch } from "@/components/ui/Switch";
 import { motion, AnimatePresence } from "motion/react";
@@ -20,19 +16,17 @@ import { Card, CardHeader } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { SkeletonLine } from "@/components/ui/Skeleton";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { type TransactionStatus } from "@/components/ui/TransactionModal";
+import { useTransactionFeedback } from "@/hooks/useTransactionFeedback";
 import { useEthPrice } from "@/hooks/useEthPrice";
 
 /* -------------------------------------------------------------------------- */
 /*  Address validation helper                                                 */
 /* -------------------------------------------------------------------------- */
-const ADDRESS_REGEX = /^0x[a-fA-F0-9]{40}$/;
-
 type AddressStatus = "empty" | "valid" | "short" | "long" | "invalid";
 
 const validateAddress = (addr: string): AddressStatus => {
   if (addr.length === 0) return "empty";
-  if (ADDRESS_REGEX.test(addr)) return "valid";
+  if (isAddress(addr)) return "valid";
   if (addr.length < 42) return "short";
   if (addr.length > 42) return "long";
   return "invalid";
@@ -138,7 +132,7 @@ const ValidationMessage: React.FC<ValidationMessageProps> = React.memo(({ status
   return (
     <p className="mt-1.5 text-xs text-red-400 flex items-center gap-1">
       <XCircle size={12} />
-      Invalid format - must start with 0x followed by 40 hex characters
+      Invalid address: 0x followed by 40 hex characters, with a valid checksum if mixed case
     </p>
   );
 });
@@ -157,13 +151,7 @@ const ClaimBox: React.FC = () => {
   const [customAddress, setCustomAddress] = useState("");
   const [showCelebration, setShowCelebration] = useState(false);
 
-  // Modal state
-  const [txStatus, setTxStatus] = useState<TransactionStatus>("idle");
-  const [txError, setTxError] = useState<string | undefined>();
-
-  // Contract interactions
-  const { data: hash, isPending: isWritePending, writeContract, error: writeError, reset: resetWrite } = useWriteContract();
-  const { isLoading: isConfirming, isSuccess: isConfirmed, error: confirmError } = useWaitForTransactionReceipt({ hash });
+  const tx = useTransactionFeedback();
 
   const readContractArgs = useMemo(
     () =>
@@ -199,7 +187,7 @@ const ClaimBox: React.FC = () => {
 
   const hasBalance = balance > 0;
 
-  const isLoading = isWritePending || isConfirming;
+  const isLoading = tx.isBusy;
 
   const needsConnection = useMemo(
     () => !isConnected || (chainId !== undefined && defaultChain.id !== chainId),
@@ -223,51 +211,6 @@ const ClaimBox: React.FC = () => {
   const formattedBalanceEUR = useMemo(() => balanceInEUR.toFixed(2), [balanceInEUR]);
 
   /* ---------------------------------------------------------------------- */
-  /*  Transaction status tracking                                           */
-  /* ---------------------------------------------------------------------- */
-  useEffect(() => {
-    if (isWritePending) {
-      setTxStatus("pending");
-    } else if (isConfirming) {
-      setTxStatus("confirming");
-    } else if (isConfirmed) {
-      setTxStatus("success");
-      refetchBalance();
-    } else if (writeError || confirmError) {
-      setTxStatus("error");
-      const err = writeError || confirmError;
-      if (err) {
-        let message = err.message;
-        if (message.includes("User rejected") || message.includes("user rejected")) {
-          message = "Transaction was rejected in your wallet";
-        } else if (message.includes("insufficient funds")) {
-          message = "Insufficient gas for this transaction";
-        } else if (message.length > 150) {
-          message = message.substring(0, 150) + "...";
-        }
-        setTxError(message);
-      }
-    }
-  }, [isWritePending, isConfirming, isConfirmed, writeError, confirmError, refetchBalance]);
-
-  /* ---------------------------------------------------------------------- */
-  /*  Success celebration                                                    */
-  /* ---------------------------------------------------------------------- */
-  useEffect(() => {
-    if (!hash || isConfirming) return;
-    if (isConfirmed) {
-      refetchBalance();
-      setShowCelebration(true);
-      toast.success("Earnings Claimed!", "Your earnings have been sent to your wallet.");
-      const timer = setTimeout(() => setShowCelebration(false), 4000);
-      return () => clearTimeout(timer);
-    } else {
-      toast.error("Claim Failed", "Something went wrong. Please try again.");
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isConfirming, isConfirmed, hash, refetchBalance]);
-
-  /* ---------------------------------------------------------------------- */
   /*  Handlers                                                              */
   /* ---------------------------------------------------------------------- */
   const handleRefresh = useCallback(() => {
@@ -285,7 +228,7 @@ const ClaimBox: React.FC = () => {
     [],
   );
 
-  const handleClaim = useCallback(() => {
+  const handleClaim = useCallback(async () => {
     if (!hasBalance) {
       toast.info("No Claimable Balance", "You don't have any earnings to claim.");
       return;
@@ -296,40 +239,42 @@ const ClaimBox: React.FC = () => {
       return;
     }
 
-    if (claimToOther) {
-      if (addressValidation !== "valid") {
-        toast.error("Invalid Address", "Please enter a valid Ethereum address.");
-        return;
-      }
-      writeContract({
-        abi: EnergyBiddingMarketAbi,
-        address: energyMarketAddress,
-        functionName: "claimBalanceTo",
-        args: [customAddress],
-      });
-    } else {
-      writeContract({
-        abi: EnergyBiddingMarketAbi,
-        address: energyMarketAddress,
-        functionName: "claimBalance",
-      });
+    if (claimToOther && addressValidation !== "valid") {
+      toast.error("Invalid Address", "Please enter a valid Ethereum address.");
+      return;
     }
-  }, [hasBalance, energyMarketAddress, claimToOther, addressValidation, customAddress, writeContract, toast]);
 
-  const handleDismissError = useCallback(() => {
-    setTxStatus("idle");
-    setTxError(undefined);
-  }, []);
+    const ok = await tx.send(() =>
+      claimToOther
+        ? tx.writeContractAsync({
+            abi: EnergyBiddingMarketAbi,
+            address: energyMarketAddress,
+            functionName: "claimBalanceTo",
+            args: [customAddress],
+          })
+        : tx.writeContractAsync({
+            abi: EnergyBiddingMarketAbi,
+            address: energyMarketAddress,
+            functionName: "claimBalance",
+          }),
+    );
+    refetchBalance();
+    if (ok) {
+      toast.success("Earnings Claimed!", "Your earnings have been sent to your wallet.");
+      setShowCelebration(true);
+      setTimeout(() => setShowCelebration(false), 4000);
+    }
+  }, [hasBalance, energyMarketAddress, claimToOther, addressValidation, customAddress, tx, toast, refetchBalance]);
 
   /* ---------------------------------------------------------------------- */
   /*  Button label                                                          */
   /* ---------------------------------------------------------------------- */
   const buttonLabel = useMemo(() => {
-    if (isWritePending) return "Waiting for wallet...";
-    if (isConfirming) return "Confirming on-chain...";
+    if (tx.status === "pending") return "Waiting for wallet...";
+    if (tx.status === "confirming") return "Confirming on-chain...";
     if (hasBalance) return "Claim Earnings";
     return "No Balance to Claim";
-  }, [isWritePending, isConfirming, hasBalance]);
+  }, [tx.status, hasBalance]);
 
   /* ---------------------------------------------------------------------- */
   /*  Render                                                                */
@@ -492,7 +437,7 @@ const ClaimBox: React.FC = () => {
 
             {/* Transaction status feedback */}
             <AnimatePresence>
-              {txStatus === "error" && txError && (
+              {tx.isOpen && tx.status === "error" && tx.error && (
                 <motion.div
                   initial={slideInInitial}
                   animate={slideInAnimate}
@@ -501,9 +446,9 @@ const ClaimBox: React.FC = () => {
                 >
                   <div className="flex items-start gap-2">
                     <XCircle size={14} className="text-red-400 mt-0.5 shrink-0" />
-                    <p className="text-xs text-red-400 break-words flex-1">{txError}</p>
+                    <p className="text-xs text-red-400 break-words flex-1">{tx.error}</p>
                     <button
-                      onClick={handleDismissError}
+                      onClick={tx.close}
                       className="shrink-0 p-1 min-w-[28px] min-h-[28px] flex items-center justify-center rounded hover:bg-red-500/20 text-red-400 transition-colors"
                       aria-label="Dismiss error"
                     >

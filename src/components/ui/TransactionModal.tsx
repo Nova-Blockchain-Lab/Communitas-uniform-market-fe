@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { createPortal } from "react-dom";
+import { useAccount } from "wagmi";
 import { motion, AnimatePresence } from "motion/react";
 import {
   CheckCircle2,
@@ -12,7 +13,7 @@ import {
   TrendingUp,
   Wallet,
   AlertTriangle,
-  Image,
+  Image as ImageIcon,
   ArrowUpDown,
   ArrowUp,
   ArrowDown,
@@ -39,7 +40,6 @@ interface TransactionModalProps {
   details?: TransactionDetails;
   onClose: () => void;
   onRetry?: () => void;
-  explorerUrl?: string;
 }
 
 const statusConfig = {
@@ -132,7 +132,7 @@ const typeConfig: Record<TransactionType, { icon: React.ReactNode; label: string
     successMessage: "Market has been cleared successfully!",
   },
   mint: {
-    icon: <Image size={24} />,
+    icon: <ImageIcon size={24} />,
     label: "Mint NFT",
     successMessage: "Your NFT has been minted successfully!",
   },
@@ -176,15 +176,10 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
   details,
   onClose,
   onRetry,
-  explorerUrl = "https://sepolia.arbiscan.io",
 }) => {
   const [copied, setCopied] = useState(false);
-  const [portalTarget, setPortalTarget] = useState<HTMLElement | null>(null);
-
-  // Resolve portal target on mount (client-side only)
-  useEffect(() => {
-    setPortalTarget(document.body);
-  }, []);
+  // Every flow signs on the chain the wallet is on, so its explorer holds the tx.
+  const explorerUrl = (useAccount().chain?.blockExplorers?.default.url ?? "https://sepolia.arbiscan.io").replace(/\/$/, "");
 
   // Body scroll lock when modal is open
   useEffect(() => {
@@ -230,7 +225,8 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
   const typeInfo = details?.type ? typeConfig[details.type] : null;
   const canDismiss = status === "success" || status === "error";
 
-  if (status === "idle" || !portalTarget) return null;
+  // Status leaves "idle" only after a user action, so this never renders on the server.
+  if (status === "idle") return null;
 
   const modalContent = (
     <AnimatePresence>
@@ -476,7 +472,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
     </AnimatePresence>
   );
 
-  return createPortal(modalContent, portalTarget);
+  return createPortal(modalContent, document.body);
 };
 
 export default TransactionModal;

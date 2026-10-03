@@ -11,7 +11,7 @@ import { SkeletonBlock } from "@/components/ui/Skeleton";
 interface NFTCardProps {
   isL3: boolean;
   nft: NFTData | NFTDataWithStatus;
-  refetchNFTs: () => {};
+  refetchNFTs: () => void;
 }
 
 const NFTCard: React.FC<NFTCardProps> = memo(function NFTCard({

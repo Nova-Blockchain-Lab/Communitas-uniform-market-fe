@@ -1,6 +1,7 @@
 "use client";
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React from "react";
 import { useAccount } from "wagmi";
+import { useQuery } from "@tanstack/react-query";
 import { Clock, Loader2, History, RefreshCw } from "lucide-react";
 import { isToday, isYesterday } from "date-fns";
 import {
@@ -11,7 +12,6 @@ import {
 import { EmptyState } from "@/components/ui/EmptyState";
 import { SkeletonBlock, SkeletonLine } from "@/components/ui/Skeleton";
 import MessageHistoryRow from "./MessageHistoryRow";
-import { l1Provider, l2Provider } from "@/config/providers";
 
 /** DateGroup type for grouped messages */
 interface DateGroup {
@@ -29,7 +29,7 @@ function groupByDate(messages: ETHDepositOrWithdrawalMessage[]): DateGroup[] {
   };
 
   for (const msg of messages) {
-    const date = new Date(msg.time.toNumber() * 1000);
+    const date = new Date(msg.time * 1000);
     if (isToday(date)) {
       buckets.Today.push(msg);
     } else if (isYesterday(date)) {
@@ -64,50 +64,19 @@ const HistorySkeleton: React.FC = () => (
 const BridgeHistory: React.FC = () => {
   const { address, isConnected } = useAccount();
 
-  const [messages, setMessages] = useState<ETHDepositOrWithdrawalMessage[]>([]);
-  const [isLoading, setIsLoading] = useState<boolean>(false);
-
-  const getMessages = useCallback(async () => {
-    if (!isConnected || !address) return;
-
-    setIsLoading(true);
-
-    try {
-      const withdraws = await getETHWithdrawalsInfo(address, l1Provider, l2Provider);
-      const deposits = await getETHDepositsInfo(address, l1Provider, l2Provider);
-
-      const allMessages = [...withdraws, ...deposits].sort((a, b) =>
-        b.time.sub(a.time).toNumber()
-      );
-
-      setMessages(allMessages);
-    } catch (error) {
-      console.error("Error fetching bridge history:", error);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [isConnected, address]);
-
-  useEffect(() => {
-    let isMounted = true;
-
-    const fetchMessages = async () => {
-      if (!isMounted) return;
-      await getMessages();
-    };
-
-    fetchMessages();
-
-    return () => {
-      isMounted = false;
-    };
-  }, [getMessages]);
-
-  const grouped = useMemo(() => groupByDate(messages), [messages]);
-
-  const handleRefresh = useCallback(() => {
-    getMessages();
-  }, [getMessages]);
+  const { data: messages = [], isFetching: isLoading, refetch } = useQuery({
+    queryKey: ["bridgeHistory", address],
+    queryFn: async () => {
+      const [withdrawals, deposits] = await Promise.all([
+        getETHWithdrawalsInfo(address!),
+        getETHDepositsInfo(address!),
+      ]);
+      return [...withdrawals, ...deposits].sort((a, b) => b.time - a.time);
+    },
+    enabled: !!address,
+  });
+  const getMessages = () => void refetch();
+  const grouped = groupByDate(messages);
 
   // Not connected state
   if (!isConnected) {
@@ -144,7 +113,7 @@ const BridgeHistory: React.FC = () => {
           {messages.length} transaction{messages.length !== 1 ? "s" : ""}
         </span>
         <button
-          onClick={handleRefresh}
+          onClick={getMessages}
           disabled={isLoading}
           className="text-xs text-emerald-500 hover:text-emerald-400 active:scale-95
                      transition-all disabled:opacity-50 flex items-center gap-1.5

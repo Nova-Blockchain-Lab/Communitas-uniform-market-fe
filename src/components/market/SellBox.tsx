@@ -1,5 +1,5 @@
-import React, { useEffect, useState, useMemo, useCallback } from "react";
-import { useAccount, useReadContract, useWaitForTransactionReceipt, useWriteContract } from "wagmi";
+import React, { useState, useMemo, useCallback } from "react";
+import { useAccount, useReadContract } from "wagmi";
 import { TrendingUp, Info, Clock, AlertTriangle, AlertCircle } from "lucide-react";
 import { motion } from "motion/react";
 import Image from "next/image";
@@ -12,7 +12,8 @@ import { useMarketToast } from "@/hooks/useMarketToast";
 import ConnectAndSwitchNetworkButton from "@/components/common/ConnectAndSwitchNetworkButton";
 import { Card, CardHeader, CardSection } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
-import { TransactionModal, TransactionStatus } from "@/components/ui/TransactionModal";
+import { TransactionModal } from "@/components/ui/TransactionModal";
+import { useTransactionFeedback } from "@/hooks/useTransactionFeedback";
 
 
 /* ------------------------------------------------------------------ */
@@ -77,39 +78,7 @@ const SellBox: React.FC = () => {
   const [energy, setEnergy] = useState<number>(0);
   const [energyDisplay, setEnergyDisplay] = useState<string>("0");
 
-  // Modal state
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [txStatus, setTxStatus] = useState<TransactionStatus>("idle");
-  const [txError, setTxError] = useState<string | undefined>();
-
-  // Contract interactions
-  const { data: hash, isPending: isWritePending, writeContract, error: writeError, reset: resetWrite } = useWriteContract();
-  const { isLoading: isConfirming, isSuccess: isConfirmed, error: confirmError } = useWaitForTransactionReceipt({ hash });
-
-  // Update modal status based on transaction state
-  useEffect(() => {
-    if (isWritePending) {
-      setTxStatus("pending");
-    } else if (isConfirming) {
-      setTxStatus("confirming");
-    } else if (isConfirmed) {
-      setTxStatus("success");
-    } else if (writeError || confirmError) {
-      setTxStatus("error");
-      const err = writeError || confirmError;
-      if (err) {
-        let message = err.message;
-        if (message.includes("User rejected") || message.includes("user rejected")) {
-          message = "Transaction was rejected in your wallet";
-        } else if (message.includes("insufficient funds")) {
-          message = "Insufficient funds for this transaction";
-        } else if (message.length > 150) {
-          message = message.substring(0, 150) + "...";
-        }
-        setTxError(message);
-      }
-    }
-  }, [isWritePending, isConfirming, isConfirmed, writeError, confirmError]);
+  const tx = useTransactionFeedback();
 
   // Check seller whitelist status
   const { data: isWhitelisted, isLoading: isWhitelistLoading } = useReadContract({
@@ -136,7 +105,7 @@ const SellBox: React.FC = () => {
     });
   }, []);
 
-  const isLoading = isWritePending || isConfirming;
+  const isLoading = tx.isBusy;
   const needsConnection = !isConnected || (chainId !== undefined && defaultChain.id !== chainId);
   const isNotWhitelisted = isWhitelisted === false;
   const isInputDisabled = isNotWhitelisted || isLoading;
@@ -173,10 +142,10 @@ const SellBox: React.FC = () => {
   /** Button label derived from current transaction state */
   const submitLabel = useMemo((): string => {
     if (isWhitelistLoading) return "Checking authorization...";
-    if (isWritePending) return "Confirm in wallet...";
-    if (isConfirming) return "Confirming on-chain...";
+    if (tx.status === "pending") return "Confirm in wallet...";
+    if (tx.status === "confirming") return "Confirming on-chain...";
     return "List Energy for Sale";
-  }, [isWhitelistLoading, isWritePending, isConfirming]);
+  }, [isWhitelistLoading, tx.status]);
 
   // ---------------------------------------------------------------------------
   // Handlers (stable references via useCallback)
@@ -201,7 +170,7 @@ const SellBox: React.FC = () => {
     setEnergyDisplay(String(value));
   }, []);
 
-  const handleSell = useCallback(() => {
+  const handleSell = useCallback(async () => {
     if (energy <= 0) {
       toast.error("Invalid Amount", "Please enter a positive energy amount.");
       return;
@@ -212,51 +181,26 @@ const SellBox: React.FC = () => {
       return;
     }
 
-    // The contract takes whole Watts
-    writeContract({
-      abi: EnergyBiddingMarketAbi,
-      address: energyMarketAddress,
-      functionName: "placeAsk",
-      args: [kWhToWatts(energy), address],
-    });
-  }, [energy, energyMarketAddress, address, writeContract, toast]);
+    const ok = await tx.send(() =>
+      tx.writeContractAsync({
+        abi: EnergyBiddingMarketAbi,
+        address: energyMarketAddress,
+        functionName: "placeAsk",
+        // The contract takes whole Watts
+        args: [kWhToWatts(energy), address],
+      }),
+    );
+    if (ok) toast.success("Energy Listed Successfully!", `You've listed ${energy} kWh for sale.`);
+  }, [energy, energyMarketAddress, address, tx, toast]);
 
-  const handleModalClose = useCallback(() => {
-    setIsModalOpen(false);
-    setTxStatus("idle");
-    setTxError(undefined);
-    resetWrite();
-  }, [resetWrite]);
-
-  const handleRetry = useCallback(() => {
-    setTxStatus("idle");
-    setTxError(undefined);
-    resetWrite();
-    handleSell();
-  }, [resetWrite, handleSell]);
-
-  // ---------------------------------------------------------------------------
-  // Side-effects
-  // ---------------------------------------------------------------------------
-
-  useEffect(() => {
-    if (!hash || isConfirming) return;
-    if (isConfirmed) {
-      toast.success("Energy Listed Successfully!", `You've listed ${energy} kWh for sale.`);
+  // Clear the form once the user closes a successful listing.
+  const handleModalClose = () => {
+    if (tx.status === "success") {
       setEnergy(0);
       setEnergyDisplay("0");
-    } else {
-      toast.error("Transaction Failed", "Something went wrong. Please try again.");
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isConfirming, isConfirmed, hash, energy]);
-
-  // Open modal whenever a transaction starts
-  useEffect(() => {
-    if (isWritePending) {
-      setIsModalOpen(true);
-    }
-  }, [isWritePending]);
+    tx.close();
+  };
 
   // ---------------------------------------------------------------------------
   // Render
@@ -416,13 +360,13 @@ const SellBox: React.FC = () => {
 
       {/* Transaction Modal */}
       <TransactionModal
-        isOpen={isModalOpen}
-        status={txStatus}
-        hash={hash}
-        error={txError}
+        isOpen={tx.isOpen}
+        status={tx.status}
+        hash={tx.hash}
+        error={tx.error}
         details={txDetails}
         onClose={handleModalClose}
-        onRetry={handleRetry}
+        onRetry={handleSell}
       />
     </div>
   );
