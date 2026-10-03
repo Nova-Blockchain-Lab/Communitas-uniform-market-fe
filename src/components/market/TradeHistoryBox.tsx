@@ -20,6 +20,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { wattsToKWh, pricePerWattToPerKWh } from "@/utils/units";
 import { getTimestampsForDay, formatTime, truncateAddress } from "@/utils/dateHelpers";
 import { fetchLogsFromBlockscout, type BlockscoutLog } from "@/utils/blockscoutApi";
+import { useEthPrice } from "@/hooks/useEthPrice";
 
 /* ---------- Types ---------- */
 
@@ -207,7 +208,8 @@ SummaryStat.displayName = "SummaryStat";
 
 /* ---------- Main component ---------- */
 const TradeHistoryBox: React.FC = () => {
-  const { ethPrice, energyMarketAddress } = useAppContext();
+  const { energyMarketAddress } = useAppContext();
+  const ethPrice = useEthPrice();
 
   // Standalone viem client -- works without wallet connection
   const client = useMemo<PublicClient>(

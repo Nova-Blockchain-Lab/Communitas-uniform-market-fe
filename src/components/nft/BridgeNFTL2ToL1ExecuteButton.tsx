@@ -6,13 +6,13 @@ import {
   getTxExpectedDeadlineTimestamp,
   NFTDataWithStatus,
 } from "@/utils/executeMessageL2ToL1Helper";
-import { useAppContext } from "@/context/AppContext";
 import { ChildToParentMessageStatus, ChildTransactionReceipt } from "@arbitrum/sdk";
 import { useEthersProvider, useEthersSigner } from "@/utils/ethersHelper";
 import { formatTimestamp } from "@/utils/utils";
 import { Button } from "@/components/ui/Button";
 import { TransactionModal, TransactionStatus } from "@/components/ui/TransactionModal";
 import { Clock, ArrowRight, RefreshCw } from "lucide-react";
+import { l1Provider, l2Provider } from "@/config/providers";
 
 // Constants
 const STATUS_POLL_INTERVAL = 60 * 1000; // 1 minute
@@ -24,7 +24,6 @@ interface BridgeNFTL2ToL1ExecuteButtonProps {
 
 const BridgeNFTL2ToL1ExecuteButton: React.FC<BridgeNFTL2ToL1ExecuteButtonProps> = ({ nft, refetchNFTs }) => {
   const { isConnected, address, chain, chainId } = useAccount();
-  const { l1Provider, l2Provider } = useAppContext();
   const signer = useEthersSigner();
   const provider = useEthersProvider();
   const { switchChain } = useSwitchChain();
@@ -61,7 +60,7 @@ const BridgeNFTL2ToL1ExecuteButton: React.FC<BridgeNFTL2ToL1ExecuteButtonProps> 
     let intervalId: NodeJS.Timeout;
 
     const updateWithdrawalStatus = async () => {
-      if (!l1Provider || !l2Provider || !isMounted) return;
+      if (!isMounted) return;
 
       try {
         setIsLoading(true);
@@ -87,7 +86,7 @@ const BridgeNFTL2ToL1ExecuteButton: React.FC<BridgeNFTL2ToL1ExecuteButtonProps> 
       isMounted = false;
       clearInterval(intervalId);
     };
-  }, [l1Provider, l2Provider, nft.hash]);
+  }, [l1Provider, nft.hash]);
 
   // Poll remaining time
   useEffect(() => {
@@ -95,7 +94,7 @@ const BridgeNFTL2ToL1ExecuteButton: React.FC<BridgeNFTL2ToL1ExecuteButtonProps> 
     let intervalId: NodeJS.Timeout;
 
     const fetchAndSetRemainingTime = async () => {
-      if (!l2Provider || !isMounted) return;
+      if (!isMounted) return;
 
       try {
         const time = await getTxExpectedDeadlineTimestamp(l2Provider, nft.hash);
@@ -122,7 +121,7 @@ const BridgeNFTL2ToL1ExecuteButton: React.FC<BridgeNFTL2ToL1ExecuteButtonProps> 
       return;
     }
 
-    if (!isConnected || !chain || !address || !l1Provider || !l2Provider || !signer || !provider) {
+    if (!isConnected || !chain || !address || !signer || !provider) {
       return;
     }
 

@@ -21,6 +21,7 @@ import { Button } from "@/components/ui/Button";
 import { SkeletonLine } from "@/components/ui/Skeleton";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { type TransactionStatus } from "@/components/ui/TransactionModal";
+import { useEthPrice } from "@/hooks/useEthPrice";
 
 /* -------------------------------------------------------------------------- */
 /*  Address validation helper                                                 */
@@ -148,7 +149,8 @@ ValidationMessage.displayName = "ValidationMessage";
 /* -------------------------------------------------------------------------- */
 const ClaimBox: React.FC = () => {
   const { isConnected, address, chainId } = useAccount();
-  const { ethPrice, energyMarketAddress } = useAppContext();
+  const { energyMarketAddress } = useAppContext();
+  const ethPrice = useEthPrice();
   const toast = useMarketToast();
 
   const [claimToOther, setClaimToOther] = useState(false);

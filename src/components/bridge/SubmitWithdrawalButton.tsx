@@ -8,8 +8,8 @@ import { motion } from "motion/react";
 import { useAccount } from "wagmi";
 
 import { useEthersSigner } from "@/utils/ethersHelper";
-import { useAppContext } from "@/context/AppContext";
 import { TransactionModal, TransactionStatus } from "@/components/ui/TransactionModal";
+import { l2Provider } from "@/config/providers";
 
 interface SubmitWithdrawalButtonProps {
   amount: bigint;
@@ -22,7 +22,6 @@ const SubmitWithdrawalButtonInner: React.FC<SubmitWithdrawalButtonProps> = ({
 }) => {
   const { address } = useAccount();
   const signer = useEthersSigner();
-  const { l2Provider, ethPrice } = useAppContext();
 
   // Modal state
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -31,7 +30,7 @@ const SubmitWithdrawalButtonInner: React.FC<SubmitWithdrawalButtonProps> = ({
   const [txHash, setTxHash] = useState<string | undefined>();
 
   const handleWithdrawal = useCallback(async () => {
-    if (!signer || !l2Provider || !address || !amount) return;
+    if (!signer || !address || !amount) return;
 
     setIsModalOpen(true);
     setTxStatus("pending");
@@ -79,7 +78,7 @@ const SubmitWithdrawalButtonInner: React.FC<SubmitWithdrawalButtonProps> = ({
       }
       setTxError(message);
     }
-  }, [signer, l2Provider, address, amount]);
+  }, [signer, address, amount]);
 
   const closeModal = useCallback(() => {
     setIsModalOpen(false);

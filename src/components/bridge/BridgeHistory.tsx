@@ -8,10 +8,10 @@ import {
   getETHDepositsInfo,
   getETHWithdrawalsInfo,
 } from "@/utils/executeMessageL2ToL1Helper";
-import { useAppContext } from "@/context/AppContext";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { SkeletonBlock, SkeletonLine } from "@/components/ui/Skeleton";
 import MessageHistoryRow from "./MessageHistoryRow";
+import { l1Provider, l2Provider } from "@/config/providers";
 
 /** DateGroup type for grouped messages */
 interface DateGroup {
@@ -63,13 +63,12 @@ const HistorySkeleton: React.FC = () => (
 
 const BridgeHistory: React.FC = () => {
   const { address, isConnected } = useAccount();
-  const { l1Provider, l2Provider } = useAppContext();
 
   const [messages, setMessages] = useState<ETHDepositOrWithdrawalMessage[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
   const getMessages = useCallback(async () => {
-    if (!isConnected || !address || !l1Provider || !l2Provider) return;
+    if (!isConnected || !address) return;
 
     setIsLoading(true);
 
@@ -87,7 +86,7 @@ const BridgeHistory: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [isConnected, address, l1Provider, l2Provider]);
+  }, [isConnected, address]);
 
   useEffect(() => {
     let isMounted = true;

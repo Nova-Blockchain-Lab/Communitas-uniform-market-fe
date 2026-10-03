@@ -19,7 +19,7 @@ export const metadata = {
 };
 
 // Networks for the adapter
-const networks: [AppKitNetwork, ...AppKitNetwork[]] = [
+export const networks: [AppKitNetwork, ...AppKitNetwork[]] = [
   novaCidadeMainnet as AppKitNetwork,
   baseChain as AppKitNetwork,
 ];

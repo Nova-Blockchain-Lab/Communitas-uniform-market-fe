@@ -9,6 +9,7 @@
     "chainOwner": "0xC8271089690f4335fc6F1B538f79e43C4C23A7C0",
     "chainId": 93735000855,
     "parentChainId": 421614,
+    "confirmPeriodBlocks": 150,
     "rpcUrl": "https://testnet.novaims.unl.pt/",
     "explorerUrl": "https://testnet.explorer.novaims.unl.pt/",
     "nativeToken": "0x0000000000000000000000000000000000000000"

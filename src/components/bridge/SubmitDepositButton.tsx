@@ -7,9 +7,9 @@ import { EthBridger, EthDepositMessageStatus, getArbitrumNetwork } from "@arbitr
 import { motion } from "motion/react";
 
 import { useEthersSigner } from "@/utils/ethersHelper";
-import { useAppContext } from "@/context/AppContext";
 import { defaultChain } from "@/config/chains";
 import { TransactionModal, TransactionStatus } from "@/components/ui/TransactionModal";
+import { l1Provider, l2Provider } from "@/config/providers";
 
 interface SubmitDepositButtonProps {
   amount: bigint;
@@ -21,7 +21,6 @@ const SubmitDepositButtonInner: React.FC<SubmitDepositButtonProps> = ({
   hasEnoughBalance,
 }) => {
   const signer = useEthersSigner();
-  const { l1Provider, l2Provider, ethPrice } = useAppContext();
 
   // Modal state
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -30,7 +29,7 @@ const SubmitDepositButtonInner: React.FC<SubmitDepositButtonProps> = ({
   const [txHash, setTxHash] = useState<string | undefined>();
 
   const handleDeposit = useCallback(async () => {
-    if (!signer || !l2Provider || !amount) return;
+    if (!signer || !amount) return;
 
     setIsModalOpen(true);
     setTxStatus("pending");
@@ -47,7 +46,7 @@ const SubmitDepositButtonInner: React.FC<SubmitDepositButtonProps> = ({
       // getBlock and estimateGas through signer.provider (the wallet) unless we hand
       // it the answers, which used to kill the deposit before the popup ever opened.
       // MetaMask still signs and broadcasts; it just no longer does our reads.
-      const readProvider = l1Provider ?? signer.provider!;
+      const readProvider = l1Provider;
 
       // Arbitrum Sepolia's base fee fluctuates within seconds and the default
       // ethers v5 estimation (maxFeePerGas = baseFee*2) routinely lands below
@@ -106,7 +105,7 @@ const SubmitDepositButtonInner: React.FC<SubmitDepositButtonProps> = ({
       }
       setTxError(message);
     }
-  }, [signer, l1Provider, l2Provider, amount]);
+  }, [signer, amount]);
 
   const closeModal = useCallback(() => {
     setIsModalOpen(false);

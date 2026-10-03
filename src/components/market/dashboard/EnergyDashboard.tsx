@@ -18,6 +18,7 @@ import { Card, CardHeader } from "@/components/ui/Card";
 import { SkeletonBlock, SkeletonRows, SkeletonLine } from "@/components/ui/Skeleton";
 import HourSelector from "./HourSelector";
 import BubbleVisualization from "./BubbleVisualization";
+import { useEthPrice } from "@/hooks/useEthPrice";
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
@@ -217,7 +218,8 @@ const DashboardSkeleton: React.FC = () => (
 /* ------------------------------------------------------------------ */
 
 const EnergyDashboard: React.FC = () => {
-  const { ethPrice, energyMarketAddress } = useAppContext();
+  const { energyMarketAddress } = useAppContext();
+  const ethPrice = useEthPrice();
   const [selectedDay, setSelectedDay] = useState<Date>(new Date());
   const [selectedHour, setSelectedHour] = useState<number>(
     new Date().getHours()

@@ -4,12 +4,12 @@ import { motion, AnimatePresence } from "motion/react";
 import { ChildToParentMessageStatus } from "@arbitrum/sdk";
 import NFTCard from "@/components/nft/NFTCard";
 import { getPendingOutgoingNftsFromEventLogs, NFTDataWithStatus } from "@/utils/executeMessageL2ToL1Helper";
-import { useAppContext } from "@/context/AppContext";
 import { useAccount } from "wagmi";
 import { Badge } from "@/components/ui/Badge";
 import { Card, CardHeader } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { SkeletonBlock, SkeletonLine } from "@/components/ui/Skeleton";
+import { l1Provider, l2Provider } from "@/config/providers";
 
 interface PendingNFTsBoxProps {
   refetchNFTs: () => {};
@@ -88,7 +88,6 @@ const BridgeProgressIndicator: React.FC<{
 BridgeProgressIndicator.displayName = "BridgeProgressIndicator";
 
 const PendingNFTs: React.FC<PendingNFTsBoxProps> = ({ refetchNFTs }) => {
-  const { l1Provider, l2Provider } = useAppContext();
   const { address } = useAccount();
 
   const [pendingNFTs, setPendingNFTs] = useState<NFTDataWithStatus[]>([]);
@@ -96,7 +95,7 @@ const PendingNFTs: React.FC<PendingNFTsBoxProps> = ({ refetchNFTs }) => {
   const [hasError, setHasError] = useState<boolean>(false);
 
   const fetchPendingNFTs = useCallback(async () => {
-    if (!l1Provider || !l2Provider || !address) return;
+    if (!address) return;
     setIsLoading(true);
     setHasError(false);
     try {
@@ -108,7 +107,7 @@ const PendingNFTs: React.FC<PendingNFTsBoxProps> = ({ refetchNFTs }) => {
     } finally {
       setIsLoading(false);
     }
-  }, [address, l1Provider, l2Provider]);
+  }, [address]);
 
   const refetchAllNfts = useCallback(async () => {
     refetchNFTs();

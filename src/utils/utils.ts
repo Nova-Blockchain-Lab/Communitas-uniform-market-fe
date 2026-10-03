@@ -1,48 +1,6 @@
-import { StaticJsonRpcProvider } from "@ethersproject/providers";
 import { DECIMALS } from "@/config/constants";
 import { formatUnits } from "viem";
 import { BigNumber } from "ethers";
-
-// Provider cache with optional force refresh
-const getProviderForChainCache: {
-  [chainId: number]: StaticJsonRpcProvider;
-} = {};
-
-function createProviderWithCache(chainId: number, rpcUrl: string): StaticJsonRpcProvider {
-  const provider = new StaticJsonRpcProvider(rpcUrl, chainId);
-  getProviderForChainCache[chainId] = provider;
-  return provider;
-}
-
-/**
- * Get or create a cached provider for a chain
- * @param chainId - The chain ID
- * @param rpcUrl - The RPC URL for the chain
- * @param forceRefresh - If true, creates a new provider even if cached
- */
-export function getProviderForChainId(
-  chainId: number,
-  rpcUrl: string,
-  forceRefresh: boolean = false
-): StaticJsonRpcProvider {
-  if (!forceRefresh) {
-    const cachedProvider = getProviderForChainCache[chainId];
-    if (cachedProvider) {
-      return cachedProvider;
-    }
-  }
-
-  return createProviderWithCache(chainId, rpcUrl);
-}
-
-/**
- * Clear provider cache (useful for testing or when RPC URL changes)
- */
-export function clearProviderCache(): void {
-  Object.keys(getProviderForChainCache).forEach((key) => {
-    delete getProviderForChainCache[Number(key)];
-  });
-}
 
 /**
  * Format a balance with token symbol
@@ -114,13 +72,4 @@ export function formatTimestamp(timestampInput: TimestampInput): string | undefi
   if (weeks < 4) return `${weeks} week${weeks !== 1 ? "s" : ""}`;
   if (months < 12) return `${months} month${months !== 1 ? "s" : ""}`;
   return `${years} year${years !== 1 ? "s" : ""}`;
-}
-
-/**
- * Safely parse a number from various input types
- */
-export function safeParseNumber(value: string | number | undefined, defaultValue: number = 0): number {
-  if (value === undefined || value === "") return defaultValue;
-  const parsed = typeof value === "number" ? value : parseFloat(value);
-  return isNaN(parsed) ? defaultValue : parsed;
 }

@@ -12,10 +12,10 @@ import { baseChain, defaultChain } from "@/config/chains";
 import { ChildTransactionReceipt } from "@arbitrum/sdk";
 import { useAccount, useSwitchChain } from "wagmi";
 import { useEthersSigner } from "@/utils/ethersHelper";
-import { useAppContext } from "@/context/AppContext";
 import { formatTimestamp } from "@/utils/utils";
 import { Badge } from "@/components/ui/Badge";
 import { TransactionModal, TransactionStatus } from "@/components/ui/TransactionModal";
+import { l1Provider, l2Provider } from "@/config/providers";
 
 interface MessageHistoryRowProps {
   message: ETHDepositOrWithdrawalMessage;
@@ -42,7 +42,6 @@ type StatusMeta = {
 
 const MessageHistoryRow: React.FC<MessageHistoryRowProps> = ({ message, refetchMessages }) => {
   const { address, isConnected, chainId } = useAccount();
-  const { l1Provider, l2Provider } = useAppContext();
   const { switchChain } = useSwitchChain();
   const signer = useEthersSigner();
 
@@ -76,7 +75,7 @@ const MessageHistoryRow: React.FC<MessageHistoryRowProps> = ({ message, refetchM
       return;
     }
 
-    if (!isConnected || !address || !l1Provider || !l2Provider || !signer) return;
+    if (!isConnected || !address || !signer) return;
 
     setIsModalOpen(true);
     setTxStatus("pending");
@@ -113,7 +112,7 @@ const MessageHistoryRow: React.FC<MessageHistoryRowProps> = ({ message, refetchM
     } finally {
       setIsLoading(false);
     }
-  }, [chainId, isConnected, address, l1Provider, l2Provider, signer, switchChain, refetchMessages]);
+  }, [chainId, isConnected, address, signer, switchChain, refetchMessages]);
 
   const handleExecuteBridge = useCallback(() => {
     executeBridge(message.hash);
@@ -126,7 +125,6 @@ const MessageHistoryRow: React.FC<MessageHistoryRowProps> = ({ message, refetchM
   useEffect(() => {
     if (message.type === MessageType.DEPOSIT) return;
     const updateWithdrawalStatus = async () => {
-      if (!l1Provider || !l2Provider) return;
       setIsLoading(true);
       const state = await getOutgoingMessageState(message.hash, l1Provider, l2Provider);
       setStatus(WITHDRAWAL_STATUS[state]);
@@ -135,10 +133,10 @@ const MessageHistoryRow: React.FC<MessageHistoryRowProps> = ({ message, refetchM
     const interval = setInterval(updateWithdrawalStatus, 60 * 1_000);
     updateWithdrawalStatus();
     return () => clearInterval(interval);
-  }, [message.type, message.hash, l1Provider, l2Provider]);
+  }, [message.type, message.hash]);
 
   useEffect(() => {
-    if (!l2Provider || message.type === MessageType.DEPOSIT) return;
+    if (message.type === MessageType.DEPOSIT) return;
     const fetchAndSetRemainingTime = async () => {
       setIsLoading(true);
       const time = await getTxExpectedDeadlineTimestamp(l2Provider, message.hash);
@@ -149,7 +147,7 @@ const MessageHistoryRow: React.FC<MessageHistoryRowProps> = ({ message, refetchM
     fetchAndSetRemainingTime();
     const interval = setInterval(fetchAndSetRemainingTime, 60 * 1000);
     return () => clearInterval(interval);
-  }, [message.type, message.hash, l2Provider]);
+  }, [message.type, message.hash]);
 
   const statusMeta = useMemo((): StatusMeta => {
     if (isSuccess) {

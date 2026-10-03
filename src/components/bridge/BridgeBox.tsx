@@ -5,12 +5,13 @@ import { useAccount, useConfig } from "wagmi";
 import { motion, AnimatePresence } from "motion/react";
 import Image from "next/image";
 
-import { useAppContext } from "@/context/AppContext";
 import { baseChain, defaultChain } from "@/config/chains";
 import { formatBalance } from "@/utils/utils";
 import { SkeletonBlock, SkeletonLine } from "@/components/ui/Skeleton";
 import NetworkSelector from "./NetworkSelector";
 import { SubmitButton } from "./SubmitButton";
+import { l1Provider, l2Provider } from "@/config/providers";
+import { useEthPrice } from "@/hooks/useEthPrice";
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
@@ -79,7 +80,7 @@ const directionPulseTransition = { duration: 2, repeat: Infinity, ease: "easeInO
 export const BridgeBox: React.FC = () => {
   const { chains } = useConfig();
   const { address, isConnected } = useAccount();
-  const { l1Provider, l2Provider, ethPrice } = useAppContext();
+  const ethPrice = useEthPrice();
 
   const [selectedOriginNetwork, setSelectedOriginNetwork] = useState<number>(baseChain.id);
   const [selectedDestinationNetwork, setSelectedDestinationNetwork] = useState<number>(defaultChain.id);
@@ -226,7 +227,7 @@ export const BridgeBox: React.FC = () => {
   /* ----- Balance fetching ----------------------------------------- */
 
   const fetchBalances = useCallback(async () => {
-    if (!address || !l1Provider || !l2Provider) {
+    if (!address) {
       setOriginBalance(undefined);
       setDestinationBalance(undefined);
       return;
@@ -247,7 +248,7 @@ export const BridgeBox: React.FC = () => {
     } catch (error) {
       console.error("Error fetching balances:", error);
     }
-  }, [address, l1Provider, l2Provider, selectedOriginNetwork]);
+  }, [address, selectedOriginNetwork]);
 
   useEffect(() => {
     fetchBalances().finally(() => setInitialLoading(false));

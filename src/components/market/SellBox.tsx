@@ -14,6 +14,7 @@ import { Card, CardHeader, CardSection } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { TransactionModal, TransactionStatus } from "@/components/ui/TransactionModal";
 
+
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
 /* ------------------------------------------------------------------ */
@@ -70,7 +71,7 @@ const INPUT_FONT_STYLE: React.CSSProperties = { fontSize: "16px" };
 
 const SellBox: React.FC = () => {
   const { isConnected, chainId, address } = useAccount();
-  const { energyMarketAddress, ethPrice } = useAppContext();
+  const { energyMarketAddress } = useAppContext();
   const toast = useMarketToast();
 
   const [energy, setEnergy] = useState<number>(0);

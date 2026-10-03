@@ -6,10 +6,10 @@ import { defaultChain } from "@/config/chains";
 import { ParentToChildMessageGasEstimator, ParentToChildMessageStatus, ParentTransactionReceipt } from "@arbitrum/sdk";
 import { ethers } from "ethers";
 import { getBaseFee } from "@arbitrum/sdk/dist/lib/utils/lib";
-import { useAppContext } from "@/context/AppContext";
 import { Button } from "@/components/ui/Button";
 import { TransactionModal, TransactionStatus } from "@/components/ui/TransactionModal";
 import { ArrowUpDown } from "lucide-react";
+import { l1Provider, l2Provider } from "@/config/providers";
 
 export interface BridgeNFTL1ToL2ButtonProps {
   tokenId: string;
@@ -18,7 +18,6 @@ export interface BridgeNFTL1ToL2ButtonProps {
 
 const BridgeNFTL1ToL2Button: React.FC<BridgeNFTL1ToL2ButtonProps> = ({ tokenId, refetchNFTs }) => {
   const { isConnected, address, chain } = useAccount();
-  const { l1Provider, l2Provider } = useAppContext();
 
   // Modal state
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -63,7 +62,7 @@ const BridgeNFTL1ToL2Button: React.FC<BridgeNFTL1ToL2ButtonProps> = ({ tokenId, 
 
   const checkFinality = useCallback(
     async (txHash: string) => {
-      if (!address || !l1Provider || !l2Provider) return;
+      if (!address) return;
 
       try {
         setTxStatus("bridging");
@@ -90,7 +89,7 @@ const BridgeNFTL1ToL2Button: React.FC<BridgeNFTL1ToL2ButtonProps> = ({ tokenId, 
         setTxError("Error verifying bridge completion.");
       }
     },
-    [address, l1Provider, l2Provider, refetchNFTs]
+    [address, refetchNFTs]
   );
 
   // Handle transaction confirmation
@@ -103,7 +102,7 @@ const BridgeNFTL1ToL2Button: React.FC<BridgeNFTL1ToL2ButtonProps> = ({ tokenId, 
   }, [hash, isConfirming, isConfirmed, checkFinality]);
 
   const handleBridge = useCallback(async () => {
-    if (!isConnected || !chain || !address || !l1Provider || !l2Provider || !nftContractAddress || !nftContractAddressOnL2) {
+    if (!isConnected || !chain || !address || !nftContractAddress || !nftContractAddressOnL2) {
       return;
     }
 
@@ -147,7 +146,7 @@ const BridgeNFTL1ToL2Button: React.FC<BridgeNFTL1ToL2ButtonProps> = ({ tokenId, 
       setTxStatus("error");
       setTxError("Failed to prepare bridge transaction.");
     }
-  }, [isConnected, chain, address, l1Provider, l2Provider, nftContractAddress, nftContractAddressOnL2, tokenId, writeContract, resetWrite]);
+  }, [isConnected, chain, address, nftContractAddress, nftContractAddressOnL2, tokenId, writeContract, resetWrite]);
 
   const closeModal = () => {
     setIsModalOpen(false);

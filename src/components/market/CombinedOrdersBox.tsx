@@ -35,6 +35,7 @@ import { SkeletonBlock } from "@/components/ui/Skeleton";
 import { getTimestampsForDay, formatTime } from "@/utils/dateHelpers";
 import { wattsToKWh, pricePerWattToPerKWh } from "@/utils/units";
 import { AbiFunction } from "viem";
+import { useEthPrice } from "@/hooks/useEthPrice";
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
@@ -625,7 +626,8 @@ OrderListColumn.displayName = "OrderListColumn";
 
 const CombinedOrdersBox: React.FC = () => {
   const { isConnected, address, chainId } = useAccount();
-  const { ethPrice, energyMarketAddress } = useAppContext();
+  const { energyMarketAddress } = useAppContext();
+  const ethPrice = useEthPrice();
   const publicClient = usePublicClient();
   const toast = useMarketToast();
 

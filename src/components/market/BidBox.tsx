@@ -25,6 +25,7 @@ import DateTimePicker from "@/components/common/DateTimePicker";
 import ConnectAndSwitchNetworkButton from "@/components/common/ConnectAndSwitchNetworkButton";
 import { Card, CardHeader, CardSection } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
+import { useEthPrice } from "@/hooks/useEthPrice";
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
@@ -117,7 +118,8 @@ const QuickAmountButton: React.FC<QuickAmountButtonProps> = React.memo(
 
 const BidBox: React.FC = () => {
   const { isConnected, address, chainId } = useAccount();
-  const { ethPrice, energyMarketAddress } = useAppContext();
+  const { energyMarketAddress } = useAppContext();
+  const ethPrice = useEthPrice();
   const toast = useMarketToast();
 
   /* ---- Form state ------------------------------------------------ */
