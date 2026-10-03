@@ -9,7 +9,7 @@ import { useAccount } from "wagmi";
 
 import { useEthersSigner } from "@/utils/ethersHelper";
 import { useAppContext } from "@/context/AppContext";
-import { TransactionModal, TransactionStatus } from "@/components/ui";
+import { TransactionModal, TransactionStatus } from "@/components/ui/TransactionModal";
 
 interface SubmitWithdrawalButtonProps {
   amount: bigint;

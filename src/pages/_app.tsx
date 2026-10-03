@@ -4,21 +4,14 @@ import "@/styles/globals.css";
 import { useState, useEffect } from "react";
 import { WagmiProvider, cookieToInitialState } from "wagmi";
 import type { AppProps } from "next/app";
-import {
-  wagmiAdapter,
-  wagmiConfig,
-  projectId,
-  metadata,
-  defaultChain,
-  novaCidadeMainnet,
-  baseChain,
-} from "@/config";
+import { wagmiAdapter, wagmiConfig, projectId, metadata } from "@/config/wagmi";
+import { defaultChain, novaCidadeMainnet, baseChain } from "@/config/chains";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { createAppKit } from "@reown/appkit/react";
 import { Analytics } from "@vercel/analytics/react";
 import { Toaster } from "react-hot-toast";
 import type { AppKitNetwork } from "@reown/appkit/networks";
-import { ErrorBoundary } from "@/components/ui";
+import { ErrorBoundary } from "@/components/ui/ErrorBoundary";
 import Head from "next/head";
 
 // ---------------------------------------------------------------------------

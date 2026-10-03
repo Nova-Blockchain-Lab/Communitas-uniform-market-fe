@@ -19,7 +19,8 @@ import { useAccount } from "wagmi";
 
 import styles from "@/styles/Home.module.css";
 import { AppProvider } from "@/context/AppContext";
-import { ErrorBoundary, Button } from "@/components/ui";
+import { ErrorBoundary } from "@/components/ui/ErrorBoundary";
+import { Button } from "@/components/ui/Button";
 
 /* ── Types ── */
 type FaucetStatus = "idle" | "loading" | "success" | "error";

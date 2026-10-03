@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { useAccount, useConfig, useSwitchChain } from "wagmi";
-import { defaultChain } from "@/config";
+import { defaultChain } from "@/config/chains";
 import {
   getOutgoingMessageState,
   getTxExpectedDeadlineTimestamp,
@@ -10,7 +10,8 @@ import { useAppContext } from "@/context/AppContext";
 import { ChildToParentMessageStatus, ChildTransactionReceipt } from "@arbitrum/sdk";
 import { useEthersProvider, useEthersSigner } from "@/utils/ethersHelper";
 import { formatTimestamp } from "@/utils/utils";
-import { Button, TransactionModal, TransactionStatus } from "@/components/ui";
+import { Button } from "@/components/ui/Button";
+import { TransactionModal, TransactionStatus } from "@/components/ui/TransactionModal";
 import { Clock, ArrowRight, RefreshCw } from "lucide-react";
 
 // Constants

@@ -1,7 +1,8 @@
 import { fetchEthPrice } from "@/utils/fetchEthPrice";
 import React, { createContext, ReactNode, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { StaticJsonRpcProvider } from "@ethersproject/providers";
-import { wagmiConfig, defaultChain } from "@/config";
+import { wagmiConfig } from "@/config/wagmi";
+import { defaultChain } from "@/config/chains";
 import { mapOrbitConfigToOrbitChain } from "@/utils/mapOrbitConfigToOrbitChain";
 import { registerCustomArbitrumNetwork } from "@arbitrum/sdk";
 import outputInfo from "@/../constants/outputInfo.json";

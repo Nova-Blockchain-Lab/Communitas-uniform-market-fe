@@ -11,15 +11,19 @@ import {
 import { Image as ImageIcon, RefreshCw, Plus, AlertCircle, Grid3X3, LayoutList } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 
-import { contractAddresses, defaultChain } from "@/config";
+import { contractAddresses } from "@/config/constants";
+import { defaultChain } from "@/config/chains";
 import { useMarketToast } from "@/hooks/useMarketToast";
 import CommunitasNFTAbi from "@/../abi/CommunitasNFT.json";
 import ConnectAndSwitchNetworkButton from "@/components/common/ConnectAndSwitchNetworkButton";
 import NFTCard from "@/components/nft/NFTCard";
 import PendingNFTs from "@/components/nft/PendingNFTBox";
-import { Card, CardHeader, CardSection, Button, EmptyState, SkeletonBlock } from "@/components/ui";
-import type { TransactionStatus } from "@/components/ui";
-import { TransactionModal } from "@/components/ui";
+import { Card, CardHeader, CardSection } from "@/components/ui/Card";
+import { Button } from "@/components/ui/Button";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { SkeletonBlock } from "@/components/ui/Skeleton";
+import { type TransactionStatus } from "@/components/ui/TransactionModal";
+import { TransactionModal } from "@/components/ui/TransactionModal";
 import { AbiFunction } from "viem";
 import { NFTData } from "@/utils/executeMessageL2ToL1Helper";
 

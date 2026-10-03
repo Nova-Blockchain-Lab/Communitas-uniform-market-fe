@@ -1,8 +1,8 @@
 import React, { useCallback, useMemo } from "react";
-import { contractAddresses, OPENSEA_URL_CREATOR } from "@/config";
+import { contractAddresses, OPENSEA_URL_CREATOR } from "@/config/constants";
 import { useAccount } from "wagmi";
 import { ExternalLink } from "lucide-react";
-import { Button } from "@/components/ui";
+import { Button } from "@/components/ui/Button";
 
 interface ViewOnOpenseaButtonProps {
   tokenId: string;

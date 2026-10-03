@@ -1,15 +1,10 @@
 import React, { forwardRef } from "react";
 import { motion } from "motion/react";
 
-type CardVariant = "default" | "elevated" | "outlined";
-
 interface CardProps {
   children: React.ReactNode;
   className?: string;
-  hover?: boolean;
-  glow?: boolean;
   padding?: "none" | "sm" | "md" | "lg";
-  variant?: CardVariant;
   loading?: boolean;
 }
 
@@ -21,41 +16,21 @@ const paddingClasses = {
   lg: "p-5 sm:p-8",
 };
 
-const variantClasses: Record<CardVariant, string> = {
-  default: "glass-card rounded-2xl",
-  elevated:
-    "bg-[var(--color-bg-elevated)] border border-[var(--color-border)] rounded-2xl shadow-xl",
-  outlined:
-    "bg-transparent border border-[var(--color-border-hover)] rounded-2xl",
-};
-
-/** Merge class strings, filtering out falsy values and collapsing whitespace */
-function cn(...classes: (string | false | undefined | null)[]): string {
-  return classes.filter(Boolean).join(" ").replace(/\s+/g, " ").trim();
-}
-
 export const Card = React.memo(
   forwardRef<HTMLDivElement, CardProps>(function Card(
     {
       children,
-      className,
-      hover = false,
-      glow = false,
+      className = "",
       padding = "md",
-      variant = "default",
       loading = false,
     },
     ref,
   ) {
-    const baseClasses = cn(
-      variantClasses[variant],
-      paddingClasses[padding],
-      "transition-[background-color,border-color,box-shadow] duration-200",
-    );
+    const classes = `glass-card rounded-2xl ${paddingClasses[padding]} transition-[background-color,border-color,box-shadow] duration-200 ${className}`;
 
     if (loading) {
       return (
-        <div ref={ref} className={cn(baseClasses, className)}>
+        <div ref={ref} className={classes}>
           <div className="space-y-4 animate-pulse">
             <div className="h-5 w-2/5 rounded-lg skeleton-pulse" />
             <div className="space-y-3">
@@ -74,12 +49,7 @@ export const Card = React.memo(
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3 }}
-        className={cn(
-          baseClasses,
-          hover && "card-hover cursor-pointer",
-          glow && "glow-primary",
-          className,
-        )}
+        className={classes}
       >
         {children}
       </motion.div>
@@ -138,7 +108,7 @@ export const CardSection: React.FC<CardSectionProps> = ({
   className,
 }) => {
   return (
-    <div className={cn("space-y-3", className)}>
+    <div className={`space-y-3 ${className ?? ""}`}>
       {title && (
         <label className="text-xs sm:text-sm font-medium text-[var(--color-text-secondary)]">
           {title}

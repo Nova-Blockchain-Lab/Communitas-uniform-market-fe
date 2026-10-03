@@ -6,7 +6,7 @@ import { NFTData, NFTDataWithStatus } from "@/utils/executeMessageL2ToL1Helper";
 import BridgeNFTL2ToL1Button from "@/components/nft/BridgeNFTL2ToL1Button";
 import BridgeNFTL2ToL1ExecuteButton from "@/components/nft/BridgeNFTL2ToL1ExecuteButton";
 import ViewOnOpenseaButton from "@/components/nft/ViewOnOpenseaButton";
-import { SkeletonBlock } from "@/components/ui";
+import { SkeletonBlock } from "@/components/ui/Skeleton";
 
 interface NFTCardProps {
   isL3: boolean;

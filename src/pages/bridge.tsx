@@ -7,8 +7,9 @@ import { ArrowLeft, ArrowLeftRight, ArrowRight, Clock, Droplets, Layers } from "
 
 import styles from "@/styles/Home.module.css";
 import { AppProvider } from "@/context/AppContext";
-import { BridgeBox, BridgeHistory } from "@/components/bridge";
-import { ErrorBoundary } from "@/components/ui";
+import BridgeBox from "@/components/bridge/BridgeBox";
+import BridgeHistory from "@/components/bridge/BridgeHistory";
+import { ErrorBoundary } from "@/components/ui/ErrorBoundary";
 
 type TabId = "bridge" | "history";
 

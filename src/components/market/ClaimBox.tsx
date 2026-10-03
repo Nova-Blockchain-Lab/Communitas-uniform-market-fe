@@ -11,11 +11,16 @@ import { motion, AnimatePresence } from "motion/react";
 import Image from "next/image";
 
 import EnergyBiddingMarketAbi from "@/../abi/EnergyBiddingMarket.json";
-import { DECIMALS, defaultChain } from "@/config";
+import { DECIMALS } from "@/config/constants";
+import { defaultChain } from "@/config/chains";
 import { useAppContext } from "@/context/AppContext";
 import { useMarketToast } from "@/hooks/useMarketToast";
 import ConnectAndSwitchNetworkButton from "@/components/common/ConnectAndSwitchNetworkButton";
-import { Card, CardHeader, Button, SkeletonLine, EmptyState, type TransactionStatus } from "@/components/ui";
+import { Card, CardHeader } from "@/components/ui/Card";
+import { Button } from "@/components/ui/Button";
+import { SkeletonLine } from "@/components/ui/Skeleton";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { type TransactionStatus } from "@/components/ui/TransactionModal";
 
 /* -------------------------------------------------------------------------- */
 /*  Address validation helper                                                 */
@@ -424,8 +429,7 @@ const ClaimBox: React.FC = () => {
               <div className="flex items-center justify-between mb-3 gap-2">
                 <p className="text-xs text-gray-500">Claim to different address</p>
                 <Switch
-                  size="sm"
-                  colorScheme="blue"
+                  label="Claim to different address"
                   isChecked={claimToOther}
                   onChange={handleToggleClaimToOther}
                 />

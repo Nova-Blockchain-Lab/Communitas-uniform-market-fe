@@ -18,16 +18,20 @@ import {
   ShoppingCart,
   Zap,
 } from "lucide-react";
-import { Spinner } from "@/components/ui/Spinner";
 import { motion, AnimatePresence } from "motion/react";
 
 import EnergyBiddingMarketAbi from "@/../abi/EnergyBiddingMarket.json";
-import { DECIMALS, defaultChain } from "@/config";
+import { DECIMALS } from "@/config/constants";
+import { defaultChain } from "@/config/chains";
 import { useAppContext } from "@/context/AppContext";
 import { useMarketToast } from "@/hooks/useMarketToast";
 import ConnectAndSwitchNetworkButton from "@/components/common/ConnectAndSwitchNetworkButton";
 import DateNavigationBar from "@/components/common/DateNavigationBar";
-import { Card, CardHeader, Button, Badge, EmptyState, SkeletonBlock } from "@/components/ui";
+import { Card, CardHeader } from "@/components/ui/Card";
+import { Button } from "@/components/ui/Button";
+import { Badge } from "@/components/ui/Badge";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { SkeletonBlock } from "@/components/ui/Skeleton";
 import { getTimestampsForDay, formatTime } from "@/utils/dateHelpers";
 import { wattsToKWh, pricePerWattToPerKWh } from "@/utils/units";
 import { AbiFunction } from "viem";

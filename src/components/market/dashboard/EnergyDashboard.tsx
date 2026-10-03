@@ -14,13 +14,8 @@ import { useDashboardData } from "@/hooks/useDashboardData";
 import { useTradeData } from "@/hooks/useTradeData";
 import type { HourData, Participant } from "@/hooks/useDashboardData";
 import DateNavigationBar from "@/components/common/DateNavigationBar";
-import {
-  Card,
-  CardHeader,
-  SkeletonBlock,
-  SkeletonRows,
-  SkeletonLine,
-} from "@/components/ui";
+import { Card, CardHeader } from "@/components/ui/Card";
+import { SkeletonBlock, SkeletonRows, SkeletonLine } from "@/components/ui/Skeleton";
 import HourSelector from "./HourSelector";
 import BubbleVisualization from "./BubbleVisualization";
 

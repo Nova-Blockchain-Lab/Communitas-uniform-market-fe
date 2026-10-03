@@ -4,7 +4,7 @@ import { Wallet, RefreshCw } from "lucide-react";
 import { useAccount, useSwitchChain } from "wagmi";
 import { motion } from "motion/react";
 
-import { defaultChain } from "@/config";
+import { defaultChain } from "@/config/chains";
 import { SubmitDepositButton } from "./SubmitDepositButton";
 import { SubmitWithdrawalButton } from "./SubmitWithdrawalButton";
 

@@ -8,13 +8,14 @@ import {
   MessageType,
   WITHDRAWAL_STATUS,
 } from "@/utils/executeMessageL2ToL1Helper";
-import { baseChain, defaultChain } from "@/config";
+import { baseChain, defaultChain } from "@/config/chains";
 import { ChildTransactionReceipt } from "@arbitrum/sdk";
 import { useAccount, useSwitchChain } from "wagmi";
 import { useEthersSigner } from "@/utils/ethersHelper";
 import { useAppContext } from "@/context/AppContext";
 import { formatTimestamp } from "@/utils/utils";
-import { Badge, TransactionModal, TransactionStatus } from "@/components/ui";
+import { Badge } from "@/components/ui/Badge";
+import { TransactionModal, TransactionStatus } from "@/components/ui/TransactionModal";
 
 interface MessageHistoryRowProps {
   message: ETHDepositOrWithdrawalMessage;

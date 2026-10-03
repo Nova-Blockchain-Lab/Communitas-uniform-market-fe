@@ -9,7 +9,7 @@ import {
   type PublicClient,
 } from "viem";
 
-import { defaultChain } from "@/config";
+import { defaultChain } from "@/config/chains";
 import { getTimestampsForDay } from "@/utils/dateHelpers";
 import { fetchLogsFromBlockscout, type BlockscoutLog } from "@/utils/blockscoutApi";
 

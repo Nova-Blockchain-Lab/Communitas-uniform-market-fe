@@ -6,7 +6,7 @@ import type { HourData, Participant } from "@/hooks/useDashboardData";
 import type { Trade } from "@/hooks/useTradeData";
 import { truncateAddress } from "@/utils/dateHelpers";
 import { wattsToKWh } from "@/utils/units";
-import { EmptyState } from "@/components/ui";
+import { EmptyState } from "@/components/ui/EmptyState";
 
 interface BubbleVisualizationProps {
   data: HourData | undefined;

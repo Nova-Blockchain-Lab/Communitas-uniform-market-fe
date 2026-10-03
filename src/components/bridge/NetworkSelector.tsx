@@ -4,7 +4,7 @@ import { useConfig } from "wagmi";
 import { motion, AnimatePresence } from "motion/react";
 import Image from "next/image";
 
-import { defaultChain } from "@/config";
+import { defaultChain } from "@/config/chains";
 
 interface NetworkOption {
   id: number;

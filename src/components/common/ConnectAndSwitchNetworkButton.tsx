@@ -3,8 +3,8 @@ import { useAccount, useSwitchChain } from "wagmi";
 import { motion } from "motion/react";
 import { Wallet, RefreshCw, AlertTriangle } from "lucide-react";
 
-import { defaultChain } from "@/config";
-import { Button } from "@/components/ui";
+import { defaultChain } from "@/config/chains";
+import { Button } from "@/components/ui/Button";
 
 const ConnectAndSwitchNetworkButton: React.FC = () => {
   const { isConnected, chain } = useAccount();

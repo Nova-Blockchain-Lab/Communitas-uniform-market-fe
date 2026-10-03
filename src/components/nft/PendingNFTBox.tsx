@@ -6,7 +6,10 @@ import NFTCard from "@/components/nft/NFTCard";
 import { getPendingOutgoingNftsFromEventLogs, NFTDataWithStatus } from "@/utils/executeMessageL2ToL1Helper";
 import { useAppContext } from "@/context/AppContext";
 import { useAccount } from "wagmi";
-import { Badge, Card, CardHeader, EmptyState, SkeletonBlock, SkeletonLine } from "@/components/ui";
+import { Badge } from "@/components/ui/Badge";
+import { Card, CardHeader } from "@/components/ui/Card";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { SkeletonBlock, SkeletonLine } from "@/components/ui/Skeleton";
 
 interface PendingNFTsBoxProps {
   refetchNFTs: () => {};

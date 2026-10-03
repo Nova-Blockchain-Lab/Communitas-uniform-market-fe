@@ -17,13 +17,14 @@ import {
 import Image from "next/image";
 
 import EnergyBiddingMarketAbi from "@/../abi/EnergyBiddingMarket.json";
-import { defaultChain } from "@/config";
+import { defaultChain } from "@/config/chains";
 import { kWhToWatts, pricePerKWhToPerWattWei } from "@/utils/units";
 import { useAppContext } from "@/context/AppContext";
 import { useMarketToast } from "@/hooks/useMarketToast";
 import DateTimePicker from "@/components/common/DateTimePicker";
 import ConnectAndSwitchNetworkButton from "@/components/common/ConnectAndSwitchNetworkButton";
-import { Card, CardHeader, CardSection, Button } from "@/components/ui";
+import { Card, CardHeader, CardSection } from "@/components/ui/Card";
+import { Button } from "@/components/ui/Button";
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */

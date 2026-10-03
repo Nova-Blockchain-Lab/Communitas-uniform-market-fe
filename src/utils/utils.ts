@@ -1,5 +1,5 @@
 import { StaticJsonRpcProvider } from "@ethersproject/providers";
-import { DECIMALS } from "../../constants/config";
+import { DECIMALS } from "@/config/constants";
 import { formatUnits } from "viem";
 import { BigNumber } from "ethers";
 

@@ -1,4 +1,4 @@
-import { DECIMALS, WATTS_PER_KWH } from "@/config";
+import { DECIMALS, WATTS_PER_KWH } from "@/config/constants";
 
 /** Convert Watts (bigint from contract) to kWh for display */
 export const wattsToKWh = (watts: bigint): number => Number(watts) / WATTS_PER_KWH;

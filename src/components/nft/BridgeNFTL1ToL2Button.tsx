@@ -1,12 +1,14 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { useAccount, useWaitForTransactionReceipt, useWriteContract } from "wagmi";
 import CommunitasNFTL1Abi from "@/../abi/CommunitasNFTL1.json";
-import { contractAddresses, defaultChain } from "@/config";
+import { contractAddresses } from "@/config/constants";
+import { defaultChain } from "@/config/chains";
 import { ParentToChildMessageGasEstimator, ParentToChildMessageStatus, ParentTransactionReceipt } from "@arbitrum/sdk";
 import { ethers } from "ethers";
 import { getBaseFee } from "@arbitrum/sdk/dist/lib/utils/lib";
 import { useAppContext } from "@/context/AppContext";
-import { Button, TransactionModal, TransactionStatus } from "@/components/ui";
+import { Button } from "@/components/ui/Button";
+import { TransactionModal, TransactionStatus } from "@/components/ui/TransactionModal";
 import { ArrowUpDown } from "lucide-react";
 
 export interface BridgeNFTL1ToL2ButtonProps {

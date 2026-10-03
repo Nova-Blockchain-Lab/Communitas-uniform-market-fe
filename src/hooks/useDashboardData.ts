@@ -1,7 +1,8 @@
 import { useReadContracts } from "wagmi";
 import { useCallback, useMemo } from "react";
 import EnergyBiddingMarketAbi from "@/../abi/EnergyBiddingMarket.json";
-import { defaultChain, DECIMALS, WATTS_PER_KWH } from "@/config";
+import { defaultChain } from "@/config/chains";
+import { DECIMALS, WATTS_PER_KWH } from "@/config/constants";
 import { useAppContext } from "@/context/AppContext";
 import { getTimestampsForDay } from "@/utils/dateHelpers";
 import { AbiFunction } from "viem";

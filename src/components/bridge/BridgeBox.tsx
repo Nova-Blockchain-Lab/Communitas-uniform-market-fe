@@ -6,9 +6,9 @@ import { motion, AnimatePresence } from "motion/react";
 import Image from "next/image";
 
 import { useAppContext } from "@/context/AppContext";
-import { baseChain, defaultChain } from "@/config";
+import { baseChain, defaultChain } from "@/config/chains";
 import { formatBalance } from "@/utils/utils";
-import { SkeletonBlock, SkeletonLine } from "@/components/ui";
+import { SkeletonBlock, SkeletonLine } from "@/components/ui/Skeleton";
 import NetworkSelector from "./NetworkSelector";
 import { SubmitButton } from "./SubmitButton";
 

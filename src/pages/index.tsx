@@ -7,11 +7,17 @@ import { ArrowRight, Droplets, Menu } from "lucide-react";
 
 import styles from "@/styles/Home.module.css";
 import { AppProvider } from "@/context/AppContext";
-import { Slider, RegionDropdownList } from "@/components/common";
+import Slider from "@/components/common/Slider";
+import RegionDropdownList from "@/components/common/RegionDropdownList";
 import MobileDrawer from "@/components/common/MobileDrawer";
-import { BidBox, SellBox, CombinedOrdersBox, TradeHistoryBox, ClaimBox, EnergyDashboard } from "@/components/market";
-import { NFTBox } from "@/components/nft";
-import { ErrorBoundary } from "@/components/ui";
+import BidBox from "@/components/market/BidBox";
+import SellBox from "@/components/market/SellBox";
+import CombinedOrdersBox from "@/components/market/CombinedOrdersBox";
+import TradeHistoryBox from "@/components/market/TradeHistoryBox";
+import ClaimBox from "@/components/market/ClaimBox";
+import EnergyDashboard from "@/components/market/dashboard/EnergyDashboard";
+import NFTBox from "@/components/nft/NFTBox";
+import { ErrorBoundary } from "@/components/ui/ErrorBoundary";
 
 const PAGE_VARIANTS = {
   initial: { opacity: 0, y: 12 },

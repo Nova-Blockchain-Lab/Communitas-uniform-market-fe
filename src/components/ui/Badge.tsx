@@ -1,6 +1,6 @@
 import React, { memo } from "react";
 
-type BadgeVariant = "success" | "warning" | "error" | "info" | "neutral" | "energy";
+type BadgeVariant = "success" | "warning" | "error" | "info" | "neutral";
 type BadgeSize = "sm" | "md";
 
 interface BadgeProps {
@@ -18,7 +18,6 @@ const variantClasses: Record<BadgeVariant, string> = {
   error: "bg-red-500/15 text-red-400 border-red-500/25",
   info: "bg-[var(--color-primary-500)]/15 text-[var(--color-primary-400)] border-[var(--color-primary-500)]/25",
   neutral: "bg-gray-500/15 text-[var(--color-text-secondary)] border-gray-500/25",
-  energy: "bg-[var(--color-energy-500)]/15 text-[var(--color-energy-300)] border-[var(--color-energy-500)]/25",
 };
 
 const pulseColors: Record<BadgeVariant, string> = {
@@ -27,7 +26,6 @@ const pulseColors: Record<BadgeVariant, string> = {
   error: "bg-red-400",
   info: "bg-[var(--color-primary-400)]",
   neutral: "bg-gray-400",
-  energy: "bg-[var(--color-energy-300)]",
 };
 
 const sizeClasses: Record<BadgeSize, string> = {
@@ -69,43 +67,5 @@ export const Badge: React.FC<BadgeProps> = memo(({
 });
 
 Badge.displayName = "Badge";
-
-interface StatusDotProps {
-  status: "online" | "offline" | "pending" | "error";
-  pulse?: boolean;
-}
-
-export const StatusDot: React.FC<StatusDotProps> = memo(({
-  status,
-  pulse = false,
-}) => {
-  const statusColors: Record<string, string> = {
-    online: "bg-[var(--color-accent-green)]",
-    offline: "bg-gray-500",
-    pending: "bg-[var(--color-energy-500)]",
-    error: "bg-[var(--color-accent-red)]",
-  };
-
-  return (
-    <span className="relative flex h-3 w-3">
-      {pulse && (
-        <span
-          className={`
-            animate-ping absolute inline-flex h-full w-full rounded-full opacity-75
-            ${statusColors[status]}
-          `}
-        />
-      )}
-      <span
-        className={`
-          relative inline-flex rounded-full h-3 w-3
-          ${statusColors[status]}
-        `}
-      />
-    </span>
-  );
-});
-
-StatusDot.displayName = "StatusDot";
 
 export default Badge;

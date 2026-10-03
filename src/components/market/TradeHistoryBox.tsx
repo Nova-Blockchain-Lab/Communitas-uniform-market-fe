@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback, useMemo } from "react";
 import { ArrowLeftRight, TrendingUp, BarChart3, ShoppingCart, Store } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
-import { SkeletonBlock, SkeletonLine } from "@/components/ui";
+import { SkeletonBlock, SkeletonLine } from "@/components/ui/Skeleton";
 import {
   createPublicClient,
   http,
@@ -11,10 +11,12 @@ import {
   type PublicClient,
 } from "viem";
 
-import { defaultChain } from "@/config";
+import { defaultChain } from "@/config/chains";
 import { useAppContext } from "@/context/AppContext";
 import DateNavigationBar from "@/components/common/DateNavigationBar";
-import { Card, CardHeader, Badge, EmptyState } from "@/components/ui";
+import { Card, CardHeader } from "@/components/ui/Card";
+import { Badge } from "@/components/ui/Badge";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { wattsToKWh, pricePerWattToPerKWh } from "@/utils/units";
 import { getTimestampsForDay, formatTime, truncateAddress } from "@/utils/dateHelpers";
 import { fetchLogsFromBlockscout, type BlockscoutLog } from "@/utils/blockscoutApi";

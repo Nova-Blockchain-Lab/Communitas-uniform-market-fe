@@ -3,10 +3,11 @@ import { MapPin, ChevronDown, Check } from "lucide-react";
 import { useAccount } from "wagmi";
 import { motion, AnimatePresence } from "motion/react";
 
-import { contractAddresses, defaultChain } from "@/config";
+import { contractAddresses } from "@/config/constants";
+import { defaultChain } from "@/config/chains";
 import { useAppContext } from "@/context/AppContext";
 import { fetchUserCountry } from "@/utils/fetchUserCountry";
-import { SkeletonLine } from "@/components/ui";
+import { SkeletonLine } from "@/components/ui/Skeleton";
 
 const regionFlags: Record<string, string> = {
   Denmark: "\ud83c\udde9\ud83c\uddf0",

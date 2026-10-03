@@ -38,6 +38,3 @@ export const arbitrumSepoliaRpcUrls = keyedRpc
 // wallet_addEthereumChain, and a domain-restricted key fails from a wallet. The keyed URL
 // is used only through the wagmi transport and AppContext's providers.
 export const baseChain = arbitrumSepolia;
-
-// All supported chains
-export const supportedChains = [defaultChain, arbitrumSepolia] as const;

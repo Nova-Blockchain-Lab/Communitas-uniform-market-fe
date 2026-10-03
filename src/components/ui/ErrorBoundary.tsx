@@ -4,8 +4,6 @@ import { Button } from "./Button";
 
 interface ErrorBoundaryProps {
   children: React.ReactNode;
-  /** Optional custom fallback UI. When provided, replaces the default error display. */
-  fallback?: React.ReactNode;
 }
 
 interface ErrorBoundaryState {
@@ -35,10 +33,6 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
 
   render() {
     if (this.state.hasError) {
-      if (this.props.fallback) {
-        return this.props.fallback;
-      }
-
       return (
         <div className="flex flex-col items-center justify-center py-10 sm:py-16 px-4 sm:px-6 text-center w-full">
           <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-red-500/15 flex items-center justify-center mb-4">

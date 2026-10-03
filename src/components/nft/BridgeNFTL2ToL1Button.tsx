@@ -1,9 +1,10 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { useAccount, useWaitForTransactionReceipt, useWriteContract } from "wagmi";
 import CommunitasNFTL2 from "@/../abi/CommunitasNFTL2.json";
-import { contractAddresses } from "@/config";
+import { contractAddresses } from "@/config/constants";
 import { NFTData } from "@/utils/executeMessageL2ToL1Helper";
-import { Button, TransactionModal, TransactionStatus } from "@/components/ui";
+import { Button } from "@/components/ui/Button";
+import { TransactionModal, TransactionStatus } from "@/components/ui/TransactionModal";
 import { ArrowUpDown } from "lucide-react";
 
 interface BridgeNFTL2ToL1ButtonProps {

@@ -8,8 +8,8 @@ import { motion } from "motion/react";
 
 import { useEthersSigner } from "@/utils/ethersHelper";
 import { useAppContext } from "@/context/AppContext";
-import { defaultChain } from "@/config";
-import { TransactionModal, TransactionStatus } from "@/components/ui";
+import { defaultChain } from "@/config/chains";
+import { TransactionModal, TransactionStatus } from "@/components/ui/TransactionModal";
 
 interface SubmitDepositButtonProps {
   amount: bigint;

@@ -9,7 +9,8 @@ import {
   getETHWithdrawalsInfo,
 } from "@/utils/executeMessageL2ToL1Helper";
 import { useAppContext } from "@/context/AppContext";
-import { EmptyState, SkeletonBlock, SkeletonLine } from "@/components/ui";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { SkeletonBlock, SkeletonLine } from "@/components/ui/Skeleton";
 import MessageHistoryRow from "./MessageHistoryRow";
 
 /** DateGroup type for grouped messages */
